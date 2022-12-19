@@ -1,1 +1,22 @@
 sudo sshfs -o allow_other,default_permissions luigi@192.168.1.79:/home ../../../pimount
+sudo sshfs  luigi@192.168.1.79:/home ../../../pimount
+
+create repo in github, clone in server:
+https://docs.github.com/en/get-started/getting-started-with-git/managing-remote-repositories
+https://jdhao.github.io/2018/05/16/git-push-local-to-remote/
+https://github.com/new
+https://www.digitalocean.com/community/cheatsheets/how-to-use-git-a-reference-guide
+https://stackoverflow.com/questions/5561295/what-does-git-push-u-mean
+https://www.atlassian.com/git/tutorials/setting-up-a-repository
+....
+remember : create in pushing dir also readme.md + gitignore !
+
+so use to push first time my local git to 
+ -a new created remote repo in gihub without readme.md : 
+   first time use >  git push -u origin --all
+   then to push a new commit use  >  git push 
+
+   see https://stackoverflow.com/questions/71272062/what-is-the-difference-between-git-push-u-origin-and-git-push-set-upstream-or
+
+
+

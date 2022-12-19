@@ -124,7 +124,7 @@ function ccbb(client) {// when client got a request (a button) for a plant on a 
       inst=started[name].inst = (new eMClass()).cfg();// create the fv ctl, customize its .on
 
 
-        inst.status.app.plantname=name;
+        inst.state.app.plantname=name;
 
         //??
         // started.name.inst.start();// start the new instance
@@ -532,7 +532,7 @@ console.log('socket connected to a client');
 
     // get user login or just the plant name in some html field + button start that will fire event startuserplant
     let user = { name: data };
-    eM = ccbb(user);// ** il fsm recupera/crea un sigletho x user/plant 
+    eM = ccbb(user);// ** il fsm recupera/crea un siglethon x user/plant 
     if (eM) {
       startfv(eM,user);// ** start/update singlethon 
     }
