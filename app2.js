@@ -61,6 +61,7 @@ class WithTime extends EventEmitter {// js version ....
       this.aiax = { battLevel: 0 };// input datastate direcly updated with aiax calls
       // internal fsm state :
       this.token=null;
+      this.stepInd=-1;// next step navigation
 
     }
 
@@ -90,7 +91,44 @@ class WithTime extends EventEmitter {// js version ....
   //  execute(asyncFunc,asyMajorEv,asyProcess, ...args) 
   //execute(evname, evtype, evcontingencyparam, asyncFunc, asyncpreferred_evlistener - on, evlistener_data, asyMajorEv, asyProcess) {// a entry point in fsm (master event process that precess basic fsm events)
   //execute(evname,  evcontingencyparam,evAsyn,ev2run,evistener_data) {// a entry point in fsm (master event process that precess basic fsm events)
-  execute(procName, evcontingencyparam, evAsyn, ev2run, evAsync, processAsync, dataArr) {// a entry point in fsm (master event process that precess basic fsm events)
+  //execute(procName, evcontingencyparam, evAsyn, ev2run, evAsync, processAsync,asyncPoint, dataArr) {// a entry point in fsm (master event process that precess basic fsm events)
+    execute(procName, evcontingencyparam, evAsyn, ev2run, processAsync,asyncPoint, dataArr_){
+/* news 20122021
+    ev2run={evname1:null,evname1:eventnamtofillinputwithresults=evname1,,,}={connect:startcheck,openapi:null,startcheck:null}  the event to run and the event to set the input as result 
+ 
+      evname will run with input dataCon[evname] that is :
+            dataArr[evname].event or, if eventnamtofillinputwithresults is not null:
+            the results of evAsyn[eventnamtofillinputwithresults]( input =dataCon[eventnamtofillinputwithresults] usually dataArr[eventnamtofillinputwithresults].event  )
+      so evname1 will be run not with input = dataArr[evname] 
+            but with input  : the results of evAsyn[evname]( input =dataCon[evname].event )
+        
+  
+        we can insert dummy events (.emit(dummy,,,) is uneffect ), just to insert a step with null event but that can run some processAsync
+  
+    evAsyn={evname:a asynctorun,,,} : asynctorun  is the async to run before fire the event, input x asynctorun is : dataArr[evname].processAsync
+                                      the asynctorun cb(data)  will set dataCon[asynckey]=date if data not null  
+    dataArr[evname]=data/{event:evdata,processAsync:asyncdata}  nb if .processAsinc is null then will be set as .event or data  
+      dataArr[evname].processAsync
+
+
+
+    asyncPoint={1:'login',,,,,}; at step 1 run :   processAsync={login:function(){},,,,,} with input  input_ = dataArr[asynckey];
+
+    stepx : // current step index : can be reset in event handler setting this.state.stepInd!! (default is ++)
+        ev2run events will be fired sequentially (step=0,1,,,) in ...
+            with .emit(event,inputdata=dataCon[event],,)
+
+          but before firing  we can run  the async processAsync[ asyncprocedurename=asyncPoint[stepx])]
+
+
+    
+
+    problem : what to do with : evAsync  ????, seems old staff
+        
+
+*/
+
+
 
     // run begin , the asyncfunc passed with args param to use with specific evname ()
     //ex the server connector fusionsolar , then using param and the async return 
@@ -126,7 +164,7 @@ class WithTime extends EventEmitter {// js version ....
   
   
       >>> in future will be put in cfg call into
-    evAsync = {} : a bank of event injected func at init!!!!!!!!!!!!!!!!!!!
+    evAsyn = {} : a bank of event injected func at init!!!!!!!!!!!!!!!!!!!
     processAsync: additional custom injected to run in process(passed to all emitter chain), compreso  asyncFunc
   
   
@@ -144,6 +182,20 @@ class WithTime extends EventEmitter {// js version ....
       let result=inpu*100,err=0;
       cb( err,result);// the return
     }*/
+
+
+
+    /* todo
+    if(dataArr[key])
+    if(dataArr[key].event){
+      dataArr[evname].processAsync=dataArr[evname].processAsync||dataArr[evname].event;
+    }
+    else {dataArr[key].event=dataArr[key];dataArr[evname].processAsync=dataArr[evname];
+      
+    }
+    */
+   let dataArr=dataArr_;// temporarely
+
 
     function updateData// the cb std func, do nothing, just returns data
       (//ev,// needed ?
@@ -184,9 +236,9 @@ class WithTime extends EventEmitter {// js version ....
     // templates DDFFRR : 
     // let evAsyn = {asyncFunc:'',evname1:1,startcheck:0};// {asyncfunc to run in some poins:avalue?,the eventasynctorunin sequence:avalue?}startcheck=1 after updated the status will fire startcheck
     // let ev2run = {begin:null,startcheck:'begin'};// {the eventasynctorunin sequence:avalue?}startcheck=1 after updated the status will fire startcheck, null means evistener_data !!
-    // let dataArr={begin:100,startcheck:null};// event or processasync key
-    // evAsync={aEv2runKey:itsasync,,,,,,}
-    // processAsync={'login':true,,,,,}
+    // let dataArr={begin:{event:100,processAsync:null},startcheck:null};// event or processasync key
+    // evAsyn={aEv2runKey:itsasync,,,,,,}
+    // processAsync={1:'login',,,,,}
 
 /* the template for a .on listener FFGG:
 
@@ -200,21 +252,31 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
 
 */
 
+  console.log('execute() run event list : ',ev2run);
+
     let dataInv = {},// the output of events will go to ...
       dataCon = {};// the input data , some to update or to be added by som asyncprocess
 
-    Object.keys(ev2run).forEach(function (key, index) {// fills dataCon dataInv
+    Object.keys(ev2run).forEach(function (key, index) {// for each entryrun a event/dummy step 
+                                                      // navigation : next step will be ++ or modified by state.stateInd
+                                                      //fills dataCon[key]
+                                                      //    > data to use x event key, to be updated when event key is fired and returns the data
+                                                      //        or simply : dataArr[key]
+                                                      // + dataInv 
+                                                      //    >   dataInv[key] :the event ev2run[key] will receive input from event key
+                                                      // ev2run={connect:startcheck,openapi:null,startcheck:null}
       console.log('key ', key);
       // key: the name of the object key
       // index: the ordinal position of the key within the object 
       if (ev2run[key]) {// event key must give return as input of event ev2run[key]
-        console.log('key found on ev2run', key);
-        dataInv[ev2run[key]] = key;// the event setting input
-        dataCon[key] = null;// to be updated
+        console.log('ev2run event', key,' will give results as input for event  ',ev2run[key]);
+        dataInv[ev2run[key]] = key;// the event ev2run[key] will receive input from event key
+        dataCon[key] = null;// data to use x event key, to be updated when event key is fired and returns the data
       } else {// null value means the input is in dataArr.key
         // dataInv[ev2run[key]]=null;// alredy set
-        console.log('key not found on ev2run', key);
-        dataCon[key] = dataArr[key];
+       
+        if(dataArr[key].event)dataCon[key] = dataArr[key].event;else dataCon[key] =null; 
+        console.log('ev2run event', key,' take as input the data provided   ',dataCon[key].event);//('key not found on ev2run , property: ', key);
       }
 
     });
@@ -230,7 +292,8 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
       }
 
       function InnerFunction(newin) {// InnerFunction rename in :runevent, newin can force the new input instead of std input ev2run[ev]
-        let inp = newin || ev2run[ev];
+        let inp = newin || 
+          dataCon[key];// no :ev2run[ev];
         //function updateData_(err,data){   // zz
         //		ev2run[evnam]=updateData(err,data);}
         // state sara in this.state .    inp=inp+state ;// ?????????????????????
@@ -248,26 +311,33 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
     // basic event listener/router are here defined 
     // begin 
 
-    let asyncPoint = { 1: 'login' }; //??
+    asyncPoint = asyncPoint||{ 0: 'login' }; //??  at step stepx run the async processAsync[ asyncPoint[stepx])]
 
     // now start sequentially do the list : ev2run
     //  some event can change the index or interrupt the loop or run another event or procedure
-    // for example in a listener fv can fire another event or procedure after reset the index of this loop
-    // state.stateInd=1000; or =0 so restart the process after finish the event chain
+    // for example in a listener fv can fire another event or procedure 
+    // after reset the index of this loop :  state.stateInd=1000; or =0 
+    //      so restart the process after finish the event chain
     // emit('othereventchainhead',data), so we follow the customized(fv) chain of event , they will run sync 
     //  then when returns we  complete the for with the index resetted (0 or 1000 ) or we start a new execute
 
 
-    let stepNum = 0;
-    let prolist=ev2run.keys() , nprop=prolist.length;
+    let stepNum = -1;
+    let prolist=Object.keys(ev2run) , nprop=prolist.length;
     // for (var step in ev2runj) {//
-    let stepInd=this.state.stepInd=0;
-    for (let i=0;i<stepInd;i++) {// ******  in this loop we run sequentially events and asyncs according to procedure def in: DDFFRR 
+    let stepInd=this.state.stepInd=-1;// if >0 :current step index : can be reset in event handler !! (default is ++)
+    for (let i=0;i<nprop;i++) {// ******  in this loop we run sequentially events and asyncs according to procedure def in: DDFFRR 
                                   // the closure standard cb will set/reset input for next events using values in ev2run
 
     //  if (ev2run.hasOwnProperty(step)) {
 
-        stepNum++;
+      // navigation :
+      // for each entryrun a event/dummy step 
+      //  : next step will be ++ or modified by state.stateInd
+      // to  exit the stake set  state.stateInd>=nprop  ex 1000
+
+      if(this.state.stepInd>=0)stepnum=state.stepInd;
+        else stepNum++;
 
         // now before a step event run some async :
         let asyncNam;
@@ -286,7 +356,7 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
 
       // ends :
 
-      console.time('execute');
+      console.log('job started to resolve the event ....');console.time('execute');// start measuring time x job ()
       // moved this.on('data', (data)=> console.log('got data ', data));
 
       if (procName == 'customEv') { };
@@ -301,16 +371,18 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
       console.log(' results of event ', myev, ':', ev2run, dataCon, 'dataInv: ', dataInv);
     }
 
-    async function runAsync(asynckey) {
+    async function runAsync(asynckey) {// run async associated to event with input=dataArr[asynckey].processAsync
       // to call here or in some place , ex :in specific event listener :
       let asyncFunc = evAsyn[asynckey],
-        input_ = dataArr[asynckey];
+        input_ = null;
+        if(dataArr[asynckey]) input_=dataArr[asynckey].processAsync;
       if (asyncFunc)
         //if (args[0]==1)
+        console.time(asynckey);
         await asyncFunc(
 
           input_,
-          // ...args
+          // ...args chained from excute args
           procName, evcontingencyparam, evAsyn, ev2run, evAsync, processAsync, dataArr
 
           // usually the calc data will be put in key in dataCon={asynckey};
@@ -331,6 +403,7 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
             console.timeEnd('execute');
             this.emit('end');
             */
+            console.log(asynckey,' async func ends with time: ');console.timeEnd(asynckey);
             if (data) dataCon[asynckey] = data;
 
           });

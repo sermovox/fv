@@ -375,7 +375,13 @@ function customOn(these) {
   //      cb(err,result)  is used on app2 to concatenate event output to other events !!!!!
 
  // these.on('connect', async function (that, cb) {// only  event type 1, so events that after lauch startcheck, can fire start event to login to openapi. so anyway get token/login
-    these.on('connect',
+    
+ 
+ 
+ // WARNING  : this connect event will run in step 0 event , if token is expired the step 0 will be redone (we reset this.state.stepInd=0)
+ // will be  better put this async in processAsync function to run in event openapi
+ 
+ these.on('connect',
     // se tolgo async non posso usare await f ma devo usare f().then() 
         async function (dummy, cb) {// ?? only  event type 1, so events that after lauch startcheck, can fire start event to login to openapi. so anyway get token/login
 
@@ -483,7 +489,7 @@ let ev2run = {connect:null,openapi:null,startcheck:null};// {the eventasynctorun
 
 
 let dataArr=//{begin:0,startcheck:0}; 
-{begin:0,openapi:0,startcheck:0}; 
+{begin:null,openapi:null,startcheck:null}; 
                                    // ?? // event or processasync key
 let  evAsync={};// evAsync={aEv2runKey:itsasync,,,,,,}
 let processAsync={};
@@ -497,7 +503,8 @@ let processAsync={};
       // better : // fn(asyncFunc,asyMajorEv,asyProcess, evcontingencyparam,evfunc,evdata);
       
       // fn.execute(asyncFunc, asyMajorEv, asyProcess, evname = startcheck, evtype, evcontingencyparam, evfunc, evdata);// check periodically the status of fv ctl)
-      fn.execute(procName, null,evAsyn,ev2run, evAsync,processAsync,dataArr)
+      //fn.execute(procName, evcontingencyparam, evAsyn,ev2run, evAsync,    processAsync, dataArr)
+        fn.execute(procName, null              , null,  ev2run, asyncPoint, processAsync, dataArr);
       // asyncFunc,asyMajorEv,asyProcess sono funzioni passate qui per personalizzare eM o usare dati eM per eseguire local process , es leggere un file chiamare un aiax
       // o mandare avanti un process locale come gli stati interfaccia web usando dati parziali o finali (cb) di eM
 
