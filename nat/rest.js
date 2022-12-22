@@ -21,7 +21,7 @@ here we'll use http_.request()
 */
 
  module.exports ={// returns Promise
-     init:function(http_,https_,request_){http=http_;https=https_;request=request_},
+     init:function(http_,https_,request_){console.log('rest init : load http: ',http_);http=http_;https=https_;request=request_},
      jrest:function(url,method,data,head, urlenc,qs){/* used in fv : 
 
                                                           response = {data, token}=await  this.rest(uri, method,formObj,head) 
@@ -50,6 +50,9 @@ here we'll use http_.request()
          // .catch((err) => { console.error(err); });  or  .catch(console.error);
 
          // if(response){data=JSON.parse(response.data);token=response.token);   SSSS
+
+
+         console.log('rest called with body:',data,' http: ',http,' req: ',http.request);
          let du,h=http;
          if(url.substring(0,4)=='http'){
          if((du=url.charAt(4))==':');else if((du=url.charAt(4))=='s')h=https;
@@ -212,6 +215,7 @@ function jhttppost(h, url, data_, head, qs, urlenc, resolve, reject) {// data_ i
     headers: head_
   };
   if (head) Object.assign(options.headers, head);
+  console.log('jhttppost h.request firing , options: ',JSON.stringify(options,null,2),'\n url: ',url);
   h.request( // sarebbe http_.request()
     url,// or in xxxxx
     options, res => {

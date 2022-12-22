@@ -259,10 +259,11 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
 
     Object.keys(ev2run).forEach(function (key, index) {// for each entryrun a event/dummy step 
                                                       // navigation : next step will be ++ or modified by state.stateInd
-                                                      //fills dataCon[key]
+                                                      //fills :
+                                                      // -dataCon[key]
                                                       //    > data to use x event key, to be updated when event key is fired and returns the data
                                                       //        or simply : dataArr[key]
-                                                      // + dataInv 
+                                                      // - dataInv 
                                                       //    >   dataInv[key] :the event ev2run[key] will receive input from event key
                                                       // ev2run={connect:startcheck,openapi:null,startcheck:null}
       console.log('key ', key);
@@ -274,9 +275,9 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
         dataCon[key] = null;// data to use x event key, to be updated when event key is fired and returns the data
       } else {// null value means the input is in dataArr.key
         // dataInv[ev2run[key]]=null;// alredy set
-       
-        if(dataArr[key].event)dataCon[key] = dataArr[key].event;else dataCon[key] =null; 
-        console.log('ev2run event', key,' take as input the data provided   ',dataCon[key].event);//('key not found on ev2run , property: ', key);
+        dataCon[key] =null;
+        if(dataArr[key]&&dataArr[key].event)dataCon[key] = dataArr[key].event; 
+        console.log('ev2run event', key,' take as input the data provided   ',dataCon[key]);//('key not found on ev2run , property: ', key);
       }
 
     });
@@ -287,13 +288,20 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
       console.log('ciao');
       var outerVariable = par;// che cosa configura ???
       function updateData_(err, data) {   // zz   this id the cb   to framework: set ev2run[ev] using std cb updateData () that just return  data
-        ev2run[ev] = updateData(err, data);//  after updated the input for event ev 
-        console.log(' updateData_', ev, ev2run);
+       //  ev2run[ev] = updateData(err, data);//  after updated the input for event ev 
+       console.log('event (',ev,') handler returned data in cb : ',JSON.stringify(data,null,2));
+       if(data&&dataInv[ev] ){dataCon[dataInv[ev] ]=updateData(err, data);// =data . updated the input for event dataInv[ev] calculated from the data filled in cb by handler .on()
+       console.log(' returned data from hanler set the input for event ',dataInv[ev]);
+      }
+      console.log(' ev results calls updateData_ , ev:', ev,'dataCon: ', dataCon);
+      // goon step
+      goonstep();
+
       }
 
       function InnerFunction(newin) {// InnerFunction rename in :runevent, newin can force the new input instead of std input ev2run[ev]
         let inp = newin || 
-          dataCon[key];// no :ev2run[ev];
+          dataCon[ev];// no :ev2run[ev];
         //function updateData_(err,data){   // zz
         //		ev2run[evnam]=updateData(err,data);}
         // state sara in this.state .    inp=inp+state ;// ?????????????????????
@@ -302,6 +310,10 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
         this.emit(ev, inp, updateData_);// so the template for .on call will be SEDR  !!!!!!!!!!!!!!!!!!!
                                         // QUESTION .on ha il this lo stesso di questo ??? (instanza corrente di )
                                         // se si allora posso ottenere state = this.state
+
+        // >>>>  emit is sync so emit returns ( so innerfunction returns to runEvent() caller)
+        //  when .on(ev,,) handler returns. but the promise on .on hanler will call updatedata_ usually just before the handler returns  
+        //    >> not later infact in the handler we wait the async rest  
       }
 
       return InnerFunction;
@@ -311,7 +323,7 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
     // basic event listener/router are here defined 
     // begin 
 
-    asyncPoint = asyncPoint||{ 0: 'login' }; //??  at step stepx run the async processAsync[ asyncPoint[stepx])]
+    //asyncPoint = asyncPoint||{ 0: 'login' }; //??  at step stepx run the async processAsync[ asyncPoint[stepx])]
 
     // now start sequentially do the list : ev2run
     //  some event can change the index or interrupt the loop or run another event or procedure
@@ -322,12 +334,19 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
     //  then when returns we  complete the for with the index resetted (0 or 1000 ) or we start a new execute
 
 
-    let stepNum = -1;
+    let that=this;// to set this obj as context in embedded functions
+
+    let stepNum = -1;// new stepindex
     let prolist=Object.keys(ev2run) , nprop=prolist.length;
     // for (var step in ev2runj) {//
     let stepInd=this.state.stepInd=-1;// if >0 :current step index : can be reset in event handler !! (default is ++)
-    for (let i=0;i<nprop;i++) {// ******  in this loop we run sequentially events and asyncs according to procedure def in: DDFFRR 
+    let i=0;// old stepindex
+
+    //for ( i=0;i<nprop;i++) {// ******  in this loop we run sequentially events and asyncs according to procedure def in: DDFFRR 
                                   // the closure standard cb will set/reset input for next events using values in ev2run
+    function goonstep(){// the for loop isgoon by a asinc return  in Outerfunction!
+      if(stepNum<nprop)ends();// exit loop
+
 
     //  if (ev2run.hasOwnProperty(step)) {
 
@@ -336,39 +355,47 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
       //  : next step will be ++ or modified by state.stateInd
       // to  exit the stake set  state.stateInd>=nprop  ex 1000
 
-      if(this.state.stepInd>=0)stepnum=state.stepInd;
+      //if(this.state.stepInd>=0)stepnum=state.stepInd;
+      if(that.state.stepInd>=0)stepNum=state.stepInd;// 
         else stepNum++;
-
+        let step=prolist[stepNum];// event at current step
         // now before a step event run some async :
-        let asyncNam;
+        let asyncNam,noasync=true;
         if ((asyncNam = asyncPoint[stepNum])) {
           if (processAsync[asyncNam]) {// run here the (login) async before fire the event
-            runAsync(asyncNam);
+            noasync=false;
+            runAsync(asyncNam)
+                              .then(() => runEvent(step));
+
 
           }
         }
         // do stuff
-
+        if(noasync)
         runEvent(step);// can return after a client defined event chain
-      }
+         // Outerfunction will wait cb then call this one togoon a step
+      };
+      goonstep();// start event loop ev2run
+      return ;// sync thread ends
 
 
 
       // ends :
-
+      function ends(){
       console.log('job started to resolve the event ....');console.time('execute');// start measuring time x job ()
       // moved this.on('data', (data)=> console.log('got data ', data));
 
       if (procName == 'customEv') { };
-
+      }
     
     // func:
 
     function runEvent(myev) {//run event myev with in data primariamente in ev2run
       //  var myev='begin';
       let par1 = 0;
-      var emmitMyev = OuterFunction(par1, myev)();//,_mycb);// prepare senza usare zzzz
-      console.log(' results of event ', myev, ':', ev2run, dataCon, 'dataInv: ', dataInv);
+      console.log(' runEvent: firing handler of event : ',myev);
+      var emmitMyev = OuterFunction(par1, myev).call(that,null);//,_mycb);// prepare senza usare zzzz
+      console.log(' results of event ', myev, ', ev2run is:', ev2run,' dataCon is: ', dataCon, ', dataInv: ', dataInv);
     }
 
     async function runAsync(asynckey) {// run async associated to event with input=dataArr[asynckey].processAsync

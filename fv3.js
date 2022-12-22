@@ -6,7 +6,11 @@
 // 
 //  quando ho una connessione web istazio/recupero un fsm singlethon che gestisce l'impianto user/plant luigi
 
-var http = require('http').createServer(handler); //require http server, and create server with function handler()
+var https_ = require('https'); //require http server, and create server with function handler()
+var http_ = require('http'); //require http server, and create server with function handler()
+console.log('http_.request:',http_.request);
+var http = http_.createServer(handler); //require http server, and create server with function handler()
+console.log('after createserver , http_.request:',http.request);
 var fs = require('fs'); //require filesystem module
 var io = require('socket.io')(http) //require socket.io module and pass the http object (server on wich soket will be built)
 var Gpio = require('onoff').Gpio; //include onoff to interact with the GPIO
@@ -27,7 +31,7 @@ new Gpio(21, 'in', 'both')
 let relaisEv=['pcd',// socket event to sync raspberry buttons and web button
 'g','n','s'];
 
-jrest_=require('./nat/rest.js');jrest_.init(http,null);
+jrest_=require('./nat/rest.js');jrest_.init(http_,https_);
  const aiax=jrest_.jrest;//  che fa ?
 function aiax__(url,body,head){// relay to rest  .rest(uri, method,formObj,head) 
   // remember :  response = {data, token}=await  this.rest(uri, method,formObj,head) 
@@ -111,7 +115,7 @@ function ccbb(client) {// when client got a request (a button) for a plant on a 
     console.log('ccbb  factory:',eMCustomClass.toString());
 
     if (started[name]&&started[name].inst)// its alredy requested and a instance is alredy set, so continue on a fv instance 
-      return started.name.inst;// just goon using the alredy running inst
+      return started[name].inst;// just goon using the alredy running inst
     else {// start a fv instance
       started[name] = {};
       //if (!started.name.inst) 
@@ -184,9 +188,11 @@ return startweb();// 1; ok
 
  function startweb (options) {// start fv web server, every time a user do  get will start . ?????????????????????
 
-  console.log('start listen web request');
+  console.log('start listen web request, http: ',http);
 
   http.listen(8080); //listen to port 8080, wait a user to connect and login to get the user name
+
+  console.log('started listen web request, http: ',http);
 
   // other client init stall 
 
@@ -250,7 +256,7 @@ function login(userName) {// to call to set login on inverter openapi, got the t
 "systemCode":"Huawei@123"
 }'
 */
-
+console.log(' login() started x sername: ',userName);
 
   let body=
     {
@@ -258,9 +264,11 @@ function login(userName) {// to call to set login on inverter openapi, got the t
       userName:userName,
       "systemCode":"Huawei@123" // put in .env
       }
-      ,url='https://eu5.fusionsolar.huawei.com/thirdData/login',
-      head={"Content-Type": "application/json"};
-  return aiax(url,'POST',body,head)// a promise
+  ,url='https://eu5.fusionsolar.huawei.com/thirdData/login',
+  head={"Content-Type": "application/json"};
+  let ret=aiax(url,'POST',body,head)// a promise
+  console.log('returning a promise from login: ',ret);
+  return ret;
 
 }
  async function getstat(state) {// get state from inverter openapi
@@ -383,7 +391,9 @@ function customOn(these) {
  
  these.on('connect',
     // se tolgo async non posso usare await f ma devo usare f().then() 
-        async function (dummy, cb) {// ?? only  event type 1, so events that after lauch startcheck, can fire start event to login to openapi. so anyway get token/login
+    // >>>>>>>>>>>>>>>>>>><  probabilmente ,on non puo tornare un async func !!!!!!!!!!!!!!!!!!!!!!!!!!
+    
+        async function (dummyinput, cb) {// ?? only  event type 1, so events that after lauch startcheck, can fire start event to login to openapi. so anyway get token/login
 
 
                   /* ******    nb  plant is input data , framework say it can be :
@@ -399,6 +409,8 @@ function customOn(these) {
 
     // start == login !
     // question what is context , the event manager instance itself ???
+          console.log(' event connect fired handler , with input data: ',dummyinput,' token is : ',token);
+
     let state= this.state, // IS OK ???????
 
       plant=state.app.plantname;// the real input , no dummy !
@@ -410,6 +422,7 @@ function customOn(these) {
         state.token=null;// will reset
         this.state.stepInd=0;// restart ev2run loop
     });
+    console.log('login rest await returned with token result ',JSON.stringify(resu,null,2));
     if(resu.token)state.token=resu.token;
     cb(0,state.token);	// goon with framework event chaining
 
@@ -427,6 +440,7 @@ function customOn(these) {
   these.on('openapi', async function (dummy, cb) {// the fsm ask state updates (we use openapi) : will set input of 'startcheck' , best to set also corresponding state ( last data gathered from fusionsolar)
     // question what is context ?
     // await getstat(state.aiax);// the conn cfg data
+    console.log(' event openapi fired handler , with input data: ',dummy)
     let state= this.state; // IS OK ???????
     let resu=await getstat(state)//  ={inverter:1.2,battery:2.5}
     .catch(error => { 
@@ -440,6 +454,7 @@ function customOn(these) {
   these.on('startcheck', async function ( inp, cb) {// the fsm ask state updates (we use openapi) : will set input of 'startcheck' , best to set also corresponding state ( last data gathered from fusionsolar)
     // question what is context ?
 // i should got async data both in state.aiax.inverter....   and in inp={inverter:3.2,battery:0,,}
+console.log(' event startcheck fired handler , with input data: ',inp);
     let state=this.state;
     let calc=(st) =>{
       // ............
@@ -492,7 +507,7 @@ let dataArr=//{begin:0,startcheck:0};
 {begin:null,openapi:null,startcheck:null}; 
                                    // ?? // event or processasync key
 let  evAsync={};// evAsync={aEv2runKey:itsasync,,,,,,}
-let processAsync={};
+let processAsync={},asyncPoint={};
 
 
 

@@ -15,6 +15,7 @@ so use to push first time my local git to
  -a new created remote repo in gihub without readme.md : 
    first time use >  git push -u origin --all
    then to push a new commit use  >  git push 
+   if in server ( we have a clone of repo) we just pull new commit and do not take its commit before pull cancel all edits with :(  git restore . )
 
    see https://stackoverflow.com/questions/71272062/what-is-the-difference-between-git-push-u-origin-and-git-push-set-upstream-or
 
