@@ -26,6 +26,7 @@ here we'll use http_.request()
 
                                                           response = {data, token}=await  this.rest(uri, method,formObj,head) 
                                                           .catch((err) => { console.error(' REST got ERROR : ',err); }); 
+                                                          let dataobj=JSON.parse(response.data);
 
 
                                                       */                     
@@ -52,7 +53,7 @@ here we'll use http_.request()
          // if(response){data=JSON.parse(response.data);token=response.token);   SSSS
 
 
-         console.log('rest called with body:',data,' http: ',http,' req: ',http.request);
+       //  console.log('rest called with body:',data,' http: ',http,' req: ',http.request);
          let du,h=http;
          if(url.substring(0,4)=='http'){
          if((du=url.charAt(4))==':');else if((du=url.charAt(4))=='s')h=https;
@@ -131,7 +132,7 @@ const options = {
   }
 }*/
 // accept data instead of qs 
-if(url.indexOf('?')<0&&data)
+if(url.indexOf('?')<0&&data)// se non c'à ? add param from data
 url+='?'+toParam(data);// should be used : /?
 
 
@@ -150,7 +151,7 @@ opt,
 
   // The whole response has been received. Print out the result.
   resp.on('end', () => {
-    console.log('rest responded ',data);
+    //console.log('rest responded ',data);
     resolve({data,token:''});
   });
 
@@ -214,6 +215,7 @@ function jhttppost(h, url, data_, head, qs, urlenc, resolve, reject) {// data_ i
     method: "POST",
     headers: head_
   };
+  //console.log('jhttppost h.request firing ,head: ',head,' options: ',JSON.stringify(options,null,2));
   if (head) Object.assign(options.headers, head);
   console.log('jhttppost h.request firing , options: ',JSON.stringify(options,null,2),'\n url: ',url);
   h.request( // sarebbe http_.request()
@@ -221,25 +223,43 @@ function jhttppost(h, url, data_, head, qs, urlenc, resolve, reject) {// data_ i
     options, res => {
         // to get cookies see https://newspaint.wordpress.com/2015/09/06/how-to-get-cookies-from-node-js-http-response/
     // display returned cookies in header
-    let setcookie = response.headers["set-cookie"],// [ 'bar=baz; foo=bar' ]
+    let setcookie = res.headers["set-cookie"],// [ 'bar=baz; foo=bar' ]
         token;
-    if ( setcookie ) {// debug
-      setcookie.forEach(
-        function ( cookiestr ) {
-          console.log( "COOKIE:" + cookiestr );
-        }
-      );
-      token=setcookie['XSRF-TOKEN']
+       // console.log('cookie string found: ', setcookie,'\n res headers: ',JSON.stringify(res.headers,null,2));
+    
+    
+    if ( setcookie ) {// 
+      // setcookie.forEach(function ( cookiestr ) { console.log( "COOKIE:" + cookiestr ); } );
+      setcookie.forEach(function ( cookiestr ){// setcookie=[cookiestring1,cookiestring2,,,]
+      let x = getCookie(cookiestr,'XSRF-TOKEN');
+          if (x) {token=x; 
+                  console.log('cookie XSRF-TOKEN found: ', x);
+          }   
+      })  
     }
 
       let data = "";
-      res.on("data", d => {
-        data += d
-      })
-      res.on("end", () => {
-        resolve({data,token});
-      })
+      res.on("data", d => { data += d });
+      res.on("end", () => {console.log(' rest end : ',{data,token});
+        resolve({data,token});// if token is undefined wont be added as property
+      });
+
+
+      function getCookie(cookiestr,name) {// from https://stackoverflow.com/questions/14573223/set-cookie-and-get-cookie-with-javascript
+
+       // console.log('getCookie test cookie string : ',cookiestr,'\n for cookie: ',name);
+        var nameEQ = name + "=";
+        var ca = cookiestr.split(';');
+        for(var i=0;i < ca.length;i++) {
+            var c = ca[i];
+            while (c.charAt(0)==' ') c = c.substring(1,c.length);
+            if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+        }
+        return null;
+      }
+
     })
+
     .on("error", reject)//console.error) >>>>>>>>>><   will call .catch in calling sw !
 
     

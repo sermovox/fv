@@ -62,6 +62,7 @@ class WithTime extends EventEmitter {// js version ....
       // internal fsm state :
       this.token=null;
       this.stepInd=-1;// next step navigation
+      this.relays={pdc:false,g:false,n:false,s:false};// current gpio relays values 
 
     }
 
@@ -212,7 +213,7 @@ class WithTime extends EventEmitter {// js version ....
       console.timeEnd('execute');
       this.emit('end');
       */
-      console.log('stting ', data);
+      console.log('updateData setting return data ', data);
       return data;
 
       // if(ev&&data)dataArr[ev] = data;// fill the input of impacted event
@@ -289,11 +290,11 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
       var outerVariable = par;// che cosa configura ???
       function updateData_(err, data) {   // zz   this id the cb   to framework: set ev2run[ev] using std cb updateData () that just return  data
        //  ev2run[ev] = updateData(err, data);//  after updated the input for event ev 
-       console.log('event (',ev,') handler returned data in cb : ',JSON.stringify(data,null,2));
+       console.log('Outerfunction. updateData_: event (',ev,') handler returned data in cb : ',JSON.stringify(data,null,2));
        if(data&&dataInv[ev] ){dataCon[dataInv[ev] ]=updateData(err, data);// =data . updated the input for event dataInv[ev] calculated from the data filled in cb by handler .on()
        console.log(' returned data from hanler set the input for event ',dataInv[ev]);
       }
-      console.log(' ev results calls updateData_ , ev:', ev,'dataCon: ', dataCon);
+      console.log('Outerfunction. updateData_:  event ',ev,' sets input chain as :', ev,'dataCon: ', dataCon);
       // goon step
       goonstep();
 
@@ -334,7 +335,7 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
     //  then when returns we  complete the for with the index resetted (0 or 1000 ) or we start a new execute
 
 
-    let that=this;// to set this obj as context in embedded functions
+    let that=this;// to set this obj as context in embedded functions that can access to this context instead to set embedded func context : call(context,parms)
 
     let stepNum = -1;// new stepindex
     let prolist=Object.keys(ev2run) , nprop=prolist.length;
@@ -344,9 +345,8 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
 
     //for ( i=0;i<nprop;i++) {// ******  in this loop we run sequentially events and asyncs according to procedure def in: DDFFRR 
                                   // the closure standard cb will set/reset input for next events using values in ev2run
-    function goonstep(){// the for loop isgoon by a asinc return  in Outerfunction!
-      if(stepNum<nprop)ends();// exit loop
-
+    // moove to IIUU                              
+    function goonstep(){// the for loop isgoon by a asinc return  in Outerfunction!(
 
     //  if (ev2run.hasOwnProperty(step)) {
 
@@ -356,12 +356,22 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
       // to  exit the stake set  state.stateInd>=nprop  ex 1000
 
       //if(this.state.stepInd>=0)stepnum=state.stepInd;
-      if(that.state.stepInd>=0)stepNum=state.stepInd;// 
-        else stepNum++;
-        let step=prolist[stepNum];// event at current step
+      if(that.state.stepInd>=0){stepNum=state.stepInd;// reset event loop
+      state.stepInd=-1;}
+        else stepNum++; 
+
+        if(stepNum<0 ||stepNum>=nprop){
+          ends();// exit loop
+          return ;
+        }
+
+
+        let step=prolist[stepNum],// event at current step
+        asyncNam = asyncPoint[stepNum];
+        console.log(' *****   goonstep called , step: ',stepNum,' state: ',that.state,' event: ',step,' async to run: ',asyncNam);
         // now before a step event run some async :
-        let asyncNam,noasync=true;
-        if ((asyncNam = asyncPoint[stepNum])) {
+        let noasync=true;
+        if ((asyncNam )) {
           if (processAsync[asyncNam]) {// run here the (login) async before fire the event
             noasync=false;
             runAsync(asyncNam)
@@ -374,15 +384,16 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
         if(noasync)
         runEvent(step);// can return after a client defined event chain
          // Outerfunction will wait cb then call this one togoon a step
-      };
-      goonstep();// start event loop ev2run
+      };// ends goonstep
+
+      console.time('execute');goonstep();// start event loop ev2run
       return ;// sync thread ends
 
+// UUII : .....
 
-
-      // ends :
+      // ends goonstep loop :
       function ends(){
-      console.log('job started to resolve the event ....');console.time('execute');// start measuring time x job ()
+      console.log('****\n execute procedure: ',procName,' finished to resolve , cur state: ',that.state);console.timeEnd('execute');// start measuring time x job ()
       // moved this.on('data', (data)=> console.log('got data ', data));
 
       if (procName == 'customEv') { };
@@ -395,7 +406,7 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
       let par1 = 0;
       console.log(' runEvent: firing handler of event : ',myev);
       var emmitMyev = OuterFunction(par1, myev).call(that,null);//,_mycb);// prepare senza usare zzzz
-      console.log(' results of event ', myev, ', ev2run is:', ev2run,' dataCon is: ', dataCon, ', dataInv: ', dataInv);
+      console.log(' runEvent(): results of event ', myev, ', ev2run is:', ev2run,' dataCon is: ', dataCon, ', dataInv: ', dataInv);
     }
 
     async function runAsync(asynckey) {// run async associated to event with input=dataArr[asynckey].processAsync
