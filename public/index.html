@@ -12,9 +12,9 @@ that's the plant name : <input type="text" id="myTempl" value="" size="10" oninp
     <h1>Plant Controller xxxx Activated</h1>
     <h2>Relays Status:</h2>
   <p><input type="checkbox" id="pdc"> Pompa di Calore</p>
-  <p><input type="checkbox" id="g"> Split</p>
-  <p><input type="checkbox" id="n"> Split</p>
-  <p><input type="checkbox" id="s"> Split</p>
+  <p><input type="checkbox" id="g"> Zona Giorno</p>
+  <p><input type="checkbox" id="n"> Zona Notte</p>
+  <p><input type="checkbox" id="s"> Seminterrato</p>
   <br>
   <h2> General Status:</h2>
   <p><label for="w3review">ctl state:</label></p>
@@ -60,6 +60,7 @@ socket.on('view', function (data) { // data =plant name  data=0/1
 
 // the change staus pump events :
 socket.on('pump', function (pump,data) { // handler of  socket.emit(pumpName, data=value=0/1
+                                        // pump must be in  relaisEv=['pdc','g','n','s'];, see after
 
 // todo : here the code serving the request in id="button" andata a buonfine sul server fv.sia ch il ctl app2 sia gia instanzato che nel caso di una instanzazione
 //      
@@ -71,11 +72,12 @@ socket.on('pump', function (pump,data) { // handler of  socket.emit(pumpName, da
   console.log(' event pump called to set pump: ',pump,' value: ',data);
   let myck=document.getElementById(pump);
   if(myck){myck.checked = data; //change checkbox according to push button on Raspberry Pi  
-  socket.emit('pump',pump, data); //send push button status to back to server
+  socket.emit('pump',pump, data,'browser_pump_Handler'); //  HYN send push button status to back to server  
                                   // in fv3 :
                                   //  - as button handler or 
                                   //  - setpumps/attuators algo     
                                   //  is called:  socket.emit('pump',pumpName, lightvalue); 
+                                  // pump must be in  relaisEv=['pdc','g','n','s'];, 
                                   //  
   }
 });
@@ -83,14 +85,24 @@ socket.on('pump', function (pump,data) { // handler of  socket.emit(pumpName, da
 
 //  relays : https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001
 // pdc relay
-window.addEventListener("load", function(){ //when page loads
-  var lightbox = document.getElementById("pdc");
-  lightbox.addEventListener("change", function() { //add event listener for when checkbox changes
-    socket.emit("pdc", Number(this.checked)); //send button status to server (as 1 or 0)
-  });
-});
+let relaisEv=['pdc','g','n','s'];// socket event to sync raspberry buttons and web button, same as fv3.js
 
-socket.on('status', function (data) { //get button status from client
+window.addEventListener("load", function(){ //when page loads
+  /*var lightbox = document.getElementById("pdc");
+  if(lightbox)lightbox.addEventListener("change", function() { //add event listener for when checkbox changes
+    socket.emit("pdc", Number(this.checked)); //send button status to server (as 1 or 0)
+  });*/
+ let box;
+  relaisEv.forEach((pump,ind) => {// socket event to sync raspberry buttons and web button
+                                  //// pump must be in  relaisEv=['pdc','g','n','s'];, see after
+  box = document.getElementById(pump);
+  console.log(' registering handler for id: ',pump);
+  if(box)box.addEventListener("change", function() { //add event listener for when checkbox changes
+    socket.emit('pump',pump,  Number(this.checked),'browserchangeflag'); //send push button status to back to server  same as HYN
+    });
+});});
+
+socket.on('status', function (data) { //get button status from client, see https://www.w3schools.com/tags/tryit.asp?filename=tryhtml_textarea
   document.getElementById("w3review").value = data; //change checkbox according to push button on Raspberry Pi
 
 });

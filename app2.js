@@ -1,5 +1,9 @@
 // import { EventEmitter } from "events";
 let { EventEmitter }=require('events');
+const readline = require('readline').createInterface({// see https://stackoverflow.com/questions/65260118/how-to-use-async-await-to-get-input-from-user-but-wait-till-entire-condition-sta
+  input: process.stdin,
+  output: process.stdout,
+});
 
 /*
 
@@ -62,7 +66,7 @@ class WithTime extends EventEmitter {// js version ....
       // internal fsm state :
       this.token=null;
       this.stepInd=-1;// next step navigation
-      this.relays={pdc:false,g:false,n:false,s:false};// current gpio relays values 
+      this.relays={};//{pdc:false,g:false,n:false,s:false};// current gpio relays values , moved to fv3
 
     }
 
@@ -81,7 +85,8 @@ class WithTime extends EventEmitter {// js version ....
                     // >>>>>>>>>>>>>>>  if we implement a server insted of a event instance we will have uri entry on behalf of procedure and state=session
                     // recover in .on :   let state=this.state
 
-    this.state=clearState();
+
+    this.state=clearState();// after try to recover from file  012023
   }
 
   // questa funzione e lo schema di processo generale ,, chiamera emitter e passera le variabili e funzioni custom to perform the process
@@ -93,7 +98,7 @@ class WithTime extends EventEmitter {// js version ....
   //execute(evname, evtype, evcontingencyparam, asyncFunc, asyncpreferred_evlistener - on, evlistener_data, asyMajorEv, asyProcess) {// a entry point in fsm (master event process that precess basic fsm events)
   //execute(evname,  evcontingencyparam,evAsyn,ev2run,evistener_data) {// a entry point in fsm (master event process that precess basic fsm events)
   //execute(procName, evcontingencyparam, evAsyn, ev2run, evAsync, processAsync,asyncPoint, dataArr) {// a entry point in fsm (master event process that precess basic fsm events)
-    execute(procName, evcontingencyparam, evAsyn, ev2run, processAsync,asyncPoint, dataArr_){
+    execute(procName, evcontingencyparam, evAsyn, ev2run, processAsync,asyncPoint, dataArr_,cb){
 /* news 20122021
     ev2run={evname1:null,evname1:eventnamtofillinputwithresults=evname1,,,}={connect:startcheck,openapi:null,startcheck:null}  the event to run and the event to set the input as result 
  
@@ -253,7 +258,7 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
 
 */
 
-  console.log('execute() run event list : ',ev2run);
+  console.log('\n *******  execute() start running procedure ',procName ,' with event list : ',ev2run);
 
     let dataInv = {},// the output of events will go to ...
       dataCon = {};// the input data , some to update or to be added by som asyncprocess
@@ -267,7 +272,7 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
                                                       // - dataInv 
                                                       //    >   dataInv[key] :the event ev2run[key] will receive input from event key
                                                       // ev2run={connect:startcheck,openapi:null,startcheck:null}
-      console.log('key ', key);
+      //console.log('key ', key);
       // key: the name of the object key
       // index: the ordinal position of the key within the object 
       if (ev2run[key]) {// event key must give return as input of event ev2run[key]
@@ -278,7 +283,7 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
         // dataInv[ev2run[key]]=null;// alredy set
         dataCon[key] =null;
         if(dataArr[key]&&dataArr[key].event)dataCon[key] = dataArr[key].event; 
-        console.log('ev2run event', key,' take as input the data provided   ',dataCon[key]);//('key not found on ev2run , property: ', key);
+        //console.log('ev2run event', key,' take as input the data provided   ',dataCon[key]);//('key not found on ev2run , property: ', key);
       }
 
     });
@@ -289,14 +294,16 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
       console.log('ciao');
       var outerVariable = par;// che cosa configura ???
       function updateData_(err, data) {   // zz   this id the cb   to framework: set ev2run[ev] using std cb updateData () that just return  data
+                                          // is a async cb
        //  ev2run[ev] = updateData(err, data);//  after updated the input for event ev 
-       console.log('Outerfunction. updateData_: event (',ev,') handler returned data in cb : ',JSON.stringify(data,null,2));
+       console.log('Outerfunction. updateData_: in procedure: ',procName,' event (',ev,') handler returned data in cb : ',JSON.stringify(data,null,2));
        if(data&&dataInv[ev] ){dataCon[dataInv[ev] ]=updateData(err, data);// =data . updated the input for event dataInv[ev] calculated from the data filled in cb by handler .on()
        console.log(' returned data from hanler set the input for event ',dataInv[ev]);
       }
       console.log('Outerfunction. updateData_:  event ',ev,' sets input chain as :', ev,'dataCon: ', dataCon);
       // goon step
       goonstep();
+     
 
       }
 
@@ -307,10 +314,11 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
         //		ev2run[evnam]=updateData(err,data);}
         // state sara in this.state .    inp=inp+state ;// ?????????????????????
         console.log('pilo', ev, inp);
-        console.log('pi',);
+        //console.log('pi',);
         this.emit(ev, inp, updateData_);// so the template for .on call will be SEDR  !!!!!!!!!!!!!!!!!!!
                                         // QUESTION .on ha il this lo stesso di questo ??? (instanza corrente di )
                                         // se si allora posso ottenere state = this.state
+                                        // the handler starts async threads ! so we returns using cb updateData
 
         // >>>>  emit is sync so emit returns ( so innerfunction returns to runEvent() caller)
         //  when .on(ev,,) handler returns. but the promise on .on hanler will call updatedata_ usually just before the handler returns  
@@ -345,7 +353,10 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
 
     //for ( i=0;i<nprop;i++) {// ******  in this loop we run sequentially events and asyncs according to procedure def in: DDFFRR 
                                   // the closure standard cb will set/reset input for next events using values in ev2run
-    // moove to IIUU                              
+
+    
+
+    // moove to IIUU           ??
     function goonstep(){// the for loop isgoon by a asinc return  in Outerfunction!(
 
     //  if (ev2run.hasOwnProperty(step)) {
@@ -355,20 +366,30 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
       //  : next step will be ++ or modified by state.stateInd
       // to  exit the stake set  state.stateInd>=nprop  ex 1000
 
+
       //if(this.state.stepInd>=0)stepnum=state.stepInd;
-      if(that.state.stepInd>=0){stepNum=state.stepInd;// reset event loop
-      state.stepInd=-1;}
-        else stepNum++; 
+      if(that.state.stepInd>=0){stepNum=that.state.stepInd;// reset event loop if someone chage std increse of stepNum and set the new navigated stepnumber
+      that.state.stepInd=-1;// std
+    }
+        else stepNum++; // std action
 
         if(stepNum<0 ||stepNum>=nprop){
-          ends();// exit loop
+          ends(stepNum);// exit loop
           return ;
         }
 
 
         let step=prolist[stepNum],// event at current step
         asyncNam = asyncPoint[stepNum];
-        console.log(' *****   goonstep called , step: ',stepNum,' state: ',that.state,' event: ',step,' async to run: ',asyncNam);
+        let outpu='goonstep called , exec procedure: '+procName+', step: '+stepNum+'\n state: '+JSON.stringify(that.state,null,2)+'\n event: '+step+', async to run: '+asyncNam+'\n\n';
+        //console.log('\n *****   goonstep called , exec procedure: ',procName,', step: ',stepNum,'\n state: ',that.state,'\n event: ',step,', async to run: ',asyncNam,'\n');
+        console.log('\n *****  ',outpu);
+        let outprompt='>>>>>>>>>>>> please input somethig togoon step.'+outpu;
+        console.error(outprompt);
+        requestInput(outprompt,procName,' event ',step,' step ',stepNum,', now please input somethig togoon ').then(goonstep_);// debug, if we were in a async we could : await  requestInput()
+        // goonstep_();// normal
+        function goonstep_ (){
+          console.log(' goonstep running goonstep_  after debug console readline');
         // now before a step event run some async :
         let noasync=true;
         if ((asyncNam )) {
@@ -383,20 +404,34 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
         // do stuff
         if(noasync)
         runEvent(step);// can return after a client defined event chain
-         // Outerfunction will wait cb then call this one togoon a step
-      };// ends goonstep
+         // Outerfunction will wait cb then call this goonstep() togoon a step
+      };// ends goonstep_
 
-      console.time('execute');goonstep();// start event loop ev2run
+    };// ends goonstep
+
+      console.time('execute');
+
+     goonstep();// start event loop ev2run
+     
+      
       return ;// sync thread ends
 
 // UUII : .....
 
       // ends goonstep loop :
-      function ends(){
+      function ends(stepNum){
       console.log('****\n execute procedure: ',procName,' finished to resolve , cur state: ',that.state);console.timeEnd('execute');// start measuring time x job ()
       // moved this.on('data', (data)=> console.log('got data ', data));
 
       if (procName == 'customEv') { };
+
+      if(stepNum>1000){
+        if(stepNum==1001){
+          console.error(' fv3 exiting some execute() because cant get a token from server');
+          // to d : fire a socket evet to browser !
+        }
+      }
+      cb();// return flow to cb
       }
     
     // func:
@@ -406,7 +441,7 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
       let par1 = 0;
       console.log(' runEvent: firing handler of event : ',myev);
       var emmitMyev = OuterFunction(par1, myev).call(that,null);//,_mycb);// prepare senza usare zzzz
-      console.log(' runEvent(): results of event ', myev, ', ev2run is:', ev2run,' dataCon is: ', dataCon, ', dataInv: ', dataInv);
+      console.log(' runEvent(): promise was started , event ', myev, ', ev2run is:', ev2run,' dataCon is: ', dataCon, ', dataInv: ', dataInv);
     }
 
     async function runAsync(asynckey) {// run async associated to event with input=dataArr[asynckey].processAsync
@@ -593,3 +628,15 @@ if(response)return JSON.parse(response);// response: a json string
 else return null ;
 }
 
+const requestInput = (shown) => {// use :
+                              // in async  await requestInput
+                              // otherwise use a cn :  requestInput.then(goon);
+  return new Promise((resolve, reject) => {
+    readline.question(shown, async (url) => {
+   console.error('readline got line');
+        //readline.close();
+        resolve(url);
+      
+      });
+    });
+  }

@@ -8,18 +8,19 @@
 
 var https_ = require('https'); //require http server, and create server with function handler()
 var http_ = require('http'); //require http server, and create server with function handler()
-console.log('http_.request:',http_.request);
+//console.log('http_.request:',http_.request);
 var http = http_.createServer(handler); //require http server, and create server with function handler()
-console.log('after createserver , http_.request:',http.request);
+//console.log('after createserver , http_.request:',http.request);
 var fs = require('fs'); //require filesystem module
 var io = require('socket.io')(http) //require socket.io module and pass the http object (server on wich soket will be built)
 var Gpio = require('onoff').Gpio; //include onoff to interact with the GPIO
 var LED = new Gpio(4, 'out'); //use GPIO pin 4 as output
-let relais_=[new Gpio(5, 'out'),// gpio phisical relays, see :YUIO
+let relais_=[new Gpio(12, 'out'),// gpio phisical relays, see :YUIO
                                 // from pump name the gpio is relais_[relaisEv.lastIndexOf(pump)];
-new Gpio(5, 'out'),
-new Gpio(6, 'out'),
-new Gpio(7, 'out')
+                                // so in relaisEv there re the names !
+new Gpio(16, 'out'),
+new Gpio(20, 'out'),
+new Gpio(21, 'out')
 ];
 let pumpsHandler=[];//  relais handler , also used by anticipating algo too (actuators)
                     // both button and algo actuacor can call this bank of handler(err,newvalue) 
@@ -27,11 +28,11 @@ let pumpsHandler=[];//  relais handler , also used by anticipating algo too (act
 
 var pushButton = new Gpio(17, 'in', 'both'); //use GPIO pin 17 as input, and 'both' button presses, and releases should be handled
 let relais=[new Gpio(18, 'in', 'both'),// gpio relay button to set gpio phisical relays : see :YUIO
-new Gpio(19, 'in', 'both'),
-new Gpio(20, 'in', 'both'),
-new Gpio(21, 'in', 'both')
+new Gpio(23, 'in', 'both'),
+new Gpio(24, 'in', 'both'),
+new Gpio(25, 'in', 'both')
 ];
-let relaisEv=['pdc',// socket event to sync raspberry buttons and web button
+let relaisEv=['pdc',// socket event to sync raspberry buttons and web button, the 'name' of relais_ !
 'g','n','s'];
 
 jrest_=require('./nat/rest.js');jrest_.init(http_,https_);
@@ -58,14 +59,98 @@ function handler(req, res) { //create server html def page : user cfg and monito
     return res.end();
   });
 }
+const api={// see https://javascript.info/promise-chaining
+  loadScriptsFromFile : function(src,ctl) {//  
+    return new Promise(function(resolve, reject) {
+        let scripts,file;
+        // if(src=='scripts')file='scripts';else if(src=='projects')file='projects';
+        file=__dirname + '/.data/'+src+'.json';
+        if (file&&fs.existsSync(file)) {
+            try {
+                scripts = require(file);
+            } catch(err) {
+                return reject('Cannot load scripts from file: ' + err.message);
+            }/*
+        } else {
+            console.warn('cant find a data json obj: ',src);
 
-let eMClass,eMCustomClass,// the fv ctl build as a eventemitter subclass singleton instance 
+        }
+        if (fs.existsSync(src1)) {
+            try {
+                unitlist = require(src1);
+            } catch(err) {
+                return reject('Cannot load scripts from file: ' + err.message);
+            }
+        } else {
+            console.warn('cant find a data json obj: ',src1);
+
+        }
+        if (fs.existsSync(src2)) {
+            try {
+                servicelist = require(src2);
+            } catch(err) {
+                return reject('Cannot load scripts from file: ' + err.message);
+            }*/
+        } else {
+          //  console.log('loadScriptsFromFile , cant find a data json obj: ',file,' , so crete a basic state from ctl: ',ctl);
+            ctl.state.app.plantname=src;// add to new std state the plantname
+            scripts=ctl.state;
+          // add relays status (false or look at present gpio ???????????????) 
+
+          relaisEv.forEach((pump,ind) => {// ['pdc',// socket event to sync raspberry buttons and web button
+            // 'g','n','s']
+            ctl.state.relays[pump]=false;//  (false or look at present gpio ???????????????) 
+            });
+
+
+            console.log('loadScriptsFromFile, cant find a data json obj: ',file,' , so crete a basic state: ',scripts);
+
+
+
+        }
+
+        //PATH_TO_SCRIPTS = src;api.mapTriggers();
+        console.log('loadScriptsFromFile , resolving scripts: ',scripts);
+        resolve(scripts);
+    });
+},
+
+writeScriptsToFile : function(new_scripts, file) {// write only on scripts and projects
+
+    return new Promise(function(resolve, reject) {
+        let bank;
+        //console.log('writescript: file ',file,' starting .... ',new_scripts);
+        if(file){
+        file=__dirname + '/.data/'+file+'.json';
+       // console.log('writescript: file ',file,' writing .... ');
+        try {
+            require('fs').writeFileSync(file, JSON.stringify(new_scripts,null,2));
+          //  console.log('writescript: file ',file,' writed ')
+        } catch(err) {
+            return reject('Cannot write scripts to file: ' + err.message);// return what ?
+        }
+
+       // api.mapTriggers();
+       console.log('writeScriptsToFile(): updated',new_scripts,' on : ',new Date());//  (new Date()).toLocaleString()
+        resolve(new_scripts);
+    }else reject();
+    });
+
+} 
+};
+
+
+
+
+let eMClass,
+eMCustomClass,// now never called.   the fv ctl build as a eventemitter subclass singleton instance 
   appstat;
 
 
 // new : xxx
 
 let fsmmanager = require('./app2.js');
+//const { LOADIPHLPAPI } = require('dns');
 const opt=null;
 fsmmanager(opt, function (app, opt, no_ccbb) {// ask fsm factory app to give the event factory eMClass, or connect as login to the app server
   //  app will cb here giving the factory that will be instatiated when we know the plant/user
@@ -80,13 +165,16 @@ fsmmanager(opt, function (app, opt, no_ccbb) {// ask fsm factory app to give the
 
 })
 
-if (Proto) eMClass.prototype.cfg = function () {// add a cfg static func that add custom .on on all instance 
+if (Proto) eMClass.prototype.cfg = function (plantname) {// add a cfg static func that add custom .on on all instance 
                                                 // similar to subclass that just add cfg func to all instances !!!
                                                 //    and in constructor of subclass call cfg !!
+                                                // 012023 ...
 
                                                 console.log('  cfg , this is :\n',JSON.stringify(this,null,2));
                                             //customOn.call(this);}
                                             customOn(this);
+                                            // this.state.app.plantname=name;
+                                            // in other place : recoverstatus.call(this,plantname);
                                           return this;}
   // or add a automatic call of cfg , manually :
   eMCustomClass=function (){// if (Proto) eMClass.prototype.cfg = function () {// add a cfg static func that add custom .on on all instance 
@@ -98,7 +186,7 @@ if (Proto) eMClass.prototype.cfg = function () {// add a cfg static func that ad
     // this=new eMClass(arguments);
     Object.assign(this, new eMClass(arguments));
     console.log(' eMCustomClass : this now is :\n',JSON.stringify(this,null,2));
-    this.cfg();// calls customOn(())
+    this.cfg();// defined in this module, calls customOn(())
 
   }
 
@@ -136,12 +224,12 @@ function ccbb(client) {// when client got a request (a button) for a plant on a 
         // let inst=started[name].inst = new eMClass(client.cfg_);// create the fv ctl
         // if(Proto)inst.cfg();
         // OR:
-        console.log('ccbb  , newing eMcustomclass');
+        console.log('ccbb  , newing eMclass');
        // let inst=started[name].inst = new eMCustomClass();// create the fv ctl
-      inst=started[name].inst = (new eMClass()).cfg();// create the fv ctl, customize its .on
+      inst=started[name].inst = (new eMClass()).cfg(name);// create the fv ctl, customize its .on . nb function cfg() is created in this module !
 
 
-        inst.state.app.plantname=name;
+        // inst.state.app.plantname=name;// todo in .cfg()
 
         //??
         // started.name.inst.start();// start the new instance
@@ -156,7 +244,7 @@ function ccbb(client) {// when client got a request (a button) for a plant on a 
   // https://api.open-meteo.com/v1/forecast?latitude=45.6055&longitude=12.6723&hourly=temperature_2m,weathercode,cloudcover&timezone=Europe%2FBerlin
   //https://open-meteo.com/en/docs#latitude=45.65&longitude=13.77&hourly=temperature_2m,weathercode,cloudcover&timezone=Europe%2FBerlin
 
-}
+}// end ccb()
 
 // end new : xxx
 
@@ -201,11 +289,11 @@ return startweb();// 1; ok
 
  function startweb (options) {// start fv web server, every time a user do  get will start . ?????????????????????
 
-  console.log('start listen web request, http: ',http);
+  // console.log('start listen web request, http: ',http);
 
   http.listen(8080); //listen to port 8080, wait a user to connect and login to get the user name
 
-  console.log('started listen web request, http: ',http);
+  // console.log('started listen web request, http: ',http);
 
   // other client init stall 
 
@@ -215,10 +303,10 @@ return startweb();// 1; ok
 }// ends startweb
 startweb();
 
-let token = null,
+//let token = null,// cur token  errore concettuale . metterlo in state !
   openapi = { baseurl: '', user: '', pass: '' },// data to connect openapi
   cfg = {},
-  tokens={};
+  tokens={};// non usato
 
   function tokenaiax(method,procedure,cb){// will get token or create a new one if expired
 
@@ -233,6 +321,8 @@ let body=
     cb();
 
   }
+
+
 function anticipate(state){// returns the new pumps state
 
 
@@ -308,7 +398,29 @@ console.log(' login() started x sername: ',userName);
                 devTypeId:"38"},
                 extract:(data)=> {
                   console.log(' aiax extracting inverter info from aiax data got: ',JSON.stringify(data,null,2));
-                  let ret= state.aiax.inverter= data.data[0].dataItemMap.mppt_power;
+/* 012023 to do : check id the query has resolved ok , testing data.data[0].dataItemMap
+// if not try to detect the reason 
+(ex in FRTF we got :
+   rest end :  {
+  data: '{"failCode":305,"immediately":true,"message":"USER_MUST_RELOGIN"}',
+  token: undefined
+}
+so check if data.failCode==305 :
+
+reject the promise or just do the same nulling token and 
+
+but the problem is that alredy we got error :
+
+openapi getstat() catched so results is null .........
+
+>>> so the catch should alredy worked !!!!
+ ... infact it works !, so .....
+
+*/
+                let ret;// undefined
+                  if(data&&data.data&&data.data[0]) ret= state.aiax.inverter= data.data[0].dataItemMap.mppt_power;
+                  else if(data.failCode==305){ ret=null;// to
+                  console.log(' aiax x inverted got unvalid token');}
                   console.log(' aiax x inverted got: ',ret);
                   return ret;
                  }},
@@ -335,25 +447,65 @@ let results={},resu;
       // index: the ordinal position of the key within the object 
    
     let key=keylist[i],el=bodies[key];
-    console.log(' getstat, looping x device: ',el);
+    console.log(' getstat, looping  devices, now rest device: ',el);
+
+
       resu= //{data,token}
       await aiax(url,'POST',
         el.body,
-      head={"Content-Type": "application/json","XSRF-TOKEN":state.token});// a promise
-      console.log(' getstat recover from device: ',key,'aiax call: ',JSON.stringify(resu,null,2));
+      head={"Content-Type": "application/json","XSRF-TOKEN":state.token})//;// a promise
+    // to do 
+    .catch(error => { console.error('aiax got error : ',error,' so goon with null result')});// in case aiax fire error and be rejected 
+
+      console.log(' getstat recover from device: ',key,'aiax call: ',resu);// resu is string
+     // console.log(' getstat recover from device: ',key,'aiax call: ',JSON.stringify(resu,null,2));
   
- if(resu&&resu.data)results[key]=el.extract(JSON.parse(resu.data));// set info into state.aiax .  ex x inverter      =body.data.data[1].dataItemMap.mppt_power;
- else results[key]=null;
- console.log(' getstat recover from device: ',key,' info is : ',results);
+ if(resu&&resu.data){
+  let res;
+  try{
+  res=el.extract(JSON.parse(resu.data))// set info into state.aiax .  ex x inverter      =body.data.data[1].dataItemMap.mppt_power;
+  // only promise or try group can be catched !! 
+  // .catch(console.error('aiax got bed result, exit execute procedure with undefined val'))
+    ;
+    // so :
+  }
+  catch(error){
+    console.error('aiax got bed result, exit execute procedure with undefined val, error: ',error);
+  }
+
+  console.log(' getstat recover from device res: ',res); 
+
+    // in case aiax fire error and be rejected , res=undefined
+  if (res === null) {// token expired
+    console.log(' getstat recover from device: ',key,' an expiered token');
+    i=100;results=null;
+  } else if (res === undefined) { // true
+    console.log(' getstat recover from device: ',key,'aiax result cant be calc, so exit execute procedure ');
+    i=100;results=undefined;
+  }else  { results[key]=res;// goon next dev
+  console.log(' getstat recover from device: ',key,' info is : ',results[key]);
+  }
+  } else{ 
+    console.log(' getstat recover from device: ',key,'aiax result missing, so exit execute procedure ');
+    i=100;results=undefined;
+  }
+
       
       };
-  /*} catch(err) {// if any of the await reject:
+  /*
+
+  122022
+  // 122022 se aiax non va a buon fine perche il token e espirato il aiax come promise rejected e cosi il await aiax se non catchato fara rejectare l'intera async function
+// cioe rejecta la async function getstat() e non serve il catchare : 
+
+
+} catch(err) {// if any of the await reject:
     console.error('  ???? getstat catched , probably the token expired for plant:', plant, ',error: ', err);
      state.token=null;// will reset
      this.state.stepInd=0;// restart ev2run loop
  }*/
  console.log(' getstat, returning :  ',results);
-  return results;//  a promise if async (uso await !)  results={inverter:1.2,battery:2.5}
+  return results;//  a promise if async (uso await !)  results={inverter:1.2,battery:2.5}, null if expired token , und if error
   }
 
  
@@ -408,10 +560,7 @@ let results={},resu;
      console.log(' getWeath recover from device: ',key,' info is : ',results);
           
           };
-      /*} catch(err) {// if any of the await reject:
-        console.error('  ???? getstat catched , probably the token expired for plant:', plant, ',error: ', err);
-         state.token=null;// will reset
-         this.state.stepInd=0;// restart ev2run loop
+      /*} catch(err) {// 
      }*/
      console.log(' getWeath, returning :  ',results);
       return results;//  a promise if async (uso await !)  results={inverter:1.2,battery:2.5}
@@ -426,9 +575,10 @@ function conf() {// config and start fv server instance(the controller)
 }
 
 
-function startfv(eM,plant) {// ** start/update singlethon 
-  console.log(' startfv : the ctl instance is :\n',JSON.stringify(eM,null,2));
-  console.log(' startfv plant: ',plant);
+function startfv(eM) {// ** start/update singlethon 
+  // console.log(' startfv : the ctl instance is :\n',JSON.stringify(eM,null,2));
+  let plant=eM.state.app.plantname;
+  console.log(' startfv plant: ',plant,' , following  we allign relay according with current recovered state running setPump()');
 
   /*
         // customize the events in plant/client emitter ctl instance for a user , after a connection to a plant is got 
@@ -456,8 +606,20 @@ function startfv(eM,plant) {// ** start/update singlethon
   if (!Proto) customOn(eM);
 
   eM.emit('reset', cfg);// reset fsm   todo 
+
+  // allign relays current status :
+  relaisEv.forEach((pump,ind) => {// ['pdc',// socket event to sync raspberry buttons and web button
+    // 'g','n','s']
+    setPump(ind,eM.state.relays[pump],eM.state);
+});
+
+console.log(' startfv  following  we start execute procedure startcheck  periodically');
+
   repdayly(plant,10, 12, eM);// (10,16) start a interval check for start energy consumption/accumulating
-}
+}// ends startfv()
+
+
+
 
 function customOn(these) {// set .on custom handler (event called by execute())
   /* question :
@@ -500,23 +662,35 @@ function customOn(these) {// set .on custom handler (event called by execute())
 
     // start == login !
     // question what is context , the event manager instance itself ???
-          console.log(' handler fired by event connect, with input data: ',dummyinput,', token is : ',token);
 
-    let state= this.state, // IS OK ???????
 
+    let state= this.state, // IS OK ???????, must be not null , defined in  app2 constructor()/clearState()
       plant=state.app.plantname;// the real input , no dummy !
 
+      // 12/2022 meglio def qui :
+    let token;token=state.token;
+    let catched=false;
+    console.log(' handler fired by event connect, with input data: ',dummyinput,', token is : ',token);
     if(!token)  {// update status
+
       let resu=await login(plant)// or login(plant).then(cb)
       .catch(error => { 
         console.error('  login catched , probably the token expired for plant:', plant, ',error: ', error);
         state.token=null;// will reset
-        this.state.stepInd=0;// restart ev2run loop
+        this.state.stepInd=1001;// restart ev2run loop if <1000   e >=0 , se no exit 
+        catched=true;
+        // now goon after this catch 
+        // 122022 1001
     });
-    console.log('login rest await returned with token result ',JSON.stringify(resu,null,2));
-    console.log('login rest await returned with token:', resu.token);
-    if(resu.token)state.token=resu.token;
-    cb(0,state.token);	// goon with framework event chaining
+   // console.log('connect() token not available, so fired login rest await that returned with token result ',JSON.stringify(resu,null,2));
+  
+    if(resu&&resu.token){
+      console.log('connect(): token not available, so fired login rest await that returned with token:', resu.token);
+      if(catched)state.token=null;// impossible alredy done
+      else state.token=resu.token;
+    }else // anyway catch was got
+     { state.stepInd=1001;state.token=null;}// exit this execute: error on token recover
+//    cb(0,state.token);	// goon with framework event chaining
 
       // nbnb il chaining si poteva fare anche chiamando il prossimo event con un .emit !!! 
       //      see https://medium.com/finnovate-io/using-event-emitter-to-create-complex-asynchronous-workflows-in-node-js-94a31327d428
@@ -524,7 +698,8 @@ function customOn(these) {// set .on custom handler (event called by execute())
 
       // nbnb   se ho il token e poi al secondo step openapi fallisce perche scaduto allora annullo il token e resett rilanciando il event connect kkk 
  
-  }
+  }else console.log('connect(): dont need a rest, token  alredy available: ',token); 
+  cb(0,state.token);	// goon with framework event chaining
   return 1;// what .on returns ?,  anyway if  this.state.stepInd=0 app will restart ev2run loop 
 })
   ;
@@ -535,13 +710,31 @@ function customOn(these) {// set .on custom handler (event called by execute())
     console.log(' event openapi fired handler , with input data: ',dummy);
     let state= these.state; // IS OK ???????
     let resu=await getstat(state)//  ={inverter:1.2,battery:2.5};
-    .catch(error => { 
-      console.error('  openapi getstat() catched , probably the token expired for plant:', state.app.plantname, ',error: ',error);
-      // .............
+    .catch(error => { // se rejecta questa routine gira :e si torna un resu null !
+      console.error('  openapi getstat() catched so results is null ,plant:', state.app.plantname, ',error: ',error);
+      // 122022
+      //if(error=tokenexpire)do 
+      console.error(error);
+      process.exit(1);
+      //state.stepInd=0;// do restart proc and  login  with a null state.token, so must rest to get it 
   });
 
+  if (resu === null) {// token expired
+    console.log(' getstat recover from getstat() an expiered token, so retry execute from null token');
+
+
+     state.token=null;// will reset
+     this.state.stepInd=0;// restart ev2run loop, login will require a aiax token
+
+
+
+  } else if (resu === undefined) { // true
+    console.error(' getstat recover from device: ',key,'aiax result cant be calc ');
+    this.state.stepInd=100;// exit from execute procedure
+  }else  
+
   console.log(' event openapi finally returning a global results on cb: ',resu);
-    cb(0,resu);// pass data on ev2run input
+    cb(0,resu);// pass data on ev2run input, if undefined exit execute (stepInd=100), if null start again (stepInd=0) 
   });
 
   these.on('weather', async function (dummy, cb) {// the fsm ask state updates (we use openapi) : will set input of 'startcheck' , best to set also corresponding state ( last data gathered from fusionsolar)
@@ -600,8 +793,9 @@ function customOn(these) {// set .on custom handler (event called by execute())
 function repdayly(plant,hin, hout, fn) {// program timetable of  generic test event firing: fire procedure execute(,'startcheck',,,) with specific event list (ev2run ......) , connect + startcheck,   to perform check to start anticipating
                                         // note that these events must be defined on customOn()
                                         // to do  to start at a time in a day . it will call ececute .. and at every hour 
+const d = new Date();
+let procName='startcheck '+ d.toLocaleString();
 
- let procName='startcheck';
 
 
   // pprogram the process to call 
@@ -636,7 +830,7 @@ let processAsync={},asyncPoint={};
 //let n=5;
 
   // debug : run now, todo run at hin hur of the day x,y,z,,,                                      
-  callNTimes(plant,hout - hin, 10000, fn);// better move : :here  . schedula fn.execute tra un ora e ulteriori hout-hin volte
+  callNTimes(plant,hout - hin, 20000, fn);// better move : :here  . schedula fn.execute tra un ora e ulteriori hout-hin volte
 
 // :here
 
@@ -648,10 +842,10 @@ let processAsync={},asyncPoint={};
 
     function callFn() {// n-- , se positivo lancia fn.execute e dopo ulteriore ora itera callFn
       if (n--<=0) {
-        console.log(' callFn start priodically procname procedure ending, time:',new Date(),' n is: ',n);  
+        console.log(' callFn start priodically ',procName, ' procedure is ending, cur time:',new Date(),' n is: ',n);  
         return;}
 
-      console.log(' callFn start priodically procname procedure now, time:',new Date(),' n is: ',n);
+      console.log(' callFn start priodically exec procedure ',procName, '.  cur time:',new Date(),' n is: ',n);
 //      n--;
 //      console.log(' callFn start priodically procname procedure now, time:',new Date(),' n is: ',n);
       // fn(asyncFunc,asyMajorEv,asyProcess, evname=startchec)k,evtype,evcontingencyparam,evfunc,evdata);
@@ -659,19 +853,29 @@ let processAsync={},asyncPoint={};
       
       // fn.execute(asyncFunc, asyMajorEv, asyProcess, evname = startcheck, evtype, evcontingencyparam, evfunc, evdata);// check periodically the status of fv ctl)
       //fn.execute(procName, evcontingencyparam, evAsyn,ev2run, evAsync,    processAsync, dataArr)
-        fn.execute(procName, null              , null,  ev2run, asyncPoint, processAsync, dataArr);
+        fn.execute(procName, null              , null,  ev2run, asyncPoint, processAsync, dataArr,
+          () =>{
+        console.log(' after execute we updates state running writeScriptsToFile()')
+        api.writeScriptsToFile(fn.state,fn.state.app.plantname).catch(function(err) {// pdate the state file
+          console.error(err);
+          process.exit(1);
+         });
+
       // asyncFunc,asyMajorEv,asyProcess sono funzioni passate qui per personalizzare eM o usare dati eM per eseguire local process , es leggere un file chiamare un aiax
       // o mandare avanti un process locale come gli stati interfaccia web usando dati parziali o finali (cb) di eM
     //  console.log(' callFn start priodically after execute , time:',new Date());
-      setTimeout(callFn, time);
+        setTimeout(callFn, time);
+        });
     }
 
     console.log(' callFn start priodically , time:',new Date());
 
     
     //fn.execute(procName, null              , null,  ev2run, asyncPoint, processAsync, dataArr);
+
+     callFn();// can run sync the first  execute because we must end the  event handler startuserplant
     //setTimeout(callFn, time);// schedule tra 1 ora callFn 
-    callFn();
+  
 
 
   }
@@ -685,32 +889,63 @@ function sendstatus(state){
 
 
 
-function attuators(state,pdc,g,n,s){
+function attuators(state,pdc,g,n,s){// state,true/false,,,
 // we action simulating to push gpio button events
 let relays=state.relays;
-console.log(' attuators() : current relays pump state is : ',relays);
-if(pdc!=relays.pdc){relays.pdc=setPump(0,pdc);}else;
-if(g!=relays.g){relays.g=setPump(1,g);}else;
-if(n!=relays.n){relays.n=setPump(2,n);}else;
-if(s!=relays.s){relays.s=setPump(3,s);}else;
+console.log(' attuators() : current relays pump state is : ',relays,' target values: ',pdc,g,n,s);
 
+// todo use relaisEv.forEach( ...  and pump_=relaisEv.lastIndexOf(pump);// the index in relais_
 
+if(pdc!=relays.pdc){
+  incong('pdc',state);
+  console.log(' attuators() : as current pdc pump state : ',relays.pdc,' is different from newval call setPump(0,',pdc,')');
+  relays.pdc=setPump(0,pdc,state);}else;
+if(g!=relays.g){
+  incong('g',state);
+  console.log(' attuators() : as current g pump state : ',relays.g,' is different from newval call setPump(1,',g,')');
+  relays.g=setPump(1,g,state);}else;
+if(n!=relays.n){
+  incong('n',state);
+  console.log(' attuators() : as current n pump state : ',relays.n,' is different from newval call setPump(2,',n,')');
+  relays.n=setPump(2,n,state);}else;
+if(s!=relays.s){
+  incong('s',state);
+  console.log(' attuators() : as current s pump state : ',relays.s,' is different from newval call setPump(3,',s,')');
+  relays.s=setPump(3,s,state);}else;
 
+function incong(pump,state){
+  let value=state.relays[pump];// true/false, pump as recorded on status
+  let   pump_=relaisEv.lastIndexOf(pump);// the index in relais_
+  if(pump_>=0){
+  curval=relais_[pump_].readSync();// 0/1
+  if(value&&curval==0||((!value&&curval==1))){// state != cur value 
+    console.warn(' attuators(), find pump ',pump,' state different from current pump position thats: ',curval); 
+    console.log(' attuators(), find pump ',pump,' state different from current pump position thats: ',curval); 
+  }
+}}
 }
-function setPump(pumpnumber,on){// on : changing value (true or false)
-  console.log(' setpump() is changing relay value x pump ',pumpnumber);
+
+function setPump(pumpnumber,on,state){// 0,1,2,3    on : changing value (true or false)
+  console.log(' setpump() will emit socket pump event to change browser relay value x pump ',pumpnumber);
+
+ 
   let on_;
-  if(on)on_=1;else on_=0;
+  if(on)on_=1;else on_=0;// conver true > 1
   pumpsHandler[pumpnumber](0,on_);// called by anticipating algo in attuators
                                 // its a copy of gpio button ralays handler (so we are simulating a gpio button press) that launch socket events
                                  // after set the browser pump flag will return with a socket handler that will call
                                  // onRelais(pumpnumber,on) : the gpio phisicalrelay
                                  // so the gpio relays can be called 2 times !
                                  // see :YUIO
-
-  onRelais(pumpnumber,on_);// anyway set directly the gpio relay, in case the browser is not connecte ! 
+  console.log(' setpump() just emitted socket  event x pumpnumber',pumpnumber);
+  //onRelais(pumpnumber,on_,'server',state);// anyway set directly the gpio relay, in case the browser is not connecte ! 
+                                          // ERROR : pump not pumpnumber !
+  onRelais(relaisEv[pumpnumber],on_,'server',state);
+                                    
+                                          
   
   return true;}
+
 
 
 // here the body :it wait for a get call connection , then add a gpio button listener to emit event on fv controlle eM   :
@@ -718,7 +953,7 @@ function setPump(pumpnumber,on){// on : changing value (true or false)
 io.sockets.on('connection', function (socket) {// WebSocket Connection :server is listening a client browser so now we built the socket connection, transmit to server if there are status updates 
 
 console.log('socket connected to a client');
-
+  let eM;
   // define the listener :
   socket.on('startuserplant', function (data,feat) { // user press button to connect to some plant, so this event is fired , feat url enc
     console.log('event startuserplant listening handler for plant ',data,' feature: ',feat);
@@ -727,18 +962,30 @@ console.log('socket connected to a client');
     let user = { name: data };
     eM = ccbb(user);// ** il fsm recupera/crea un siglethon x user/plant 
     if (eM) {
-      startfv(eM,user);// ** start/update singlethon 
+     // startfv_(eM,user);// ** start/update singlethon 
+     recoverstatus.call(eM,user.name).then((em_) => startfv_(em_));// will cb startfv_
+     //recoverstatus_.call(eM,user.name).then((em_) => startfv_(em_));// will cb startfv_
+
     }
-    // abilita sezione gestione eventi plant nella pagina
-    abilita(data);
+    return;// thread ends
   });
+// });
+
+  function startfv_(eM){// entry point when staus is recovered from file
+    startfv(eM);// ** start/update singlethon 
+    let plant=eM.state.app.plantname,user=plant;
+  // abilita sezione gestione eventi plant nella pagina
+  // abilita(user.data);
+  abilita(plant );
+
+  }
 
   function    // abilita sezione gestione eventi plant nella pagina
-  abilita(data){
+  abilita(data){// data==plant
 
     // view the relays input on browser 
-    socket.emit('view', data); 
-    console.log('event startuserplant emit socket event view, data is: ',data);
+    socket.emit('view', data); // nb .on('pump',,) can be not jet assigned 
+    console.log('event startuserplant : abilita(). it is  emitting socket event view, user plant is: ',data);
   }
 
   var lightvalue = 0; //static variable for current status
@@ -766,7 +1013,8 @@ console.log('socket connected to a client');
   });
 
   function watchparam(pumpName){// handler for all pump gpio button >>> using a closure is a bit forcing , probably one more param is enougth
-  return function watch (err, value) { // :YUIO 
+                                        // >> pumpName in relaisEv
+  return function watch (err, value) { // :YUIO   the handler 
                                       // - Watch for io hardware interrupts ( manual pumps Button ), 
                                       // we watch also (these handlers are put in the bank pumpsHandler[ind]  called by setPump(pumpnumber,on) ): 
                                       // - Anticipating algo that also can trigger pumps updates 
@@ -783,9 +1031,14 @@ console.log('socket connected to a client');
       console.error('on activating pump: ',pumpName,' There was an error', err); //output error message to console
       return;
     }
-    console.log(' watchparam: updating pump: ',pumpName,' state. try set value: ', value,' fire a socket event : ',pumpName); //output error message to console
+    console.log(' watchparam ( server button handler, called also by algo activated setPump() ) : it is firing a socket event pump for pump: ',pumpName,' so in browser well set pump flag : ', value); //output error message to console
     lightvalue = value;
-    socket.emit('pump',pumpName, lightvalue); //send button status to browser client, if available  pompname=pdc,,,,
+    socket.emit('pump',pumpName, lightvalue); //send button status to browser client, if available  
+                                                // >> pumpName in relaisEv
+                                                 // accoppiato con onrelais  
+                                                 // **********************************
+                                                 // >>>>   .on('pump)  can be not set , till browser ask to connct to this plant !!!!!!!!!!!!!!!
+
 
     /*   >>>>>>>>>>>>>>>>>>  todo : nb like light is better impleent a callback to server to set state.relais=[0,0,0,0]
     instead of:
@@ -841,14 +1094,18 @@ console.log('socket connected to a client');
  relaisEv.forEach((pump,ind) => {
   socket.on(pump,onRelais);// same handler for all pumps events
  });*/
+ function onRelaisClos(){
+  return function(pump,val,coming){
+    console.log(' onRelaisClos() called x pump: ',pump,' set value: ',val,' coming from: ',coming);
+    onRelais(pump,val,coming,eM.state);}
+ }
 
- socket.on('pump',onRelais);// same handler for all pumps events
-
-
-
-
+ socket.on('pump',onRelaisClos());// same handler for all pumps events
+                            //  >>>>>>>>>>>>>>>>   startfv can alredy fired the event before a user in some browser 
 }
 );// ends io.sockets.on('connection'
+
+
 
 // run a bash shell
 process.on('SIGINT', function () { //on ctrl+c
@@ -858,23 +1115,166 @@ process.on('SIGINT', function () { //on ctrl+c
   process.exit(); //exit completely
 });
 
-return 'ok'
 
-function onRelais  (pump,data) { //pumps unique handlerget pumps switch status from client web page  data=0/1 pump ='pdc'
-  let lightvalue = data
+
+
+return 'ok';
+
+function onRelais  (pump,data,coming,state) { //pumps unique handlerget pumps switch status from client web page  data=0/1 pump ='pdc'
+                                  // accoppiato con emit('pump',)   
+                                  // >> pump in relaisEv
+                                  //  onRelais can be called  from :
+                                  //     - this server using   setPump() che chiamera onRelais sia direttamente che via browser (feedback )
+                                  //      or
+                                  //     - browser(via .emit('pump',,'browser')) che ha origine da 
+                                  //          - browser user change flag
+                                  //          - come feedback del event 'pump' lanciato dal server dal gpio button handler  :
+                                  //                pumpsHandler[pumpnumber]= watchparam(pump)) 
+                                  //                this handler can be called by gpio button change or
+                                  //                 by  setPump() 
+                                  // 
+                                  //          nb setPump() chiama onRelais sia direttamente che via browser ( come feedback )
+                                  //              setPump è chiamato da startfv, attuators
+ 
+                                  // this is ....  global ?
+  console.log('OnRelais started x pump: ',pump, ' coming: ',coming);
+  let value=state.relays[pump];// true/false, pump as recorded on status
+  let lightvalue = data,// 0/1
   pump_=relaisEv.lastIndexOf(pump);// the index in relais_
   if(pump_>=0){
-  curval=relais_[pump_].readSync();
-  console.log(' onRelays current status x ',pump,' is ',curval,' asking to set : ',data); 
-  if (lightvalue != curval) { //gpio comanding relays is called, only change LED if status has changed
+  curval=relais_[pump_].readSync();// 0/1
+  console.log(' onRelais, coming from: ',coming,', current rele position x ',pump,' is ',curval,' asking to set : ',data); 
+  console.log('              onRelais, state: ',state); 
+    let lchange=false;
+  if(value&&curval==0||((!value&&curval==1))){// state != cur value . a problem !
+    console.warn(' onRelais, find pump ',pump,' state different from current pump position thats: ',curval); 
+    console.log(' warn: onRelais, find pump ',pump,' state different from current pump position thats: ',curval); 
+    lchange=true;
+  }
+  if (lightvalue != curval) { // 0/1 != 0/1 gpio comanding relays is called, only change gpio if current position/value is different from present position
+    console.log(' onRelais,  changing current rele position/value x ',pump,' to: ',lightvalue); 
     relais_[pump_].writeSync(lightvalue); //turn LED on or off
-    console.log(' ****\n browser/algo ask ',pump,' relay to change value into : ',lightvalue); // ex 0
+    console.log(' onRelais,  verifying current rele  position/value changing  x ',pump,' now is: ',lightvalue); 
+    //console.log(' ****\n browser/algo ask ',pump,' relay to change value into : ',lightvalue); // ex 0
     /*
     if (buttoncaused) {// means that the relay is requested by user raspberry button press (or algo anticipating), not corresponding seb button press
       buttoncaused = false;
     } else {
       // eM.emit('web', 1);
     }*/
-  }else console.log(' browser/algo ask ',pump,' rele to change value but is as before : ',lightvalue); // ex 0
+
+    // update staus in case the new pump data comes from button o from browser    
+   
+    if(value&&data==0||((!value&&data==1))){// state != cur value (data=lightvalue)
+      // update state
+      state.relays[pump]=!value;
+
+      let plantname= state.app.plantname,
+      procedura='unknown';// to do .....
+    // update status file , dont need to wait so not async func  otherwise see doc on async in .on handler
+    // 
+    console.log(' onRelais(), to update, now call writeScriptsToFile: ',plantname,' scripts/state: ',state);
+    // return // not mandatory
+    return api.writeScriptsToFile(state,plantname,procedura).catch(function(err) {
+      console.log(' recoverstatus,  writefile catched : ',err);
+        console.error(err);
+
+        // process.exit(1);
+      });
+    }
+
+  }else {console.log(' browser/algo ask ',pump,' rele to change value but is as before : ',lightvalue); // ex 0
+          if(lchange){state.relays[pump]=!state.relays[pump];
+          console.warn(' onRelais() status ricociliato con current value : ',data);
+          }
+}
 } else;// error
 }
+
+
+
+
+
+
+function recoverstatus(plantname){// this ctl is the ctl whose state must be updated from file if exist (persistnce)
+  // this.state is asic state x new ctl. if we have stored , get it 
+that=this;
+  return new Promise(function(resolve, reject) {
+
+    //console.log(' recoverstatus,  starting  : ',that);
+ // api.loadScriptsFromFile(plantname,this).catch(function(err) {
+    api.loadScriptsFromFile(plantname,that).catch(function(err) {
+    console.log('Could not load scripts from file:',plantname, err);
+    reject();
+    process.exit(1);
+}).then(function(scripts) {// the  current state
+    // verify that we can now write back to the file.
+    console.log(' recoverstatus() , now call writefile: ',plantname,' script: ',scripts);
+    return api.writeScriptsToFile(scripts,plantname).catch(function(err) {
+      console.log(' recoverstatus,  writefile catched : ',err);
+        console.error(err);
+        reject();
+        process.exit(1);
+      });
+  })
+.then(function(state) {// later update file :
+  // console.log(' recoverstatus,  resolving : ',that,'\n state: ',state);
+  that.state=state;// recovered from persistence
+  // this.state.app.plantname=plantname;
+ // startfv_(this);//statusrecovered(this.state);
+ console.log(' recoverstatus,  resolving 2  state : ',that.state);
+ resolve(that);
+})
+.catch(function(err) {
+  console.error(err);
+  process.exit(1);
+})
+
+;
+
+  });
+
+}
+
+function recoverstatus_(plantname){// this ctl is the ctl whose state must be updated from file if exist (persistnce)
+  // this.state is asic state x new ctl. if we have stored , get it 
+that=this;
+  return new Promise(function(resolve, reject) {
+
+  //  console.log(' recoverstatus,  starting  : ',that);
+ // api.loadScriptsFromFile(plantname,this).catch(function(err) {
+    api.loadScriptsFromFile(plantname,that).catch(function(err) {
+
+    console.log('Could not load scripts from file:',plantname, err);
+    reject();
+    process.exit(1);
+}).then(function(scripts) {// the  current state
+    // verify that we can now write back to the file.
+   // console.log(' recoverstatus, now call writefile: ',plantname,' script: ',scripts);
+   console.log(' recoverstatus_() , now call writefile: ',plantname,' script: ',scripts);
+    api.writeScriptsToFile(scripts,plantname).catch(function(err) {
+      console.log(' recoverstatus,  writefile catched : ',err);
+        console.error(err);
+        reject();
+        process.exit(1);
+      });
+})
+.catch(function(err) {
+  console.error(err);
+  process.exit(1);
+})
+.then(function(state) {// later update file :
+ // console.log(' recoverstatus,  resolving : ',that,'\n state: ',state);
+  that.state=state;// recovered from persistence
+  // this.state.app.plantname=plantname;
+ // startfv_(this);//statusrecovered(this.state);
+ console.log(' recoverstatus,  resolving state : ',that,state);
+ resolve(that);
+})
+
+;
+
+  });
+
+}
+

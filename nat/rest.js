@@ -21,7 +21,8 @@ here we'll use http_.request()
 */
 
  module.exports ={// returns Promise
-     init:function(http_,https_,request_){console.log('rest init : load http: ',http_);http=http_;https=https_;request=request_},
+     init:function(http_,https_,request_){console.log('rest init : load http: ',http_);
+      http=http_;https=https_;request=request_},
      jrest:function(url,method,data,head, urlenc,qs){/* used in fv : 
 
                                                           response = {data, token}=await  this.rest(uri, method,formObj,head) 
