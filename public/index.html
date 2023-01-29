@@ -1,31 +1,139 @@
 <!DOCTYPE html>
 <html>
+  <head>
+    <title>Bootstrap Example</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+
+      <style> 
+      #myDIV {
+        position: absolute;
+        background-color: coral;
+        color: black;
+        
+      }
+      #myDIV1 {
+        position: absolute;
+        color: black;
+        
+      }
+      body {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Dashed border */
+hr.dashed {
+  border-top: 3px dashed #bbb;
+}
+
+
+/* Solid border */
+hr.solid {
+  border-top: 3px solid #bbb;
+}
+      </style>
+
+  </head>
 <body>
+  <div class="container-fluid">
 
-<h1>Control LED light</h1>
-<p><input type="checkbox" id="light"> turn on LED</p>
-that's the plant name : <input type="text" id="myTempl" value="" size="10" oninput="setprname()">  , feature(urlencoded): <input type="text" id="myFeat" value="" size="10" oninput="setprname()">
-<br> <button type="button" onclick="startctl()">start controller</button> <br>
+<h1 style="text-align:center"> Ottimizzazione del rendimento di Impianti con Pompa di calore e FotoVoltaico </h1>
 
+<br>
+ Nome Impianto da Controllare: <input type="text" id="myTempl" value="" size="15" oninput="setprname()">  , feature(urlencoded): <input type="text" id="myFeat" value="" size="10" oninput="setprname()">
+ <br><br> <button type="button" onclick="startctl()">start controller</button> <br>
+ 
   <div id="VDM001" style="display:none">
 
-    <h1>Plant Controller xxxx Activated</h1>
-    <h2>Relays Status:</h2>
-  <p><input type="checkbox" id="pdc"> Pompa di Calore</p>
-  <p><input type="checkbox" id="g"> Zona Giorno</p>
-  <p><input type="checkbox" id="n"> Zona Notte</p>
-  <p><input type="checkbox" id="s"> Seminterrato</p>
-  <br>
-  <h2> General Status:</h2>
-  <p><label for="w3review">ctl state:</label></p>
-  <textarea id="w3review" name="w3review" rows="20" cols="60"></textarea>
-  <br>
+
+    <div class="row">
+      <div class="col-sm-4" style="background-color:lavender;">   
+      <h2 style="text-align:center"> Relays Status: </h2>
+      <br><br>
+      <p><input type="checkbox" id="heat"> HEAT Low Temp</p>
+    <p><input type="checkbox" id="pdc"> PdC (vs GAS)</p>
+    <p><input type="checkbox" id="g"> Zona Giorno</p>
+    <p><input type="checkbox" id="n"> Zona Notte</p>
+    <p><input type="checkbox" id="s"> Seminterrato</p>
+    <p><input type="checkbox" id="split"> Splits</p>
+    <script> 
+      for(var x=0;x<=9;x++){ 
+      document.write("<br>") 
+      } 
+      </script> 
+    <hr class="solid">
+    <h3> &nbsp; &ensp;  &emsp; HEAT Triggers:</h3>
+    <p><input type="checkbox" id="HT"> Termostato HT  &ensp; delay (hours) <input type="number" id="delay" placeholder=1 size="4" ></p>
+    <hr class="solid">
+    <h3> &nbsp; &ensp;  &emsp; PdC Triggers:</h3>
+    <form id="triggers">
+    <p><input type="checkbox" id="PdCTrig" name="PdCTrig"> Temperatura Est. &nbsp;&nbsp;&ensp;&ensp; value  <input type="number" id="temp" name="temp" placeholder=9 size="4" ></p><br>
+    <p><input type="checkbox" id="PdCTrig1" name="PdCTrig1" > Potenza FV  &nbsp;&nbsp;&nbsp;&ensp; &ensp;&ensp;&ensp;&ensp; value (%) <input type="number" id="FVPower" name="FVPower" placeholder=50 size="4" > &ensp;&ensp; 
+      T int Max <input type="number" id="Tmax" name="Tmax" placeholder=23 size="4" > &ensp;
+    <br>&ensp;&ensp;&ensp;&ensp; &ensp;&ensp;&ensp;  Evitare Energia in Rete (%) <input type="number" id="Psav" name="Psav"  placeholder="80" size="4" >&ensp; &ensp;   Battery Savings con Anticipo C. (%) <input type="number" id="Bsav" name="Bsav" placeholder="80" size="4" ></p>
+    </form>
+    <br></div>
+      <div class="col-sm-4" style="background-color:lavenderblush;">
+        <h2 style="text-align:center" > Piano Attivazione PdC </h2>
+        l'ANTICIPO dei consumi ottenuta con l'attivazione della PdC, nel periodo di massima insolazione, permette l'incremento virtuale della capacità della batteria evitandogli un ciclo di vita. 
+        <br>il risparmio è una combinazione di:
+        <ul> <li>costo di un ciclo della vita della batteria </li>
+          <li>costo dell'energia assorbita dalla rete pari al incremento virtuale di capacità </li>
+          <li>mancata produzione di energia Fv per il degrado di rendimento per le fredde temperature serali</li>  
+          </ul>
+        <div id="myDIV1">
+          <h2> state: <textarea id="activate" name="ACTIVATED" rows="1" cols="10">NOT ACTIVE</textarea></h2>
+        </div>
+        <br><br><br><br><br>
+        <p> ora inizio &ensp; &nbsp;&nbsp;&nbsp;<input type="number" id="hourin" placeholder=9 size="4"  ></p>
+        <p> ora fine  &ensp;&ensp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="number" id="hourout" placeholder=15 size="4" ></p>
+        <p> ripeti ogni  &emsp; <input type="number" id="hourinterval" placeholder=1 size="4" > ore</p>
+        <p> Parametri Algo: Triggers</p>
+        <br>  <p style="text-align:center"><button type="button20" onclick="startrep()" style="background-color:rgb(29, 235, 29)";> start energysaving </button>   &ensp;  &ensp;  &ensp; 
+        <button type="button21" onclick="stoprep()" style="background-color:red;"> stop energysaving </button> </p>
+        <hr class="solid">
+        <h3> &nbsp; &ensp;  &emsp; Basic PdC Energy Savings Models </h3>
+        <p>
+          <form >
+            <p>Please select your favorite Model to Customize:</p>
+            <input type="radio" id="SBattery" name="Mod" value="SB">
+            <label for="SBattery">Estensione della Vita della Batteria</label><br>
+            <input type="radio" id="AGrid" name="Mod" value="nogrid">
+            <label for="AGrid">Minima Dispersione della produzione di FV in Rete</label><br>
+            <input type="radio" id="jield" name="Mod" value="jield">
+            <label for="AGrid">Massimizzazione rendimenti PdC durante le ore più calde</label><br>
+            <input type="radio" id="Both" name="Mod" value="Both">
+            <label for="Both">Ottimizzazione Media dei Criteri Precedenti</label><br>
+            <br> 
+            <input type="button" name="button" value="Set Trigger Values" onClick="testResults(this.form)" > 
+          </form>
+        
+          per il criterio 4, dare :
+          <ul> <li>- costo medio kWH:  <input type="number" id="ckwh" name="ckwh" placeholder=0.4 size="4" ><br>
+          </li>
+          <li>- costo medio gas a m**3:  <input type="number" id="cm3" name="cm3" placeholder=1.1 size="4" ><br>
+        </li></ul>
+        </p>
+
+ 
+      </div>
+      <div class="col-sm-4" style="background-color:lavender;">
+        <h2 style="text-align:center"> General Status:</h2>
+        <p><label for="w3review">ctl state:</label></p>
+        <textarea id="w3review" name="w3review" rows="30" cols="60"></textarea>
+        <br>
+      </div>
     </div>
+  </div>
 
  <!-- old : src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js" 
  include socket.io client side script -->
  <!-- see   https://socket.io/get-started/chat/#integrating-socketio
     include socket.io client side script downloading the client part in socket.io node_module. must find a cnd if want ! -->
+  </div>
 <script  src="/socket.io/socket.io.js" ></script> 
 
 
@@ -33,6 +141,12 @@ that's the plant name : <input type="text" id="myTempl" value="" size="10" oninp
 
 <script>
   const al=false;
+// see https://www.w3schools.com/jsref/prop_style_right.asp  https://www.w3schools.com/howto/howto_css_split_screen.asp
+//        https://www.w3schools.com/jsref/tryit.asp?filename=tryjsref_style_background
+// https://www.w3schools.com/css/tryit.asp?filename=trycss_form_textarea
+// https://www.w3schools.com/bootstrap4/bootstrap_grid_basic.asp
+document.getElementById("myDIV1").style.right = "20px";
+
 var socket = io(); //load socket.io-client and connect to the host that serves the page
 window.addEventListener("load", function(){ //when page loads
   var lightbox = document.getElementById("light");
@@ -85,7 +199,7 @@ socket.on('pump', function (pump,data) { // handler of  socket.emit(pumpName, da
 
 //  relays : https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001
 // pdc relay
-let relaisEv=['pdc','g','n','s'];// socket event to sync raspberry buttons and web button, same as fv3.js
+let relaisEv=['heat','pdc','g','n','s',"split"];// same as fv3.js , socket event to sync raspberry buttons and web button, same as fv3.js
 
 window.addEventListener("load", function(){ //when page loads
   /*var lightbox = document.getElementById("pdc");
@@ -98,13 +212,53 @@ window.addEventListener("load", function(){ //when page loads
   box = document.getElementById(pump);
   console.log(' registering handler for id: ',pump);
   if(box)box.addEventListener("change", function() { //add event listener for when checkbox changes
-    socket.emit('pump',pump,  Number(this.checked),'browserchangeflag'); //send push button status to back to server  same as HYN
+    socket.emit('pump',pump,  Number(this.checked),'browserchangeflag'); //send browser flag status  to server, similar as HYN
     });
 });});
 
-socket.on('status', function (data) { //get button status from client, see https://www.w3schools.com/tags/tryit.asp?filename=tryhtml_textarea
-  document.getElementById("w3review").value = data; //change checkbox according to push button on Raspberry Pi
+let triggers_=document.getElementById("triggers").elements;
+let extract=["PdCTrig","temp","PdCTrig1","FVPower","Tmax","Psav","Bsav"],triggers={};// extract
 
+socket.on('status', function (data) { //get button status from client, see https://www.w3schools.com/tags/tryit.asp?filename=tryhtml_textarea
+  //change all state info escluding the pump lags managed by 'pump' event , so only mirroring state info without any funcionality
+  document.getElementById("w3review").value = JSON.stringify(data,null,2);
+  console.log('data is : ',JSON.stringify(data,null,2))
+let mel=document.getElementById("activate");
+let act=false;
+ if(mel){ if(data.anticipate){
+  act=true;
+    mel.value = "ACTIVE"; 
+  mel.style.background = "#00f300";
+}else{
+  mel.value = "INACTIVE"; 
+  mel.style.background = "#f30000";
+
+}}
+// could also fill hour field  and triggers it running procudure is active (not relays !) 
+if(act){
+let start = document.getElementById("hourin"),
+stop = document.getElementById("hourout"),
+interval= document.getElementById("hourinterval");
+
+start.value=data.anticipate.starthour;
+stop.value=data.anticipate.stophour;
+interval.value=data.anticipate.hourinterval;
+// TODO mancano  triggers !
+let triggers=data.anticipate.triggers;
+// ....
+
+// for (let x in triggers) {// should be = to extract
+//  el=trigger[x];} 
+
+extract.forEach((val,ind) => {
+  let el=triggers_[val];
+  if(el)
+  {if(el.type=='checkbox')triggers_[val].checked=triggers[val];
+  else triggers_[val].value=triggers[val];
+  }
+
+});
+}
 });
 
 
@@ -113,9 +267,36 @@ function startctl(){
   // see https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001   NNHH
 let mydemo = document.getElementById("myTempl").value,
 feat = document.getElementById("myFeat").value;
-
-  socket.emit("startuserplant", mydemo,feat); //send push button status to back to server
+socket.emit("startuserplant", mydemo,feat); //send push button status to back to server
 }
+
+
+function startrep(){
+  let start = document.getElementById("hourin").value,
+stop = document.getElementById("hourout").value,
+interval= document.getElementById("hourinterval").value;
+//triggers_=document.getElementById("triggers").elements;
+// let extract=["PdCTrig","temp","PdCTrig1","FVPower","Tmax","Psav","Bsav"],triggers={};// extract
+extract.forEach((val,ind) => {
+  let el=triggers_[val];
+  if(el)
+  {if(el.type=='checkbox')triggers[val]=triggers_[val].checked;
+  else triggers[val]=triggers_[val].value;
+  }
+
+});
+
+socket.emit("repeatcheckxSun",start,stop,interval,triggers); //send push button status to back to server
+
+}
+function stoprep(){
+
+socket.emit("stopRepeat"); //send push button status to back to server
+
+}
+
+
+
 function setprname(){}
 
 function cambiaStato (id, etichetta){ // cambia ciclicamente la visibilità dell'elemento indicato
@@ -149,6 +330,30 @@ document.getElementById(id).style.display = 'none'; // lo nasconde
 } 
 } 
 } 
+/*
+const form = document.getElementById('form');
+const log = document.getElementById('log');
+form.addEventListener('submit', logSubmit);
+
+
+<form name="myForm" action="" method="GET">
+  Enter something in the box: <br>
+  <input type="text" name="inputbox" value="">
+  <input type="button" name="button" value="Click" onClick="testResults(this.form)">
+</form>
+*/
+function testResults (form) {// traduci i criteri generali in algo trigger parameters
+    var inputValue = form.Mod.value;
+    console.log ("You typed: " + inputValue);
+    // now set promps
+    if(inputValue=='SB'){
+   
+      document.getElementById("FVPower").value=77;
+      document.getElementById("Tmax").value=24;
+      document.getElementById("PdCTrig1").checked = true; 
+
+    }
+}
 
 </script>
 
