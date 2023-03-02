@@ -1,361 +1,800 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Bootstrap Example</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
 
-      <style> 
-      #myDIV {
-        position: absolute;
-        background-color: coral;
-        color: black;
-        
-      }
-      #myDIV1 {
-        position: absolute;
-        color: black;
-        
-      }
-      body {
-  font-family: Arial, Helvetica, sans-serif;
-}
+<head>
+  <title>Bootstrap Example</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
 
-/* Dashed border */
-hr.dashed {
-  border-top: 3px dashed #bbb;
-}
+  <style>
+    #myDIV {
+      position: absolute;
+      background-color: coral;
+      color: black;
+
+    }
+
+    #myDIV1 {
+      position: absolute;
+      color: black;
+
+    }
+    #myDIV2 {
+      position: absolute;
+      color: black;
+
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    /* Dashed border */
+    hr.dashed {
+      border-top: 3px dashed #bbb;
+    }
 
 
-/* Solid border */
-hr.solid {
-  border-top: 3px solid #bbb;
-}
-      </style>
+    /* Solid border */
+    hr.solid {
+      border-top: 3px solid #bbb;
+    }
+  </style>
 
-  </head>
+</head>
+
 <body>
   <div class="container-fluid">
 
-<h1 style="text-align:center"> Ottimizzazione del rendimento di Impianti con Pompa di calore e FotoVoltaico </h1>
+    <h1 style="text-align:center"> Ottimizzazione del rendimento di Impianti con Pompa di calore e FotoVoltaico </h1>
+    nb never start controller on old server browsersession page 
+    <br>
+    Nome Impianto da Controllare: <input type="text" id="myTempl" value="" size="15" oninput="setprname()"> ,
+    feature(urlencoded): <input type="text" id="myFeat" value="" size="10" oninput="setprname()">
+    <br><br> <button type="button" onclick="startctl()">start controller</button> <br>
 
-<br>
- Nome Impianto da Controllare: <input type="text" id="myTempl" value="" size="15" oninput="setprname()">  , feature(urlencoded): <input type="text" id="myFeat" value="" size="10" oninput="setprname()">
- <br><br> <button type="button" onclick="startctl()">start controller</button> <br>
+    <div id="VDM001" style="display:none">
+
+
+      <div class="row">
+        <div class="col-sm-4" style="background-color:lavender;">
+
+          <div style="background-color:lavenderblush;">
+            <h3> &nbsp; &ensp; &emsp; PdC Triggers:</h3>
+            <form id="triggers">
+              <p><input type="checkbox" id="PdCTrig" name="PdCTrig"> Temperatura Est. &nbsp;&nbsp;&ensp;&ensp; value
+                <input type="number" id="temp" name="temp" placeholder=9 size="4"></p><br>
+              <p><input type="checkbox" id="PdCTrig1" name="PdCTrig1"> Potenza FV &nbsp;&nbsp;&nbsp;&ensp;
+                &ensp;&ensp;&ensp;&ensp; value (%) <input type="number" id="FVPower" name="FVPower" placeholder=50
+                  size="4"> &ensp;&ensp;
+                T int Max <input type="number" id="Tmax" name="Tmax" placeholder=23 size="4"> &ensp;
+                <br>&ensp;&ensp;&ensp;&ensp; &ensp;&ensp;&ensp; Evitare Energia in Rete (%) <input type="number"
+                  id="Psav" name="Psav" placeholder="80" size="4">&ensp; &ensp; Battery Savings con Anticipo C. (%)
+                <input type="number" id="Bsav" name="Bsav" placeholder="80" size="4">
+              </p>
+            </form>
+
+
+            <script>
+              for (var x = 0; x <= 27; x++) {
+                document.write("<br>")
+              } 
+            </script>
+          </div>
+          <br>
+
+          <hr class="solid">
+
+          <div style="background-color:rgb(243, 205, 240);">
+          <h3> &nbsp; &ensp; &emsp; HEAT Triggers:</h3>
+          <form id="triggers2">
+          <p><input type="checkbox" id="Tgiorno" name="Tgiorno"> Termostato HT zona giorno &ensp; delay (hours) <input type="number"
+              id="delay1" placeholder=1 size="4" name="Dgiorno">
+
+        <br> &nbsp; &ensp; &emsp;
+        program:  <input type="text" id="PGMgiorno" name="PGMgiorno" value='{"8:30":1020,"17:00":22}' size="30" oninput="setprname1(1,this.value)"> , valid JSON: 
+        <textarea id="validate1" name="valid1" rows="1" cols="5"></textarea>,&nbsp;  tollerance: <input type="number" id="TgiornoTollerance" name="TgiornoTollerance" placeholder="0.7" size="3"> 
+        <br>&nbsp; &ensp;&nbsp; &ensp;  manual set: <input type="number" id="TgiornoMan" name="TgiornoMan" placeholder="20" size="4"> validity: <input type="number" id="TgiornoVal" name="TgiornoVal" placeholder="3" size="2"> h
  
-  <div id="VDM001" style="display:none">
-
-
-    <div class="row">
-      <div class="col-sm-4" style="background-color:lavender;">   
-      <h2 style="text-align:center"> Relays Status: </h2>
+      </p>
       <br><br>
-      <p><input type="checkbox" id="heat"> HEAT Low Temp</p>
-    <p><input type="checkbox" id="pdc"> PdC (vs GAS)</p>
-    <p><input type="checkbox" id="g"> Zona Giorno</p>
-    <p><input type="checkbox" id="n"> Zona Notte</p>
-    <p><input type="checkbox" id="s"> Seminterrato</p>
-    <p><input type="checkbox" id="split"> Splits</p>
-    <script> 
-      for(var x=0;x<=9;x++){ 
-      document.write("<br>") 
-      } 
-      </script> 
-    <hr class="solid">
-    <h3> &nbsp; &ensp;  &emsp; HEAT Triggers:</h3>
-    <p><input type="checkbox" id="HT"> Termostato HT  &ensp; delay (hours) <input type="number" id="delay" placeholder=1 size="4" ></p>
-    <hr class="solid">
-    <h3> &nbsp; &ensp;  &emsp; PdC Triggers:</h3>
-    <form id="triggers">
-    <p><input type="checkbox" id="PdCTrig" name="PdCTrig"> Temperatura Est. &nbsp;&nbsp;&ensp;&ensp; value  <input type="number" id="temp" name="temp" placeholder=9 size="4" ></p><br>
-    <p><input type="checkbox" id="PdCTrig1" name="PdCTrig1" > Potenza FV  &nbsp;&nbsp;&nbsp;&ensp; &ensp;&ensp;&ensp;&ensp; value (%) <input type="number" id="FVPower" name="FVPower" placeholder=50 size="4" > &ensp;&ensp; 
-      T int Max <input type="number" id="Tmax" name="Tmax" placeholder=23 size="4" > &ensp;
-    <br>&ensp;&ensp;&ensp;&ensp; &ensp;&ensp;&ensp;  Evitare Energia in Rete (%) <input type="number" id="Psav" name="Psav"  placeholder="80" size="4" >&ensp; &ensp;   Battery Savings con Anticipo C. (%) <input type="number" id="Bsav" name="Bsav" placeholder="80" size="4" ></p>
-    </form>
-    <br></div>
-      <div class="col-sm-4" style="background-color:lavenderblush;">
-        <h2 style="text-align:center" > Piano Attivazione PdC </h2>
-        l'ANTICIPO dei consumi ottenuta con l'attivazione della PdC, nel periodo di massima insolazione, permette l'incremento virtuale della capacità della batteria evitandogli un ciclo di vita. 
-        <br>il risparmio è una combinazione di:
-        <ul> <li>costo di un ciclo della vita della batteria </li>
-          <li>costo dell'energia assorbita dalla rete pari al incremento virtuale di capacità </li>
-          <li>mancata produzione di energia Fv per il degrado di rendimento per le fredde temperature serali</li>  
-          </ul>
-        <div id="myDIV1">
-          <h2> state: <textarea id="activate" name="ACTIVATED" rows="1" cols="10">NOT ACTIVE</textarea></h2>
-        </div>
-        <br><br><br><br><br>
-        <p> ora inizio &ensp; &nbsp;&nbsp;&nbsp;<input type="number" id="hourin" placeholder=9 size="4"  ></p>
-        <p> ora fine  &ensp;&ensp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="number" id="hourout" placeholder=15 size="4" ></p>
-        <p> ripeti ogni  &emsp; <input type="number" id="hourinterval" placeholder=1 size="4" > ore</p>
-        <p> Parametri Algo: Triggers</p>
-        <br>  <p style="text-align:center"><button type="button20" onclick="startrep()" style="background-color:rgb(29, 235, 29)";> start energysaving </button>   &ensp;  &ensp;  &ensp; 
-        <button type="button21" onclick="stoprep()" style="background-color:red;"> stop energysaving </button> </p>
-        <hr class="solid">
-        <h3> &nbsp; &ensp;  &emsp; Basic PdC Energy Savings Models </h3>
-        <p>
-          <form >
-            <p>Please select your favorite Model to Customize:</p>
-            <input type="radio" id="SBattery" name="Mod" value="SB">
-            <label for="SBattery">Estensione della Vita della Batteria</label><br>
-            <input type="radio" id="AGrid" name="Mod" value="nogrid">
-            <label for="AGrid">Minima Dispersione della produzione di FV in Rete</label><br>
-            <input type="radio" id="jield" name="Mod" value="jield">
-            <label for="AGrid">Massimizzazione rendimenti PdC durante le ore più calde</label><br>
-            <input type="radio" id="Both" name="Mod" value="Both">
-            <label for="Both">Ottimizzazione Media dei Criteri Precedenti</label><br>
-            <br> 
-            <input type="button" name="button" value="Set Trigger Values" onClick="testResults(this.form)" > 
-          </form>
-        
-          per il criterio 4, dare :
-          <ul> <li>- costo medio kWH:  <input type="number" id="ckwh" name="ckwh" placeholder=0.4 size="4" ><br>
-          </li>
-          <li>- costo medio gas a m**3:  <input type="number" id="cm3" name="cm3" placeholder=1.1 size="4" ><br>
-        </li></ul>
-        </p>
+          <p><input type="checkbox" id="Tnotte" name="Tnotte"> Termostato HT zona notte &ensp; delay (hours) <input type="number"
+              id="delay2" placeholder=1 size="4">
+              <br> &nbsp; &ensp; &emsp;
+              program:  <input type="text" id="PGMnotte" name="PGMnotte" value='{"notte":{"8:30":20,"17:00":22}}' size="30" oninput="setprname1(2,this.value)"> , valid JSON: 
+              <textarea id="validate2" name="valid2" rows="1" cols="7"></textarea>,&nbsp; tollerance: <input type="number" id="TnotteTollerance" name="TnotteTollerance" placeholder="0.7" size="3"> 
+              <br>&nbsp; &ensp;&nbsp; &ensp;  manual set: <input type="number" id="TnotteMan" name="TnotteMan" placeholder="20" size="4"> validity: <input type="number" id="TnotteVal" name="TnotteVal" placeholder="3" size="2"> h
+              
+            </p>
 
- 
-      </div>
-      <div class="col-sm-4" style="background-color:lavender;">
-        <h2 style="text-align:center"> General Status:</h2>
-        <p><label for="w3review">ctl state:</label></p>
-        <textarea id="w3review" name="w3review" rows="30" cols="60"></textarea>
-        <br>
+           
+
+          </form>
+          </div>
+
+        </div>
+        <div class="col-sm-4" style="background-color:lavenderblush;">
+          <h2 style="text-align:center"> Piano Attivazione PdC </h2>
+          l'ANTICIPO dei consumi ottenuta con l'attivazione della PdC, nel periodo di massima insolazione, permette
+          l'incremento virtuale della capacità della batteria evitandogli un ciclo di vita.
+          <br>il risparmio è una combinazione di:
+          <ul>
+            <li>costo di un ciclo della vita della batteria </li>
+            <li>costo dell'energia assorbita dalla rete pari al incremento virtuale di capacità </li>
+            <li>mancata produzione di energia Fv per il degrado di rendimento per le fredde temperature serali</li>
+          </ul>
+          l'ANTICIPO dei consumi viene realizzato attivando la PdC quando l'energia fotovoltaica diventa disponibile, aumentando al più di 1.5 gradi le temperature programmate
+          <div id="myDIV1">
+            <h2> state: <textarea id="activate" name="ACTIVATED" rows="1" cols="10">NOT ACTIVE</textarea></h2>
+          </div>
+          <br><br><br><br><br>
+
+
+          <form>
+            <p>Please select your favorite Model to preset triggers:</p>
+              <input type="radio" id="SBattery" name="Mod" value="SB">
+              <label for="SBattery">Estensione della Vita della Batteria</label><br>
+              <input type="radio" id="AGrid" name="Mod" value="nogrid">
+              <label for="AGrid">Minima Dispersione della produzione di FV in Rete</label><br>
+              <input type="radio" id="jield" name="Mod" value="jield">
+            <label for="AGrid">Massimizzazione rendimenti PdC durante le ore più calde</label><br>
+              <input type="radio" id="Both" name="Mod" value="Both">
+              <label for="Both">Ottimizzazione Media dei Criteri Precedenti</label><br>
+            <p>
+              &emsp;per questo ultimo criterio, dare :
+            <ul>
+              <li>- costo medio kWH: <input type="number" id="ckwh" name="ckwh" placeholder=0.4 size="4"><br>
+              </li>
+              <li>- costo medio gas a m**3: <input type="number" id="cm3" name="cm3" placeholder=1.1 size="4"><br>
+              </li>
+            </ul>
+            </p>
+            <br>
+            <input type="button" name="button" value="Set Trigger Values" onClick="testResults(this.form)">
+          </form>
+
+
+          <br>
+          <p>Please select the daily schedule to run anticipate algo with triggers set:</p>
+          <p> ora inizio &ensp; &nbsp;&nbsp;&nbsp;<input type="number" id="hourin" placeholder=9 size="4"></p>
+          <p> ora fine &ensp;&ensp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="number" id="hourout" placeholder=15 size="4">
+          </p>
+          <p> ripeti ogni &emsp; <input type="number" id="hourinterval" placeholder=1 size="4"> minuti</p>
+
+          <br>
+          <p style="text-align:center"><button type="button20" onclick="startrep()"
+              style="background-color:rgb(29, 235, 29)" ;> start energysaving </button> &ensp; &ensp; &ensp;
+            <button type="button21" onclick="stoprep()" style="background-color:red;"> stop energysaving </button>
+          </p>
+          <hr class="solid">
+          <div style="background-color:rgb(243, 205, 240);">
+          <h3> &nbsp; &ensp; &emsp; Temperature Control </h3>
+
+          <div id="myDIV2">
+            <h2> state: <textarea id="programming" name="ACTIVATED1" rows="1" cols="10">NOT ACTIVE</textarea></h2>
+            
+             T rilevate: <input form="triggers2" type="text" id="lastT" name="lastT" placeholder="ultime temperature"
+            size="16"> &ensp;&ensp;
+            <br>
+
+            <p  id="actZones" >zone attive: nessuna</p>
+          </div>
+          <br><br><br><br><br><b><br>
+
+
+          <form>
+            <p>todo:Please select the Temperature Control system:</p>
+              <input type="radio" id="ther" name="ctl" value="ther">
+              <label for="ther"> this system will control the programmed temperature using sensors</label><br>
+              <input type="radio" id="AGrid" name="ctl" value="nogrid">
+            <label for="ther"> this system will import temperature programs from thermostats</label><br>
+             
+            <br>
+            <input type="button" name="button" value="Set Trigger Values" onClick="testResults(this.form)">
+          </form>
+
+          <p>Please select the daily schedule to run temperature control with triggers set:</p>
+          <p> ora inizio &ensp; &nbsp;&nbsp;&nbsp;<input type="number" id="hourin2" placeholder=9 size="4"></p>
+          <p> ora fine &ensp;&ensp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="number" id="hourout2" placeholder=15 size="4">
+          </p>
+          <p> ripeti ogni &emsp; <input type="number" id="hourinterval2" placeholder=1 size="4"> minuti</p>
+
+          <br>
+
+          <br>
+          <p style="text-align:center"><button type="button23" onclick="startprg()"
+              style="background-color:rgb(29, 235, 29)" ;> start temperature control </button> &ensp; &ensp; &ensp;
+            <button type="button24" onclick="stopprg()" style="background-color:red;"> stop temperature control </button>
+          </p>
+          </div>
+
+        </div>
+        <div class="col-sm-4" style="background-color:lavender;">
+
+          <h2 style="text-align:center"> Relays Status: </h2>
+
+          <div class="row">
+            <div class="col-sm-3" style="background-color:lavender;">
+            
+            
+              <br><br>
+              <p><input type="checkbox" id="heat"> HEAT Low Temp</p>
+              <p><input type="checkbox" id="heatht"> HEAT High Temp</p>
+              <p><input type="checkbox" id="pdc"> PdC (vs GAS)</p>
+              <p><input type="checkbox" id="g"> Zona Giorno</p>
+              <p><input type="checkbox" id="n"> Zona Notte</p>
+              <p><input type="checkbox" id="s"> Seminterrato</p>
+              <p><input type="checkbox" id="split"> Splits</p>
+    
+            
+            
+            </div>
+            <div class="col-sm-2" style="background-color:lavenderblush;"> 
+              <div id="VDM001x" style="display:block">
+            
+                        
+              <br><br>
+              <p><input type="checkbox" id="sm1" onclick="man(1)">Set Manual</p>
+              <p><input type="checkbox" id="sm2" onclick="man(2)">Set Manual</p>
+              <p><input type="checkbox" id="sm3" onclick="man(3)">Set Manual</p>
+              <p><input type="checkbox" id="sm4" onclick="man(4)">Set Manual</p>
+              <p><input type="checkbox" id="sm5" onclick="man(5)">Set Manual</p>
+              <p><input type="checkbox" id="sm6" onclick="man(6)">Set Manual</p>
+              <p><input type="checkbox" id="sm7" onclick="man(7)">Set Manual</p>
+    
+            
+              </div>
+            
+            </div>
+
+
+            <div class="col-sm-7" style="background-color:lavenderblush;">
+            
+              <br><br>
+              <p>>&emsp; <input type="checkbox" id="m1" style="display:none"></p>
+              <p>>&emsp; <input type="checkbox" id="m2" style="display:none"> </p>
+              <p>>&emsp; <input type="checkbox" id="m3" style="display:none"> </p>
+              <p>>&emsp; <input type="checkbox" id="m4" style="display:none"> </p>
+              <p>>&emsp; <input type="checkbox" id="m5" style="display:none"> </p>
+              <p>>&emsp; <input type="checkbox" id="m6" style="display:none"> </p>
+              <p>>&emsp; <input type="checkbox" id="m7" style="display:none"> </p>
+    
+            
+            
+            
+            
+            </div>
+          </div>
+
+
+          <hr class="solid">
+          <h2 style="text-align:center"> General Status:</h2>
+          <p><label for="w3review2">legenda:</label>
+          <ul>
+            <li>
+              anticipate: if anticipate algo is currently running, show its launch params (ex: triggers), 
+              
+                <br> used  to recover anticipate algo scheduling ( scheduling is started by checkFactory.repeatcheckxSun() in event 'repeatcheckxSun')
+                <br> set by setanticipateflag() called in event 'repeatcheckxSun' just after checkFactory.repeatcheckxSun()
+                <br> cleared in event 'stopRepeat' by  setanticipateflag(false,'anticipate')
+                
+                          </li><li>
+              obsolete: anticipating: dati circa l'ultimo anticipate algo lanciato, algo param set in ... and also in in anticipate() (the algo launched by execute event 'startcheck') using triggers
+            </li><li>
+              lastAnticAlgo :   set by anticipate() (if succeeded) as reason to apply anticipate action  and result actions (pumps relays)
+              <br>  anticipate() is major pgm in the algo launched by execute event 'startcheck') using triggers
+               
+            </li><li>
+              lastRunnedProcedure: last anticipate/program internal execute result
+            </li><li>
+              program: if program algo is currently running show its launch params, 
+              <br> set by setanticipateflag() called in .....
+
+            </li><li>
+
+              lastProgramAlgo :  also set by program() as reason to apply anticipate action (pumps relays, if succeeded)
+              <br>  anticipate() is major pgm in the algo launched by execute   event 'startprogrammer' handler: repeatHandler1
+
+            </li>
+
+            </li>
+          </ul>
+          
+          </p>
+          <p><label for="w3review">ctl state:</label></p>
+          <textarea id="w3review" name="w3review" rows="30" cols="60"></textarea>
+          <br>
+        </div>
       </div>
     </div>
-  </div>
 
- <!-- old : src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js" 
+    <!-- old : src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js" 
  include socket.io client side script -->
- <!-- see   https://socket.io/get-started/chat/#integrating-socketio
+    <!-- see   https://socket.io/get-started/chat/#integrating-socketio
     include socket.io client side script downloading the client part in socket.io node_module. must find a cnd if want ! -->
   </div>
-<script  src="/socket.io/socket.io.js" ></script> 
+  <script src="/socket.io/socket.io.js"></script>
 
 
 
 
-<script>
-  const al=false;
-// see https://www.w3schools.com/jsref/prop_style_right.asp  https://www.w3schools.com/howto/howto_css_split_screen.asp
-//        https://www.w3schools.com/jsref/tryit.asp?filename=tryjsref_style_background
-// https://www.w3schools.com/css/tryit.asp?filename=trycss_form_textarea
-// https://www.w3schools.com/bootstrap4/bootstrap_grid_basic.asp
-document.getElementById("myDIV1").style.right = "20px";
+  <script>
+    const al = false;
+    // see https://www.w3schools.com/jsref/prop_style_right.asp  https://www.w3schools.com/howto/howto_css_split_screen.asp
+    //        https://www.w3schools.com/jsref/tryit.asp?filename=tryjsref_style_background
+    // https://www.w3schools.com/css/tryit.asp?filename=trycss_form_textarea
+    // https://www.w3schools.com/bootstrap4/bootstrap_grid_basic.asp
+    document.getElementById("myDIV1").style.right = "20px";
+    document.getElementById("myDIV2").style.right = "20px";
 
-var socket = io(); //load socket.io-client and connect to the host that serves the page
-window.addEventListener("load", function(){ //when page loads
-  var lightbox = document.getElementById("light");
-  lightbox.addEventListener("change", function() { //add event listener for when checkbox changes
-    socket.emit("light", Number(this.checked)); //send button status to server (as 1 or 0)
-  });
-});
-socket.on('light', function (data) { //get button status from client  data=0/1 ?
-  document.getElementById("light").checked = data; //change checkbox according to push button on Raspberry Pi  
-  socket.emit("light", data); //send push button status to back to server
-});
-
-socket.on('view', function (data) { // data =plant name  data=0/1
-
-// todo : here the code serving the request in id="button" andata a buonfine sul server fv.sia ch il ctl app2 sia gia instanzato che nel caso di una instanzazione
-//      
-
- // let section=document.getElementById("VDM001"); //change checkbox according to push button on Raspberry Pi
-  // set prop style="display:block">  NNHH
-  // set new field wih content >data   ?
-  //alert(' view calling cambiastato');
-  setViewStato ("VDM001",data);
-
-});
-
-// the change staus pump events :
-socket.on('pump', function (pump,data) { // handler of  socket.emit(pumpName, data=value=0/1
-                                        // pump must be in  relaisEv=['pdc','g','n','s'];, see after
-
-// todo : here the code serving the request in id="button" andata a buonfine sul server fv.sia ch il ctl app2 sia gia instanzato che nel caso di una instanzazione
-//      
-
- // let section=document.getElementById("VDM001"); //change checkbox according to push button on Raspberry Pi
-  // set prop style="display:block">  NNHH
-  // set new field wih content >data   ?
-  if(al)alert(' changing status : ',data,' x  pump ',pump);
-  console.log(' event pump called to set pump: ',pump,' value: ',data);
-  let myck=document.getElementById(pump);
-  if(myck){myck.checked = data; //change checkbox according to push button on Raspberry Pi  
-  socket.emit('pump',pump, data,'browser_pump_Handler'); //  HYN send push button status to back to server  
-                                  // in fv3 :
-                                  //  - as button handler or 
-                                  //  - setpumps/attuators algo     
-                                  //  is called:  socket.emit('pump',pumpName, lightvalue); 
-                                  // pump must be in  relaisEv=['pdc','g','n','s'];, 
-                                  //  
-  }
-});
-
-
-//  relays : https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001
-// pdc relay
-let relaisEv=['heat','pdc','g','n','s',"split"];// same as fv3.js , socket event to sync raspberry buttons and web button, same as fv3.js
-
-window.addEventListener("load", function(){ //when page loads
-  /*var lightbox = document.getElementById("pdc");
-  if(lightbox)lightbox.addEventListener("change", function() { //add event listener for when checkbox changes
-    socket.emit("pdc", Number(this.checked)); //send button status to server (as 1 or 0)
-  });*/
- let box;
-  relaisEv.forEach((pump,ind) => {// socket event to sync raspberry buttons and web button
-                                  //// pump must be in  relaisEv=['pdc','g','n','s'];, see after
-  box = document.getElementById(pump);
-  console.log(' registering handler for id: ',pump);
-  if(box)box.addEventListener("change", function() { //add event listener for when checkbox changes
-    socket.emit('pump',pump,  Number(this.checked),'browserchangeflag'); //send browser flag status  to server, similar as HYN
+    var socket = io(); //load socket.io-client and connect to the host that serves the page
+    window.addEventListener("load", function () { //when page loads
+      var lightbox = document.getElementById("light");
+      lightbox.addEventListener("change", function () { //add event listener for when checkbox changes
+        socket.emit("light", Number(this.checked)); //send button status to server (as 1 or 0)
+      });
     });
-});});
+    socket.on('light', function (data) { //get button status from client  data=0/1 ?
+      document.getElementById("light").checked = data; //change checkbox according to push button on Raspberry Pi  
+      socket.emit("light", data); //send push button status to back to server
+    });
 
-let triggers_=document.getElementById("triggers").elements;
-let extract=["PdCTrig","temp","PdCTrig1","FVPower","Tmax","Psav","Bsav"],triggers={};// extract
+    socket.on('view', function (data) { // data =plant name  data=0/1
 
-socket.on('status', function (data) { //get button status from client, see https://www.w3schools.com/tags/tryit.asp?filename=tryhtml_textarea
-  //change all state info escluding the pump lags managed by 'pump' event , so only mirroring state info without any funcionality
-  document.getElementById("w3review").value = JSON.stringify(data,null,2);
-  console.log('data is : ',JSON.stringify(data,null,2))
-let mel=document.getElementById("activate");
-let act=false;
- if(mel){ if(data.anticipate){
-  act=true;
-    mel.value = "ACTIVE"; 
-  mel.style.background = "#00f300";
-}else{
-  mel.value = "INACTIVE"; 
-  mel.style.background = "#f30000";
+      // todo : here the code serving the request in id="button" andata a buonfine sul server fv.sia ch il ctl app2 sia gia instanzato che nel caso di una instanzazione
+      //      
 
-}}
-// could also fill hour field  and triggers it running procudure is active (not relays !) 
-if(act){
-let start = document.getElementById("hourin"),
-stop = document.getElementById("hourout"),
-interval= document.getElementById("hourinterval");
+      // let section=document.getElementById("VDM001"); //change checkbox according to push button on Raspberry Pi
+      // set prop style="display:block">  NNHH
+      // set new field wih content >data   ?
+      //alert(' view calling cambiastato');
+      setViewStato("VDM001", data);
 
-start.value=data.anticipate.starthour;
-stop.value=data.anticipate.stophour;
-interval.value=data.anticipate.hourinterval;
-// TODO mancano  triggers !
-let triggers=data.anticipate.triggers;
-// ....
+    });
 
-// for (let x in triggers) {// should be = to extract
-//  el=trigger[x];} 
+    // the change staus pump events :
+    socket.on('pump', function (pump, data) { // handler of  socket.emit(pumpName, data=value=0/1
+      // pump must be in  relaisEv=['pdc','g','n','s'];, see after
 
-extract.forEach((val,ind) => {
-  let el=triggers_[val];
-  if(el)
-  {if(el.type=='checkbox')triggers_[val].checked=triggers[val];
-  else triggers_[val].value=triggers[val];
-  }
+      // todo : here the code serving the request in id="button" andata a buonfine sul server fv.sia ch il ctl app2 sia gia instanzato che nel caso di una instanzazione
+      //      
 
-});
-}
-});
+      // let section=document.getElementById("VDM001"); //change checkbox according to push button on Raspberry Pi
+      // set prop style="display:block">  NNHH
+      // set new field wih content >data   ?
+      if (al) alert(' changing status : ', data, ' x  pump ', pump);
+      console.log(' event pump called to set pump: ', pump, ' value: ', data);
+      let myck = document.getElementById(pump);
+      if (myck) {
+        myck.checked = data; //change checkbox according to push button on Raspberry Pi  
+        socket.emit('pump', pump, data, 'browser_pump_Handler'); //  HYN send push button status to back to server  
+        // in fv3 :
+        //  - as button handler or 
+        //  - setpumps/attuators algo     
+        //  is called:  socket.emit('pump',pumpName, lightvalue); 
+        // pump must be in  relaisEv=['pdc','g','n','s'];, 
+        //  
+      }
+    });
 
 
+    //  relays : https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001
+    // pdc relay
+    let relaisEv = ['heat', 'pdc', 'g', 'n', 's', "split"];// same as fv3.js , socket event to sync raspberry buttons and web button, same as fv3.js
+    // >>>>>>>>> todo   add here and in fv3 a new item : heatht !!!!!!!!!!!!!!
 
-function startctl(){
-  // see https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001   NNHH
-let mydemo = document.getElementById("myTempl").value,
-feat = document.getElementById("myFeat").value;
-socket.emit("startuserplant", mydemo,feat); //send push button status to back to server
-}
+    window.addEventListener("load", function () { //when page loads
+      /*var lightbox = document.getElementById("pdc");
+      if(lightbox)lightbox.addEventListener("change", function() { //add event listener for when checkbox changes
+        socket.emit("pdc", Number(this.checked)); //send button status to server (as 1 or 0)
+      });*/
+      let box;
+      relaisEv.forEach((pump, ind) => {// socket event to sync raspberry buttons and web button
+        //// pump must be in  relaisEv=['pdc','g','n','s'];, see after
+        box = document.getElementById(pump);
+        console.log(' registering handler for id: ', pump);
+        if (box) box.addEventListener("change", function () { //add event listener for when checkbox changes
+          socket.emit('pump', pump, Number(this.checked), 'browserchangeflag'); //send browser flag status  to server, similar as HYN
+        });
+      });
+    });
+
+    let triggers_ = document.getElementById("triggers").elements;// form elements got by name
+    let extract = ["PdCTrig", "temp", "PdCTrig1", "FVPower", "Tmax", "Psav", "Bsav"], triggers = {};// extract
+
+    let triggers2_ = document.getElementById("triggers2").elements;// form elements
+    let extract2 = ["Tgiorno","PGMgiorno","Tnotte","PGMnotte","lastT"],// name in form triggers2 that are in triggers{} and in lastT
+     triggers2 = {};// extract
+
+    socket.on('status', function (data,prettyjson) { //get button status from client, see https://www.w3schools.com/tags/tryit.asp?filename=tryhtml_textarea
+      //change all state info escluding the pump lags managed by 'pump' event , so only mirroring state info without any funcionality
+      document.getElementById("w3review").value =prettyjson;
+      // JSON.stringify(data, null, ' ').replace(/: {/g, `${' '.repeat(5)}: \{`).replace(/: \{\n\s+/g, ': {').replace(/",\n\s+/g, ', ').replace(/"\n\s+\}/g, '}'); //Done all at once
+      /*
+      let data = JSON.stringify(myJSON, null, ' ').replace(/: {/g, `${' '.repeat(5)}: \{`); //Set the key spacing
+          data = data.replace(/: \{\n\s+/g, ': {'); //Bring the child bracket on the same line
+          data = data.replace(/",\n\s+/g, ', '); //Bring all the other objects for that array up
+          data = data.replace(/"\n\s+\}/g, '}'); //Pull the closing bracket on the same line
+        */
+      //document.getElementById("w3review").value = JSON.stringify(data, null, 2);
+      console.log('event status, received data : ', JSON.stringify(data, null, 2),' relHistory dim: ',data.relHistory.length);
+      let mel = document.getElementById("activate");
+      let act = false;
+      if (mel) {
+        if (data.anticipate) {
+          act = true;
+          mel.value = "ACTIVE";
+          mel.style.background = "#00f300";
+        } else {
+          mel.value = "INACTIVE";
+          mel.style.background = "#f30000";
+
+        }
+      }
+      // could also fill hour field  and triggers it running procudure is active (not relays !) 
+      if (act) {// anticipate active
+        let start = document.getElementById("hourin"),
+          stop = document.getElementById("hourout"),
+          interval = document.getElementById("hourinterval");
+
+        start.value = data.anticipate.starthour;
+        stop.value = data.anticipate.stophour;
+        interval.value = data.anticipate.dminutes;
+        // TODO mancano  triggers !
+        let triggers = data.anticipate.triggers;
+        // ....
+
+        // for (let x in triggers) {// should be = to extract
+        //  el=trigger[x];} 
+
+        extract.forEach((val, ind) => {
+          let el = triggers_[val];
+          if (el) {
+            if (el.type == 'checkbox') triggers_[val].checked = triggers[val];
+            else triggers_[val].value = triggers[val];
+          }
+
+        });
+      }
+        // todo with extract2
+
+      mel = document.getElementById("programming");
+      act = false;
+      if (mel) {
+        if (data.program) {
+          act = true;
+          mel.value = "ACTIVE";
+          mel.style.background = "#00f300";
+        } else {
+          mel.value = "INACTIVE";
+          mel.style.background = "#f30000";
+
+        }
+      }
+      // could also fill hour field  and triggers it running procudure is active (not relays !) 
+      if (act) {// program active
+        let start = document.getElementById("hourin2"),
+          stop = document.getElementById("hourout2"),
+          interval = document.getElementById("hourinterval2");
+
+        start.value = data.program.starthour;
+        stop.value = data.program.stophour;
+        interval.value = data.program.dminutes;
+        // TODO mancano  triggers !
+        let triggers2 = data.program.triggers2;
+        // ....
+
+        // for (let x in triggers) {// should be = to extract
+        //  el=trigger[x];} 
+
+        extract2.forEach((val, ind) => {// extract in triggers2 keys in  extract2, assign .triggers2[key] to form el named key.
+                                        // only the key='lastT' assign the value of .lastT[1] to lastT element
+          let el = triggers2_[val],cont;
+          if (el) {
+            if(val=='lastT'&&triggers2[val]){// .lastT 
+                cont=JSON.stringify(triggers2[val][1]);
+                triggers2_[val].value=cont;}
+            else if(val=='PGMgiorno'&&triggers2[val]){
 
 
-function startrep(){
-  let start = document.getElementById("hourin").value,
-stop = document.getElementById("hourout").value,
-interval= document.getElementById("hourinterval").value;
-//triggers_=document.getElementById("triggers").elements;
-// let extract=["PdCTrig","temp","PdCTrig1","FVPower","Tmax","Psav","Bsav"],triggers={};// extract
-extract.forEach((val,ind) => {
-  let el=triggers_[val];
-  if(el)
-  {if(el.type=='checkbox')triggers[val]=triggers_[val].checked;
-  else triggers[val]=triggers_[val].value;
-  }
 
-});
-
-socket.emit("repeatcheckxSun",start,stop,interval,triggers); //send push button status to back to server
-
-}
-function stoprep(){
-
-socket.emit("stopRepeat"); //send push button status to back to server
-
-}
+                /*
+                if(triggers2.triggers2.TnotteToll){// insert tollerance obj
+                  triggers2.triggers2.TnotteTol={};
 
 
-
-function setprname(){}
-
-function cambiaStato (id, etichetta){ // cambia ciclicamente la visibilità dell'elemento indicato
-                                      // see https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001
-if (document.getElementById(id)){ // se un elemento con l'identificativo specificato esiste,
-if(al)alert(' view cambiastato got div el');
-if(document.getElementById(id).style.display == 'none') { // se l'elemento è nascosto,
-document.getElementById(id).style.display = 'block'; // lo visualizza
-if (etichetta) { // se è specificato un termine come secondo parametro,
-document.getElementById('btn'+id.substr(3)).innerHTML = "Nasconde " + etichetta; // aggiorna l'etichetta del pulsante, invertendo l'azione compiuta
-} // fine controllo secondo parametro
-}else{ // se invece l'elemento è visualizzato,
-document.getElementById(id).style.display = 'none'; // lo nasconde
-if (etichetta) { // se è specificato un termine come secondo parametro,
-document.getElementById('btn'+id.substr(3)).innerHTML = "Mostra " + etichetta; // aggiorna l'etichetta del pulsante, ripristinando quella originale
-} 
-} 
-} 
-} 
-
-function setViewStato (id,status){ // cambia ciclicamente la visibilità dell'elemento indicato status=0/1
-                                      // see https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001
-if (document.getElementById(id)){ // se un elemento con l'identificativo specificato esiste,
-if(al)alert(' view cambiastato is changing status view id:',id);
-if(status) { // 
-document.getElementById(id).style.display = 'block'; // lo visualizza
-
-}else{ 
-document.getElementById(id).style.display = 'none'; // lo nasconde
-
-} 
-} 
-} 
-/*
-const form = document.getElementById('form');
-const log = document.getElementById('log');
-form.addEventListener('submit', logSubmit);
+                     if(triggers2.PGMgiornoToll)sched.giorno.toll=triggers2.PGMgiornoToll;// tolleranze (un valore x all), same keys of sched.giorno.sched
+                  
+                }*/
+                let tollerance=0;
+                if(triggers2&&triggers2.TgiornoToll){// {"8:30":1.5,,,}
+                  // get first val 
+                  let ks=Object.keys(triggers2.TgiornoToll);
+                  for(let ii=0;ii<ks.length;ii++){
+                  if(triggers2.TgiornoToll[ks[ii]]>tollerance)
+                  {tollerance=triggers2.TgiornoToll[ks[ii]];// first found is x all !!
+                  if(triggers2.PGMgiorno[ks]!=null){// must be same keys
+                    triggers2.PGMgiorno[ks]+=1000;// add toll
 
 
-<form name="myForm" action="" method="GET">
-  Enter something in the box: <br>
-  <input type="text" name="inputbox" value="">
-  <input type="button" name="button" value="Click" onClick="testResults(this.form)">
-</form>
-*/
-function testResults (form) {// traduci i criteri generali in algo trigger parameters
-    var inputValue = form.Mod.value;
-    console.log ("You typed: " + inputValue);
-    // now set promps
-    if(inputValue=='SB'){
-   
-      document.getElementById("FVPower").value=77;
-      document.getElementById("Tmax").value=24;
-      document.getElementById("PdCTrig1").checked = true; 
+                  }
+                  }
+
+                }
+                triggers2_.TgiornoTollerance.value=tollerance;
+                }
+
+                triggers2_[val].value=JSON.stringify(triggers2[val]);
+              
+              
+              }
+            else if(val=='PGMnotte'&&triggers2[val]){
+              let tollerance=0;
+                if(triggers2&&triggers2.TnotteToll){// {"8:30":1.5,,,}
+                  // get first val 
+                  let ks=Object.keys(triggers2.TnotteToll);
+                  for(let ii=0;ii<ks.length;ii++){
+                  if(triggers2.TnotteToll[ks[ii]]>tollerance)
+                  {tollerance=triggers2.triggers2.TnotteToll[ks[ii]];// first found is x all !!
+                  if(triggers2.PGMnotte[ks]!=null){// must be same keys
+                    triggers2.PGMnotte[ks]+=1000;// add toll
+
+
+                  }
+                  }
+
+                }
+                triggers2_.TnotteTollerance.value=tollerance;
+                }
+
+                triggers2_[val].value=JSON.stringify(triggers2[val]);
+              
+              
+
+
+
+
+
+
+
+
+            }else if (el.type == 'checkbox') triggers2_[val].checked = triggers2[val];
+            else triggers2_[val].value = triggers2[val];
+          }
+
+        });
+
+        // fille zone attive checkando il html e non da status.relays ???
+        let azel=document.getElementById("actZones"),zons=[];
+        if(azel){if(document.getElementById("g").checked)zons.push('giorno');
+                  if(document.getElementById("n").checked)zons.push('notte');
+                  if(document.getElementById("s").checked)zons.push('seminterrato');
+                  azel.innerHTML = 'zone attive: '+zons;
+
+        }
+      }
+    });
+
+
+
+    function startctl() {
+      // see https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001   NNHH
+      let mydemo = document.getElementById("myTempl").value,
+        feat = document.getElementById("myFeat").value;
+      socket.emit("startuserplant", mydemo, feat); //send push button status to back to server
+    }
+
+
+    function startrep() {
+      let start = document.getElementById("hourin").value,
+        stop = document.getElementById("hourout").value,
+        interval = document.getElementById("hourinterval").value;// in hours
+      //triggers_=document.getElementById("triggers").elements;
+      // let extract=["PdCTrig","temp","PdCTrig1","FVPower","Tmax","Psav","Bsav"],triggers={};// extract
+      extract2.forEach((val, ind) => {
+        let el = triggers_[val];
+        if (el) {
+          if (el.type == 'checkbox') triggers[val] = triggers_[val].checked;
+          else triggers[val] = triggers_[val].value;
+        }
+
+      });
+
+      socket.emit("repeatcheckxSun", start, stop, interval, triggers); //send push button status to back to server, period in minutes
 
     }
-}
+    function stoprep() {
 
-</script>
+      socket.emit("stopRepeat"); //send push button status to back to server
+
+    }
+
+    function startprg() {
+      let start = document.getElementById("hourin2").value,
+        stop = document.getElementById("hourout2").value,
+        interval = document.getElementById("hourinterval2").value;// in minutes
+        if(!start)start=1;if(!stop)stop=23;if(!interval)interval=5;
+      //triggers_=document.getElementById("triggers").elements;
+      // let extract=["PdCTrig","temp","PdCTrig1","FVPower","Tmax","Psav","Bsav"],triggers={};// extract
+      extract2.forEach((val, ind) => {
+        let el = triggers2_[val];// form name val
+        if (el) {
+          if (el.type == 'checkbox') triggers2[val] = triggers2_[val].checked;
+          else triggers2[val] = triggers2_[val].value;
+        }
+
+      });
+        
+    
+    if(triggers2.PGMgiorno){// transform the json in obj, add   triggers2.TgiornoToll
+    
+    try {
+      triggers2.PGMgiorno=JSON.parse(triggers2.PGMgiorno);//document.getElementById("myprogram").value);
+    } catch(e) {
+      triggers2.PGMgiorno=null;
+      triggers2.Tgiorno=false;
+      //  alert(e); // error in the above string (in this case, yes)!
+    }
+    if(triggers2.PGMgiorno&&triggers2_.TgiornoTollerance&&triggers2_.TgiornoTollerance.value){
+      // add triggers2.TgiornoToll
+    triggers2.TgiornoToll={};// {'8:30':0,"10:50":1.5}
+    let ks=Object.keys(triggers2.PGMgiorno);// PGMgiorno= {'8:30':0,"10:50":1022} >  {'8:30':0,"10:50":22}
+                  for(let ii=0;ii<ks.length;ii++){
+                  if(triggers2.PGMgiorno[ks[ii]]>=1000){// significa vogliamo applicare la tolleranza
+                    triggers2.PGMgiorno[ks[ii]]-=1000;
+                    triggers2.TgiornoToll[ks[ii]]=triggers2_.TgiornoTollerance.value;
+                  }else triggers2.TgiornoToll[ks[ii]]=0;
+                  
+                  
+
+                  }
+                  }
+  
+  }
+
+    if(triggers2.PGMnotte){
+    
+    try {
+      triggers2.PGMnotte= JSON.parse(triggers2.PGMnotte);//document.getElementById("myprogram").value);
+    } catch(e) {
+      triggers2.PGMnotte=null;
+      triggers2.Tnotte=false;
+      //  alert(e); // error in the above string (in this case, yes)!
+    }}
+    if(triggers2.PGMnotte&&triggers2_.TnotteTollerance&&triggers2_.TnotteTollerance.value){
+      // add triggers2.TnotteToll
+    triggers2.TnotteToll={};// {'8:30':0,"10:50":1.5}
+    let ks=Object.keys(triggers2.PGMnotte);// PGMnotte= {'8:30':0,"10:50":1022} >  {'8:30':0,"10:50":22}
+                  for(let ii=0;ii<ks.length;ii++){
+                  if(triggers2.PGMnotte[ks[ii]]>=1000){// significa vogliamo applicare la tolleranza
+                    triggers2.PGMnotte[ks[ii]]-=1000;
+                    triggers2.TnotteToll[ks[ii]]=triggers2_.TnotteTollerance.value;
+                  }else triggers2.TnotteToll[ks[ii]]=0;
+                  
+                  
+
+                  }
+                  }
+
+
+
+      socket.emit("startprogrammer", start, stop, interval, triggers2); //send push button status to back to server. triggers2 keys:extract2 = ["Tgiorno","PGMgiorno","Tnotte","PGMnotte"],
+
+    }
+    function stopprg() {
+
+      socket.emit("stopprogrammer"); //send push button status to back to server
+
+    }
+
+
+    function setprname() { }
+    function setprname1(sensor,jsonval) { //alert(JSON.stringify(JSON.parse(document.getElementById("myprogram").value)))
+
+   let cought=false;
+
+
+
+    try {
+        a = JSON.parse(jsonval);//jsonval.replace(/::/g, ":"));//document.getElementById("myprogram").value); :: means with tollerance
+    } catch(e) {
+      cought=true;
+      //  alert(e); // error in the above string (in this case, yes)!
+    }
+
+    // insert tollerance by sign : negative means the slot can hav tollerance = toll
+
+
+
+    let mel = document.getElementById("validate"+sensor);
+
+        if (!cought) {
+          mel.value = "VALID";
+          mel.style.background = "#00f300";
+        } else {
+          mel.value = "INVALID";
+          mel.style.background = "#f30000";
+
+        }
+      }
+  
+
+
+    function cambiaStato(id, etichetta) { // cambia ciclicamente la visibilità dell'elemento indicato
+      // see https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001
+      if (document.getElementById(id)) { // se un elemento con l'identificativo specificato esiste,
+        if (al) alert(' view cambiastato got div el');
+        if (document.getElementById(id).style.display == 'none') { // se l'elemento è nascosto,
+          document.getElementById(id).style.display = 'block'; // lo visualizza
+          if (etichetta) { // se è specificato un termine come secondo parametro,
+            document.getElementById('btn' + id.substr(3)).innerHTML = "Nasconde " + etichetta; // aggiorna l'etichetta del pulsante, invertendo l'azione compiuta
+          } // fine controllo secondo parametro
+        } else { // se invece l'elemento è visualizzato,
+          document.getElementById(id).style.display = 'none'; // lo nasconde
+          if (etichetta) { // se è specificato un termine come secondo parametro,
+            document.getElementById('btn' + id.substr(3)).innerHTML = "Mostra " + etichetta; // aggiorna l'etichetta del pulsante, ripristinando quella originale
+          }
+        }
+      }
+    }
+
+    function setViewStato(id, status) { // cambia ciclicamente la visibilità dell'elemento indicato status=0/1
+      // see https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001
+      if (document.getElementById(id)) { // se un elemento con l'identificativo specificato esiste,
+        if (al) alert(' view cambiastato is changing status view id:', id);
+        if (status) { // 
+          document.getElementById(id).style.display = 'block'; // lo visualizza
+
+        } else {
+          document.getElementById(id).style.display = 'none'; // lo nasconde
+
+        }
+      }
+    }
+    function man(id) { // cambia ciclicamente la visibilità dell'elemento indicato status=0/1
+      // see https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001
+      let elm;
+      if ((elm=document.getElementById('m'+id))) { // se un elemento con l'identificativo specificato esiste,
+
+        if (document.getElementById('sm'+id).checked)  { // 
+          elm.style.display = 'inline'; // lo visualizza
+
+        } else {
+          elm.style.display = 'none'; // lo nasconde
+
+        }
+      }
+    }
+    /*
+    const form = document.getElementById('form');
+    const log = document.getElementById('log');
+    form.addEventListener('submit', logSubmit);
+    
+    
+    <form name="myForm" action="" method="GET">
+      Enter something in the box: <br>
+      <input type="text" name="inputbox" value="">
+      <input type="button" name="button" value="Click" onClick="testResults(this.form)">
+    </form>
+    */
+    function testResults(form) {// traduci i criteri generali in algo trigger parameters
+      var inputValue = form.Mod.value;
+      console.log("You typed: " + inputValue);
+      // now set promps
+      if (inputValue == 'SB') {
+
+        document.getElementById("FVPower").value = 77;
+        document.getElementById("Tmax").value = 24;
+        document.getElementById("PdCTrig1").checked = true;
+
+      }
+    }
+
+  </script>
 
 </body>
-</html> 
+
+</html>

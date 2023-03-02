@@ -1,4 +1,5 @@
-const DEBUG1=false;
+const DEBUG1=false,
+MAXHistLen=10;
 // import { EventEmitter } from "events";
 let { EventEmitter }=require('events');
 const readline = require('readline').createInterface({// see https://stackoverflow.com/questions/65260118/how-to-use-async-await-to-get-input-from-user-but-wait-till-entire-condition-sta
@@ -201,7 +202,7 @@ class WithTime extends EventEmitter {// js version ....
       
     }
     */
-   let dataArr=dataArr_;// temporarely
+   const dataArr=dataArr_;// temporarely
 
 
     function updateData// the cb std func, do nothing, just returns data
@@ -278,18 +279,19 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
       // key: the name of the object key
       // index: the ordinal position of the key within the object 
       if (ev2run[key]) {// event key must give return as input of event ev2run[key]
-        console.log('ev2run event', key,' will give its results  as input for event  ',ev2run[key]);
-        console.log('so  event', ev2run[key],' will take its input  the results of event  ',key);
-        dataInv[ev2run[key]] = key;// the event ev2run[key] will receive input from event: key
-        dataCon[key] = null;// data to use x event key, to be updated when event key is fired and returns the data
+        console.log('ev2run event', key,' will get input also from result of event  ',ev2run[key]);
+        console.log('so  event', ev2run[key],' will give its result  adding input to dataCon of event  ',key);
+        dataInv[ev2run[key]] = key;// the event ev2run[key] will give input to event: key
+        // dataCon[key] = null;// data to use x event key, to be updated when event ev2run[key] is fired and returns the data
       } else {// null value means the input is in dataArr.key
         // dataInv[ev2run[key]]=null;// alredy set
-        dataCon[key] =null;
-        if(dataArr[key]&&dataArr[key])dataCon[key] = dataArr[key];//.event; 
 
-        console.log('ev2run event', key,' dont review the current  input array  ',dataCon);//('key not found on ev2run , property: ', key);
+        console.log('ev2run event', key,' wont have  reviewed its input .');//('key not found on ev2run , property: ', key);
       }
+      dataCon[key] =null;
+      if(dataArr[key])dataCon[key] = dataArr[key];//.event; usually dataArr[key]={dataArr:{.....},,,,ex data:..,someprevEvent:...,,,} 
 
+      console.log('ev2run event', key,'  assign dataArr input to current building input array dataCon: ',dataCon);
     });
 
     function OuterFunction(par, ev) {// will fill inArr with afunc return
@@ -301,7 +303,10 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
                                           // is a async cb
        //  ev2run[ev] = updateData(err, data);//  after updated the input for event ev 
        console.log('Outerfunction. updateData_: in procedure: ',procName,' event (',ev,') handler returned data in cb : ',JSON.stringify(data,null,2));
-       if(data&&dataInv[ev] ){dataCon[dataInv[ev] ]=updateData(err, data);// =data . updated the input for event dataInv[ev] calculated from the data filled in cb by handler .on()
+       if(data&&dataInv[ev] ){
+        dataCon[dataInv[ev] ]=dataCon[dataInv[ev] ]||{};
+        // insert usually with the ev name key or 'data' key
+        dataCon[dataInv[ev] ][ev]=updateData(err, data);// =data . updated the input for event dataInv[ev] calculated from the data filled in cb by handler .on()
        console.log(' returned data from handler: ',ev,' set the input: ',dataCon[dataInv[ev] ],', for event: ',dataInv[ev]);
       }else  console.log(' returned data from handler ',ev,'  dont updated any event inputs, so dataCon[] dont changes: ',dataCon);
       //console.log('Outerfunction. updateData_:  event ',ev,' sets input chain as :', ev,'dataCon(inputarray updated by previous event results): ', dataCon);
@@ -317,7 +322,7 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
         //function updateData_(err,data){   // zz
         //		ev2run[evnam]=updateData(err,data);}
         // state sara in this.state .    inp=inp+state ;// ?????????????????????
-        console.log('pilo', ev, inp,' dataCon: ',dataCon);
+        console.log('pilo, innerfunction(), event: ', ev,' , inp: ', inp,' dataCon: ',dataCon);
         //console.log('pi',);
         this.emit(ev, inp, updateData_);// so the template for .on call will be SEDR  !!!!!!!!!!!!!!!!!!!
                                         // QUESTION .on ha il this lo stesso di questo ??? (instanza corrente di )
@@ -418,7 +423,7 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
     };// ends goonstep
 
  
-      console.time('execute');console.log(' execute procedure: ',procName,' started running and  calls console.time ');
+      console.time('execute '+procName);console.log(' execute procedure: ',procName,' started running and  calls console.time ');
 
 
      goonstep();// start event loop ev2run
@@ -429,8 +434,17 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
 // UUII : .....
 
       // ends goonstep loop :
-      function ends(stepNum,lastRunnedProcedure){ that.state.lastRunnedProcedure={result:lastRunnedProcedure,procName,GMTdate:new Date().toLocaleString()};
-      console.log('****\n execute procedure: ',procName,' stopped running , cur state: ',that.state,' Time Consumed : ');console.timeEnd('execute');
+      function ends(stepNum,lastRunnedProcedure){
+        let dd=new Date();dd.setHours(dd.getHours()+1);
+        let GMTdate=dd.toLocaleString();
+        that.state.lastRunnedProcedure={result:lastRunnedProcedure,procName,GMTdate};
+        that.state.relHistory=that.state.relHistory||[];
+        if(lastRunnedProcedure&&lastRunnedProcedure.execute)// log only execute results 
+          if(that.state.relHistory.push(that.state.lastRunnedProcedure)>MAXHistLen){
+            let lent=that.state.relHistory[that.state.relHistory.length-1];
+            that.state.relHistory.length=1;that.state.relHistory[0]=lent;// reset array push last entry
+          };
+      console.log('****\n execute procedure: ',procName,' stopped running , relHistory dim: ',that.state.relHistory.length,' cur state: ',that.state,' Time Consumed : ');console.timeEnd('execute '+procName);
       // moved this.on('data', (data)=> console.log('got data ', data));
 
       if (procName == 'customEv') { };
@@ -438,10 +452,10 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
       if(stepNum>1000){
         if(stepNum==1001){
           console.error(' fv3 exiting some execute() because cant get a token from server');
-          // to d : fire a socket evet to browser !
+          // to do : fire a socket event to browser !
         }
       }
-      cb();// return flow to cb (see OuterFunction)
+      cb();// execute ends: return flow to cb (see OuterFunction)
       }
     
     // func:
@@ -459,6 +473,8 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
       let asyncFunc = evAsyn[asynckey],
         input_ = null;
         if(dataArr[asynckey]) input_=dataArr[asynckey].processAsync;
+        console.log(' runAsync(): , asyncevent ', asynckey, ', take its input from dataArr[asynckey].processAsync: ',input_);
+ 
       if (asyncFunc)
         //if (args[0]==1)
         console.time(asynckey);
