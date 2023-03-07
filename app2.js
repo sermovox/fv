@@ -64,7 +64,7 @@ class WithTime extends EventEmitter {// js version ....
       // class states_  {// constructor, this is a new obj
       this.int = { buttonPress: false, anticipating: false, maxbatt: false };// constructor of input datastate  state direcly filled by ex interrupt/listener
       this.app = { battThres: 80, anticipating: false,plantname:null };// fsm app internal state direcly updated with this process
-      this.aiax = { battLevel: 0 };// input datastate direcly updated with aiax calls
+      this.aiax = {};//{ battLevel: 0 };// input datastate direcly updated with aiax calls
       // internal fsm state :
       this.token=null;
       this.stepInd=-1;// next step navigation
@@ -302,6 +302,7 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
       function updateData_(err, data) {   // zz   this id the cb   to framework: set ev2run[ev] using std cb updateData () that just return  data
                                           // is a async cb
        //  ev2run[ev] = updateData(err, data);//  after updated the input for event ev 
+       
        console.log('Outerfunction. updateData_: in procedure: ',procName,' event (',ev,') handler returned data in cb : ',JSON.stringify(data,null,2));
        if(data&&dataInv[ev] ){
         dataCon[dataInv[ev] ]=dataCon[dataInv[ev] ]||{};
@@ -390,7 +391,7 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
 
         let step=prolist[stepNum],// event at current step
         asyncNam = asyncPoint[stepNum];
-        let outpu='goonstep called , exec procedure: '+procName+', step: '+stepNum+'\n state: '+JSON.stringify(that.state,null,2)+'\n event: '+step+', async to run: '+asyncNam+'\n\n';
+        let outpu='goonstep called , exec procedure: '+procName+', step: '+stepNum+', event: '+step+'\n state: '+JSON.stringify(that.state,null,2)+'\n  async to run: '+asyncNam+'\n\n';
         //console.log('\n *****   goonstep called , exec procedure: ',procName,', step: ',stepNum,'\n state: ',that.state,'\n event: ',step,', async to run: ',asyncNam,'\n');
         console.log('\n *****  ',outpu);
       

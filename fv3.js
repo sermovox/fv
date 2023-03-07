@@ -4,38 +4,246 @@
 // - chiama  (xxx) la app chiedendo  
 // IL fsm (locale o remoto (cms script o server remoto)) che torna una classe di fsm compatibile (fusionsolar)
 // 
-//  quando ho una connessione web istazio/recupero un fsm singlethon che gestisce l'impianto user/plant luigi
-
+//  quando ho una connessione web istanzio/recupero un fsm singlethon che gestisce l'impianto user/plant luigi : > INSTANZ
+require('dotenv').config();
+const PersFold=process.env.PersFold;// persistence folder .data
+const test1=require("cors");
+const IsRaspberry=process.env.IsRaspberry != 'false';
+console.log(' is raspberry: ',IsRaspberry,PersFold);
 var https_ = require('https'); //require http server, and create server with function handler()
 var http_ = require('http'); //require http server, and create server with function handler()
 //console.log('http_.request:',http_.request);
 var http = http_.createServer(handler); //require http server, and create server with function handler()
 //console.log('after createserver , http_.request:',http.request);
+let mqtt=require('./nat/mqtt');
 var fs = require('fs'); //require filesystem module
-var io = require('socket.io')(http) //require socket.io module and pass the http object (server on wich soket will be built)
-var Gpio = require('onoff').Gpio; //include onoff to interact with the GPIO
-var LED = new Gpio(5, 'out'); //use GPIO pin 4 as output
-let relais_=[new Gpio(12, 'out'),// gpio phisical relays, see :YUIO
+var io = require('socket.io')(http) //require socket.io module and pass the http object (server on wich socket will be built)
+var Gpio ;
+if(IsRaspberry)Gpio= require('onoff').Gpio; //include onoff to interact with the GPIO
+else Gpio=null;
+var LED;if(Gpio) LED= new Gpio(5, 'out'); //use GPIO pin 4 as output
+var prettyJSONStringify = require('pretty-json-stringify');
+
+// a relays group ( the name are in : relaisEv ex: ['heat','pdc','g','n','s','split'];):
+/*let relais_=[new Gpio(12, 'out'),// gpio phisical relays, see :YUIO
                                 // from pump name the gpio is relais_[relaisEv.lastIndexOf(pump)];
                                 // so in relaisEv there re the names !
 new Gpio(16, 'out'),
 new Gpio(20, 'out'),
 new Gpio(21, 'out'),
+
+// b relays group:
 new Gpio(26, 'out'),
-new Gpio(19, 'out')
+new Gpio(19, 'out'),
+new Gpio(13, 'out'),
+new Gpio(6, 'out')
+];*/
+
+function resolveAfter2Seconds() {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve('resolved');
+    }, 2000);
+  });
+}
+
+async function asyncCall() {
+  console.log('calling');
+  const result = await resolveAfter2Seconds();
+  console.log(result);
+  // Expected output: "resolved"
+}
+
+asyncCall();
+
+
+
+let relais_=[],// the io dev ctl list , their name are in relaisEv array. if null the ctls func (readSync and writeSync ) wont be called 
+gpionumb=[12,16,20,21,26,19,13,6],mqttnumb=[11,null,null,null,null,null,null,null];
+// usual module script cant have top lever await :item=await getio(12, 'out');relais_.push(item);// gpio phisical relays, see :YUIO
+
+// so :mhttps://stackoverflow.com/questions/31426740/how-to-return-many-promises-and-wait-for-them-all-before-doing-other-stuff
+
+
+/* 
+// old :
+ getio(12, 'out').then ;relais_.push(item);// gpio phisical relays, see :YUIO
+                                // from pump name the gpio is relais_[relaisEv.lastIndexOf(pump)];
+item=await getio(16, 'out');relais_.push(item);
+item=await getio(20, 'out');relais_.push(item);
+item=await getio(21, 'out');relais_.push(item);
+// b relays group:
+item=await getio(26, 'out');relais_.push(item);
+item=await getio(19, 'out');relais_.push(item);
+item=await getio(13, 'out');relais_.push(item);
+item=await getio(6, 'out');relais_.push(item);
+*/
+
+function getctls(gpionumb,mqttnumb){// gpionumb,= [number,,,null,,,]  number is the gpio , null means no connection to dev available
+                                    // // mqttnumb = [number,,,null,,,]  number is the device id to subscribe
+                                    //  >>>>> number not 0 !
+  return new Promise((resolve) => {
+
+
+function doSomethingAsync(gpio,ind,ismqtt=false) {// a wrapper
+  return getio(gpio, 'out',ind,ismqtt);// return a promise
+}
+
+function fillctls() {
+    const promises = [];
+    let resu=Array(8).fill(null);// the returning dev ctl array, null means there is no dev , the sw will not do any write and read 0 state 
+    let pr,resolved= [],probj;//Array(8).fill(false);
+
+    for(i=0;i<gpionumb.length;i++){
+    // first ctl :
+    if(mqtt&&mqtt.avail&&mqttnumb[i]){// try first to get the mqtt device 
+      // use a mqtt device topic as gpio as registered in BBVV
+  // attach the mqtt io ctl in some relais index, here 0
+
+    // mqtt ctl registered at key/index 11 in AAFF
+    pr=doSomethingAsync(mqttnumb[i],i,true);//probj={ind:i,prom:pr};
+
+    }else{// if there is a spare in local gpio 12
+    pr=doSomethingAsync(gpionumb[i],i);
+    }
+    promises.push(pr);resolved.push(false); 
+    pr.then((it)=>{
+      // {ctl:new fc(gp,ind)/null,devNumb:ind,type:'mqtt'};
+      // {ctl:new Gpio(num, iotype)/null,devNumb:ind,type:'gpio'}
+
+      console.log(' fillctls()  ctl (devtype: ',it.type,')  dev number : ',it.devNumb);//,' promise resolved in def time in :',JSON.stringify(it.ctl,null,2));
+      if(it.ctl)console.log(' it has .readSync: ',it.ctl.readSync);
+      if(it.ctl==null)console.log(' nb ctl of type gpio are null if this server is not raspberry: ',!IsRaspberry );
+      resu[it.devNumb]=it.ctl;resolved[it.devNumb]=true;});
+
+    
+    
+  }
+      // wait a max time :
+
+      const myto=setTimeout(() => {
+        //resolved.forEach((val)=>{if(val)push(resu)})
+
+          console.log("Resolving max time , the active ctl are: ",resolved,' (names are: ',relaisEv,') nb false position  cant be operated !');
+          resolve(resu);// some can be null
+      }, 5000);
+    // or wait x all
+    Promise.all(promises)
+        .then((results) => {
+          clearTimeout(myto);
+            console.log("All ctls done, the array of resolved ctl is", JSON.stringify(results,null,2));
+
+            // resolve(resultsCtl);only the results[i].ctl
+            // or , hopily all it has called :
+            resolve(resu);  // WARNING :  hopily all it has called :
+        })
+        .catch((e) => {
+            // Handle errors here
+            console.error("All ctls done error: ",e);
+        });
+
+  };
+  
+
+
+
+fillctls();
+
+
+  })
+}
+
+
+
+// start building relais_ the dev io ctl
+// start mqtt connection :
+let isAvail;// old , better or mqtt.avail itself
+// register gpio 11 as mqtt device and try connecting
+if(!(isAvail=mqtt.init({11:'shelly1-34945475FE06'}))){// AAFF :after start mqtt connection  wait connection and subsribe all gpio , 
+                                                      // so  as soon cb is called we have status[gp]=[] (the subscription is ok )
+  console.log(' fv3():mqtt client not available, exit/continue without the mqtt dev,  or retry connection to mosquitto');
+}
+
+getctls(gpionumb,mqttnumb).then((cts)=>{
+  console.log(' getctls() all ctl promised resolved in def time :',JSON.stringify(cts,null,2));
+  relais_=cts;run();});
+
+ /*                               // >>> so in relaisEv there are the names !
+await getio(16, 'out'),
+await getio(20, 'out'),
+await getio(21, 'out'),
+
+// b relays group:
+await getio(26, 'out'),
+await getio(19, 'out'),
+await getio(13, 'out'),
+await getio(6, 'out')
 ];
+*/
+
+async function getio(num, iotype, ind, ismqtt = false) {// returns promise , resolved gives:{readSync,writeSync} working on io in  closure clos 
+  let myio;
+  if (ismqtt) {
+
+    let retu;
+      if(mqtt.avail) 
+      // antipattern: retu=await mqtt.fact(num);//
+      retu=mqtt.fact(num,ind);//promise
+      else retu= null;
+    return retu;//
+
+
+  } else {// embed gpio
+
+          // aa
+             /*
+    return function clos() {
+
+      const myio = new Gpio(num, iotype);// static closure obj
+       // never null
+      return {
+        readSync: function () { return myio.readSync(); },
+        writeSync: function () { return myio.writeSync(); }
+      }
+            // aa   }();
+      */
+
+      // bb
+      console.log(' reating gpio parm: ',num,iotype);
+      if(Gpio)return {ctl:new Gpio(num, iotype),devNumb:ind,type:'gpio'}; // as Promise.resolve
+      else return {ctl:null,devNumb:ind,type:'gpio'};// in no raspberry return a dummy obj 
+
+
+  }
+
+}
+
+
+
 let pumpsHandler=[];//  relais handler , also used by anticipating algo too (actuators)
                     // both button and algo actuacor can call this bank of handler(err,newvalue) 
                     // state.relays names are mapped to pumpsheader index in attuators() : pdc>0, g>1,n>2,s>3
 
-var pushButton = new Gpio(17, 'in', 'both'); //use GPIO pin 17 as input, and 'both' button presses, and releases should be handled
-let relais=[new Gpio(18, 'in', 'both'),// gpio relay button to set gpio phisical relays : see :YUIO
+var pushButton ;
+if(Gpio)pushButton= new Gpio(17, 'in', 'both'); //use GPIO pin 17 as input, and 'both' button presses, and releases should be handled
+let relais;
+if(Gpio)relais= // arrays of io ctl
+[new Gpio(18, 'in', 'both'),// gpio relay button to set gpio phisical relays : see :YUIO
 new Gpio(23, 'in', 'both'),
 new Gpio(24, 'in', 'both'),
 new Gpio(25, 'in', 'both'),
 new Gpio(4, 'in', 'both'),
 new Gpio(17, 'in', 'both')
 ];
+
+
+
+
+
+
+
+
+
 let relaisEv=['heat','pdc',// socket event to sync raspberry buttons and web button, the 'name' of relais_ !
 'g','n','s','split'];
 
@@ -54,6 +262,37 @@ const DEBUG=false,DEBUG1=true,MIN=35;
 
 
 function handler(req, res) { //create server html def page : user cfg and monitoring
+// from https://www.vanmeegern.de/fileadmin/user_upload/PDF/Web_Development_with_Node_Express.pdf
+ 
+    // normalize url by removing querystring, optional
+    // trailing slash, and making lowercase
+    var path = req.url.replace(/\/?(?:\?.*)?$/, '')
+    .toLowerCase();
+    switch(path) {
+    case '':
+    spa(res);
+    break;
+    case '/about':
+   // serveStaticFile(res, '/public/about.html', 'text/html');
+    break;
+    case '/login': login_(req,res)// auth the client and give back client the token . 
+                                  // the token represent (can be validated to get the user id ) the user in future http call and can be checked before :
+                                  // - to run  some route handler
+                                  // - to start (in route handler or in http handler) a ws connection that onnect x all transactio user ( userid) to server
+    break;
+    default:
+    //serveStaticFile(res, '/public/404.html', 'text/html',    404);
+    break;
+    }
+    }
+
+
+
+
+
+ function spa(res){
+
+
   fs.readFile(__dirname + '/public/index.html', function (err, data) { //read file index.html in public folder
     if (err) {
       res.writeHead(404, { 'Content-Type': 'text/html' }); //display 404 on error
@@ -63,15 +302,172 @@ function handler(req, res) { //create server html def page : user cfg and monito
     res.write(data); //write data from index.html
     return res.end();
   });
+ }
+
+function login_(req,res){
+  // https://www.pabbly.com/tutorials/node-js-http-server-handling-get-and-post-request/
+  // https://www.digitalocean.com/community/tutorials/how-to-create-a-web-server-in-node-js-with-the-http-module
+  // https://gist.github.com/JAreina/8f8ff4731ae3a522dced5f49e4f77061         >  http post
+  //  token : https://cloudnweb.dev/2021/05/express-typescript-basic-auth/  see async login()
+  //          https://moscow-city.guide/upload/iblock/8ce/8ceee361e68ff14b4e2aa66575be659d.pdf pag 165
+  //          https://websockets.readthedocs.io/en/stable/topics/authentication.html
+
+  if (req.method === "GET") {
+   //  res.writeHead(200, { "Content-Type": "text/html" });    fs.createReadStream("./public/form.html", "UTF-8").pipe(res);
+   res.end('noaction');
+
+} else if (req.method === "POST") {
+
+    var body = "";
+    req.on("data", function (chunk) {
+        body += chunk;
+    });
+
+    req.on("end", function(){
+      var post = JSON.parse(body);// the js map 
+      console.log(post);
+
+      // now returns the token if authenticated 
+      //        nb in express we use a /login route as explained in : https://moscow-city.guide/upload/iblock/8ce/8ceee361e68ff14b4e2aa66575be659d.pdf
+      //        using app.post('/login', auth.authenticate, auth.login)
+
+      let token=body;// call login !!
+        res.writeHead(200, { "Content-Type": "text/html" });
+        res.end(token);
+    });
 }
+}
+
+async function login(req, res, next) {
+
+  try {
+    const email = req.body.email
+
+/* as https://moscow-city.guide/upload/iblock/8ce/8ceee361e68ff14b4e2aa66575be659d.pdf
+we should store ashes not password ! see pag. 169
+
+
+
+*/
+    const password = req.body.password;
+    const user = await AuthService.findUserByEmail(email)
+    log("user", user)
+    if (user) {
+      const isPasswordMatch = await Password.compare(user.password, password)
+      if (!isPasswordMatch) {
+        throw new Error("Invalid Password")
+      } else {
+        log("jwt Secret", jwtSecret)
+        const token = jwt.sign(req.body, jwtSecret, {
+          expiresIn: tokenExpirationInSeconds,
+        })
+        return res.status(200).json({
+          success: true,
+          data: user,
+          token,
+        })
+      }
+    } else {
+      log("User Not Found")
+      throw new Error("User Not Found")
+    }
+
+  } catch (e) {
+
+    next(e)
+
+  }
+
+}
+
+function loginhand (){// https://gist.github.com/JAreina/8f8ff4731ae3a522dced5f49e4f77061
+
+ // let querystring = require('querystring');
+
+var postData = JSON.stringify({
+    msg: 'hello world'
+});
+
+var options = {
+    hostname: 'localhost',
+    port: 3000,
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': postData.length
+    }
+};
+
+var req = http.request(options, function (res) {
+    console.log('STATUS:', res.statusCode);
+    console.log('HEADERS:', JSON.stringify(res.headers));
+
+    res.setEncoding('utf8');
+
+    res.on('data', function (chunk) {
+        console.log('BODY:', chunk);
+    });
+
+    res.on('end', function () {
+        console.log('No more data in response.');
+    });
+});
+
+req.on('error', function (e) {
+    console.log('Problem with request:', e.message);
+});
+
+req.write(postData);
+req.end();
+}
+
+
+
 const api={// see https://javascript.info/promise-chaining
+
+  // this will recover the data to un execute processes ( data/session for navigation among execute chains )
 
   loadScriptsFromFile : function(src,ctl) {// src: file name key, ctl : controller 
                                             //  >>>  status will be recovered and assigned to ctl 
+
+/* suggestion : but use sync version !
+//checks if the file exists. 
+//If it does, it just calls back.
+//If it doesn't, then the file is created.
+function checkForFile(fileName,callback)
+{
+    fs.exists(fileName, function (exists) {
+        if(exists)
+        {
+            callback();
+        }else
+        {
+            fs.writeFile(fileName, {flag: 'wx'}, function (err, data) 
+            { 
+                callback();
+            })
+        }
+    });
+}
+
+function writeToFile()
+{
+    checkForFile("file.dat",function()
+    {
+       //It is now safe to write/read to file.dat
+       fs.readFile("file.dat", function (err,data) 
+       {
+          //do stuff
+       });
+    });
+}
+
+*/
     return new Promise(function(resolve, reject) {
-        let scripts,file;
+        let scripts,// the readed file
+        file;
         // if(src=='scripts')file='scripts';else if(src=='projects')file='projects';
-        file=__dirname + '/.data/'+src+'.json';
+        file=process.env.PersFold+src+'.json';// __dirname + '/.data/'+src+'.json';
         if (file&&fs.existsSync(file)) {
             try {
                 scripts = require(file);
@@ -130,7 +526,9 @@ const api={// see https://javascript.info/promise-chaining
     });
 },
 
-writeScriptsToFile : function(fn,fromcaller) {// write only on scripts and projects, fn=ctl
+writeScriptsToFile : function(fn,fromcaller) {// write to file_=fn.state.app.plantname  only on scripts and projects, fn=ctl
+                                              // send state to browser using socket :fn.socket.emit('status
+
                                     // piacerebe scrivere lo status su file a anche mandare via websoket, del ctl, lo status al browser
                                     // tuttavia se lo status esiste in file per un plant il ctl viene creato dopo ???? 
                                     // todo   for debug just add fromcaller in param !
@@ -139,7 +537,17 @@ writeScriptsToFile : function(fn,fromcaller) {// write only on scripts and proje
 
   const new_scripts=fn.state,file_=fn.state.app.plantname;
   //fn.socket.emit('status',JSON.stringify(fn.state,null,2));// send the status to the browser too, also if the related section is not jet visible !
-  fn.socket.emit('status',fn.state);// send the status to the browser too, also if the related section is not jet visible !
+  let prettyjson=prettyJSONStringify(fn.state, {
+    shouldExpand : function(object, level, key) {
+        if (key == 'lastT'||key=='TgiornoToll'||key=='probes'||key=='execute'||key=='PMCgiorno'||key=='relays') return false;
+        if (key == 'doExpand') return true;
+        if (Array.isArray(object) && object.length < 8) return false;
+        if (level >= 3) return false;
+        return true;
+    }
+});
+console.log('sendstatus() pretty is: ',prettyjson);
+  fn.socket.emit('status',fn.state,prettyjson);// send the status to the browser too, also if the related section is not jet visible !
 
   return new Promise(function(resolve, reject) {
         let bank,file;
@@ -155,18 +563,20 @@ writeScriptsToFile : function(fn,fromcaller) {// write only on scripts and proje
         }
 
        // api.mapTriggers();
-       console.log('writeScriptsToFile(): updated',new_scripts,' on : ',new Date());//  (new Date()).toLocaleString()
+       let  pdate=new Date();pdate.setHours(pdate.getHours()+1);console.log('writeScriptsToFile(): updated',new_scripts,' on : ',pdate);//  (new Date()).toLocaleString()
         resolve(new_scripts);
-    }else reject();
+    }else reject('file is undefined');
     });
 
 } 
 };
 
+let ccbbRef;
+
+function run(){
 
 
-
-let eMClass,
+let eMClass,// filled by fsmmanager from app2.js the master ctl
 eMCustomClass,// now never called.   the fv ctl build as a eventemitter subclass singleton instance 
   appstat;
 
@@ -176,8 +586,11 @@ eMCustomClass,// now never called.   the fv ctl build as a eventemitter subclass
 let fsmmanager = require('./app2.js');
 //const { LOADIPHLPAPI } = require('dns');
 const opt=null;
+console.log('ciao1');
+
+
 fsmmanager(opt, function (app, opt, no_ccbb) {// ask fsm factory app to give the event factory eMClass, or connect as login to the app server
-  //  app will cb here giving the factory that will be instatiated when we know the plant/user
+  //  fsm factory app will cb here giving the factory that will be instatiated when we know the plant/user
   // opt={name:'fusionsolar'}?    or  opt1 = {aiax}; but here we reference directly to rest.js , not used ! 
   // no_ccbb   needed ??
 
@@ -218,10 +631,10 @@ if (Proto) eMClass.prototype.cfg = function (plantname) {// add a cfg static fun
 
 
 
-// the instanziator 
+// the instanziator INSTANZ
 
 let started ={};// {luigimarson:{  inst,,,}};// inst bank
-function ccbb(client) {// when client/plant got a request (a button) for a plant on a webpage , we fire : socket.on('startuserplant' ,that to operate/ register the fv ctl inst
+ccbbRef=function ccbb(client) {// when client/plant got a request (a button) for a plant on a webpage , we fire : socket.on('startuserplant' ,that to operate/ register the fv ctl inst
   // so we instatiate or recover  the fsm: that is a eventmanager or connect to the server with a socket that has the same event managed (so the socket is the session/instance of the event manager for the plant)!
   let inst;
   if (client) {
@@ -348,7 +761,187 @@ let body=
   }
 
 
-function anticipate(state,algo){// the algo : returns the new pumps state
+}// ends run()
+
+
+
+
+  function program(state,inp,probes){// /  probes={giorno:19.2,notte:,,,,}   
+                                      // inp={'giorno':{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}, 
+                                      //  'notte':....}
+                                    // the program algo : returns the new pumps state, store algo result on state.lastProgramAlgo
+
+console.log('program() called with programming/scheduling data inp: ',inp,' and current probs: ',probes);
+console.log('program() NB before call consolidate ret=optimize(ret) can have any null value!');
+
+let ret=null,h,m;
+let  date=new Date();date.setHours(date.getHours()+1);
+
+// register into the last read probes
+state.program.triggers2.lastT=[date.toLocaleString(),probes];//JSON.stringify(probes)]; anomalus array with different types
+// find zone to activate
+    if(probes&&inp){// zonaa,zonab ...
+
+      let zonelist=  Object.keys(inp),toactivate=[],activation=false;;
+     
+      h=date.getHours();m=date.getMinutes();
+ 
+        // Do stuff
+
+      for(let i=0;i<zonelist.length;i++){// scan inp keys : the zones to find the current index in inp
+        if(toact(zonelist[i],probes[zonelist[i]],inp[zonelist[i]])){// zona,valore sonda, programma x la zona
+          activation=true;
+          toactivate.push(zonelist[i]);
+        }
+
+      }
+
+
+
+
+      /*
+      >>>>>>>>>>>>>><
+      to increse performance   solo se lastProgramAlgo cambia allora esco con un res, atrimenti aggiorno le date in lastProgramAlgo 
+      ma esco con null cosi non si cambiano i rele/pumps !
+
+      */
+
+      let changing=false;
+    if (activation)  {
+      ret = [true, null, toactivate.indexOf('giorno')>=0,toactivate.indexOf('notte')>=0, false,null];// [heat,pdc,g,n,s,split]
+        // set pdc + split according to text + hour + fv power
+        
+        if(ret&&state.lastProgramAlgo&&ch(ret,state.lastProgramAlgo.pumps)){// no change
+          state.lastProgramAlgo={updatedate:date.toLocaleString(),probes,pumps:ret,model:'programbase'};// rewrite , just to set update date
+          ret=null;
+          console.log('programming() found no changes in [heat,pdc,g,n,s,split], so set ret: ',ret);
+        }else{
+          state.lastProgramAlgo={updatedate:date.toLocaleString(),probes,pumps:ret,model:'programbase'};
+          ret=optimize(ret,date,h,m);//
+          console.log('programming() found low temp in house, so after optimize() set relay [heat,pdc,g,n,s,split]: ',ret);
+
+        }
+    }// else leave ret undefined !
+   
+
+  else {
+    
+    ret =[false, null,false,false, false,null];// [false, null,null,null,null,null];
+    if(ret&&state.lastProgramAlgo&&ch(ret,state.lastProgramAlgo.pumps)){// no change
+      ret=null;
+      console.log('programming() found no changes in [heat,pdc,g,n,s,split], so set ret: ',ret);
+
+    }else{
+      console.log('programming() didnt find any low temp in house');
+      state.lastProgramAlgo={updatedate:date.toLocaleString(),probes,pumps:ret,model:'programbase'};
+    }
+  }
+
+ 
+
+    }  else { state.lastProgramAlgo=false;ret = null;}
+    if(state.lastAnticAlgo)console.log('programming  algo calc its new BASIC relays values proposal,present  lastAnticAlgo [pdc, g, n, s, heat,split] are : ',state.lastAnticAlgo.pumps);
+    console.log('   >>> basic (not null) are relays comandable by program algo (thermostat programs Tx and PGMx ) : , the others are set by other algo or by user via browser');
+    console.log('   >>> basic can control also relays specifically calc to optimize pdc/gas production (pdc and split and )');
+    console.log('   >>> ex : basic set heat and g/n and gas, then anticipate force heat g/n/s + split and pdc. when anticipate ends basic will be recovered . if user off n manually at next running progran can or not change n ');
+    console.log('       (use some flag for temp user action (next run program will force its values ) or modify the sched temp PDCx and rerun program or manually set pumps blocking or not the algos x some time (day))');
+   
+    console.log('BASIC values are anded with last assigned ANTICIPATE values recovered from state: : ',ret);
+    console.log('   >>> anticipte relays force some relays as in some zones would be found a low temp. also set relays to set values comptible with pdc production , whatever best cfg set by user or program algo ');
+    console.log('   >>> when anticipate ends the stored relays state are recovered  ');
+
+
+    /* old
+    if(state.lastAnticAlgo&&(state.anticipate||state.user)) // modify the program res if there are also user and anticipate proposal
+      return consolidate(state,'program');
+    else return ret;// the program algo res , con be null
+    */
+if(ret){// program wants to set some relays, ret can have nul val that must be resolved  also looking at other proposal user+ anticipate 
+  return consolidate(state,'program',date);
+}return null;
+
+
+
+    function toact(zona,sonda,sc_){// zona,valore sonda, sc=programma x la zona. cerca le zone con temp inferiore alla programmata
+      // sc={sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}
+
+      let sc=sc_.sched;
+      // nb toll future use : query lastAnticAlgo to see if a fv production is expected in short time
+      // if(lastAnticAlgo.short)dt=true;
+       let keylist=  Object.keys(sc);// orari del programma
+       
+       let slot=-1,last=keylist.length-1,temp=sc[keylist[last]],resu='none',tempx='';
+       // resu='slot x : '+ last +' temp ' + sc[keylist[keylist.length-1]; 
+        
+        for(let i=0;i<keylist.length;i++){//
+         //  Object.keys(bodies).forEach(function(key,index) {// for each bodies items post 
+            // key: the name of the object key
+            // index: the ordinal position of the key within the object 
+            //tempx =tempx + '-'+i; 
+            let ma=keylist[i].split(":");// ['8','30']
+
+            console.log(' toact() analizing  zona: ',zona,' orario: ',keylist[i],',  with present hour min : ',h,m,)
+          
+            if(h<ma[0]){// 10 < '8'
+            // got! ends scan the index in sc is slot
+            slot=i-1;i=1000;
+            //tempx =tempx + ' - got slot '+ slot ;// ma[0]; 
+            console.log(' got slot because present hour is less then slot+1 hour');
+          }
+          
+          else{      if(!(h>ma[0])&&m<ma[1]){
+            
+                               slot=i-1;i=1000;
+                              // tempx =tempx + ' - got slot '+ slot +' minute '+m;// ma[0]; 
+                              console.log(' got slot because present hour is = but current min is < !');
+                    }
+          
+               }
+          
+          }
+          if(slot<0)slot=last;
+
+          temp=sc[keylist[slot]];//programmed temp 
+          // if(lastAnticAlgo.short)// last anticipate expect to produce fv energy (> 2kWh) in short time (less 1 hour)
+          if(sc_.sched&&sc_.sched[keylist[slot]]>0&&sc_.sched[keylist[slot]]<1)
+            temp+=sc_.sched[keylist[slot]];
+
+          
+         
+      
+        //resu=tempx+' - slot '+ slot +'/'+(slot+1)+', temp ' + sc[keylist[slot]]; 
+        console.log(' toact() slot: ',slot, ' temp: ',temp);
+       // 
+       if (temp>sonda)  {
+        return true;
+      }// else leave ret undefined !
+      
+      
+      else ;
+      
+      
+      }
+      function ch(ret,oldret){
+
+        if(ret.join()==oldret.join())return false;// ret == oldret so pumps are the same 
+        return true;
+        }
+
+}
+
+
+function optimize(res,date,h,m){//res=[heat,pdc,g,n,s,split]
+  // set pdc + split according to text + hour + fv power  .>>    what is text ???
+// here calc pdc + split according to text and hour , 
+// can also call anticipate on behalf (al posto di usare) of anticipate exsec job that just fill state.aiax and state.anticipate but we must be shure program algo shoul be active !
+// anyway user can reset the value
+res[1]=false;// pdc
+res[5]=false; //split
+  return res;
+}
+
+
+function anticipate(state,algo){// the algo : returns the new pumps state, store algo result on state.lastAnticAlgo
 /*
     "battLevel": 0,
     "inverter": 3,
@@ -360,8 +953,13 @@ function anticipate(state,algo){// the algo : returns the new pumps state
     "stophour": "15",
     "hourinterval": "1"
 */
- let {battLevel,inverter,cloudly}=state.aiax,temp=20,
- {running,starthour,stophour,hourinterval}=state.anticipate,
+
+// ******** input data is just set in state.aiax !!!!!!!!!!!!!!!!!!!!!
+ let {battery,inverter,cloudly}=state.aiax,// filled with aiax in  getstat/bodies
+ 
+ 
+ temp=20,
+ {running,starthour,stophour,dminutes}=state.anticipate,
  triggers;
  if(state.anticipate)triggers=state.anticipate.triggers;
 
@@ -369,29 +967,42 @@ function anticipate(state,algo){// the algo : returns the new pumps state
   ret,model;
 if(triggers){
 if(triggers.PdCTrig1){a=2; console.log(' anticipate algo find required policy : PdCTrig1');
-      state.anticipating.model=model="PdCTrig1";// add .policy=.....
+     model="PdCTrig1";// add .policy=.....
      }
 
   if (a == 1)
-    ret = [false, false, false, false,false,false];
+    ret = [false, false, false, false,false,false];// [heat,pdc,g,n,s,split] 
   else if (a == 2) {// basic model save battery
-    if (triggers) if (cloudly <= (100- triggers.FVPower)) {
-      ret = [true, true, true,false, false,true];
+    if (triggers)
+    { if (cloudly <= (100- triggers.FVPower)) {
+      ret = [true, true, true,null, null,true];// [heat,pdc,g,n,s,split] 
       console.log('anticipate() find cloudily low so start pdc');
-    }// else leave ret undefined !
+    }else{// no anticipating, so no requirements
+      ret = [null, null, null,null, null,null];// [heat,pdc,g,n,s,split] 
+    }
   }
-  else ret = null;
+  }
+  else ret = null;// algo not producing any advise requirements
   console.log('anticipate algo calc new relays values : ',ret);
    
 }else {
-  console.log('anticipate algo cant find triggers, so retuns  ');
+  console.log('anticipate algo cant find triggers, so retuns null ');
   console.error('anticipate algo cant find triggers ');
 ret= null;//[false, false, false, false,false,false];  
 }
-if(ret)
-state.lastAnticAlgo={updatedate:new Date().toLocaleString(),level:1,policy:0,algo,pumps:aTT,model};// level is the temp level 0, then 1 after 1 hour. policy is the param of algo that will comand reays to perform a objective; eco,lt,ht,timetable
-                                                // pumps relay set after
-else state.lastAnticAlgo=false;
+if(ret){
+let  pdate=new Date();pdate.setHours(pdate.getHours()+1);
+//state.lastAnticAlgo={updatedate:new Date().toLocaleString(),level:1,policy:0,algo,pumps:aTT,model};// level is the temp level 0, then 1 after 1 hour. policy is the param of algo that will comand relays to perform a objective; eco,lt,ht,timetable
+state.lastAnticAlgo={updatedate:pdate.toLocaleString(),level:1,policy:0,algo,pumps:ret,model};// level is the temp level 0, then 1 after 1 hour. policy is the param of algo that will comand relays to perform a objective; eco,lt,ht,timetable
+
+// pumps relay set after
+}else {// do nothing , reset last antic results
+  state.lastAnticAlgo=false;
+}
+// consolidate with program algo  and user manual, also if lastAnticAlgo=false : program <> anticipate
+if(state.lastProgramAlgo&&ret) return consolidate(state,'anticipate');
+else return ret;
+
 }
 
 function login(userName) {// to call to set login on inverter openapi, got the token
@@ -453,7 +1064,7 @@ console.log(' login() started x sername: ',userName);
   */
   console.log(' getstat called with state: ',JSON.stringify(state,null,2));
   let bodies=// {body,devTypeId,extract}. extract: extrat usefull info (put in state.aiax,xxx) from resu.data, result=resu={data,token} 
-  { inverter:  {body: {devIds:"1000000035350464",
+  { inverter:  {body: {devIds:"1000000035350464",// body: the post request 
                 devTypeId:"38"},
                 extract:(data)=> {
                   console.log(' aiax extracting inverter info from aiax data got: ',JSON.stringify(data,null,2));
@@ -488,7 +1099,9 @@ openapi getstat() catched so results is null .........
                 extract:(data)=> {
                   
                   console.log(' aiax extracting battery info from aiax data got: ',JSON.stringify(data,null,2));
-                  let ret= state.aiax.inverter= data.data[0].dataItemMap.battery_soc;
+
+                  // todo : change state.aiax.inverter to state.aiax.battery 
+                  let ret= state.aiax.battery= data.data[0].dataItemMap.battery_soc;
                   console.log(' aiax x battery got: ',ret);
                   return ret;
 
@@ -498,15 +1111,16 @@ openapi getstat() catched so results is null .........
 
     url='https://eu5.fusionsolar.huawei.com/thirdData/getDevRealKpi';
 
-let results={},resu;
+let results={},// the aiax results to get from all devices
+resu;
  let keylist=  Object.keys(bodies);
-  for(let i=0;i<keylist.length;i++){
+  for(let i=0;i<keylist.length;i++){// ['inverter','battery']
    //  Object.keys(bodies).forEach(function(key,index) {// for each bodies items post 
       // key: the name of the object key
       // index: the ordinal position of the key within the object 
    
     let key=keylist[i],el=bodies[key];
-    console.log(' getstat, looping  devices, now rest device: ',el);
+    console.log(' getstat, looping  devices, now rest device: ',key,', Type id: ',el.devTypeId);
 
 
       resu= //{data,token}
@@ -532,7 +1146,7 @@ let results={},resu;
     console.error('aiax got bed result, exit execute procedure with undefined val, error: ',error);
   }
 
-  console.log(' getstat recover from device res: ',res); 
+  console.log(' getstat recover from device: ',key,', the value : ',res); 
 
     // in case aiax fire error and be rejected , res=undefined
   if (res === null) {// token expired
@@ -542,7 +1156,7 @@ let results={},resu;
     console.log(' getstat recover from device: ',key,'aiax result cant be calc, so exit execute procedure ');
     i=100;results=undefined;
   }else  { results[key]=res;// goon next dev
-  console.log(' getstat recover from device: ',key,' info is : ',results[key]);
+  console.log(' getstat recover from device: ',key,' the required info : ',results[key]);
   }
   } else{ 
     console.log(' getstat recover from device: ',key,'aiax result missing, so exit execute procedure ');
@@ -563,7 +1177,7 @@ let results={},resu;
      state.token=null;// will reset
      this.state.stepInd=0;// restart ev2run loop
  }*/
- console.log(' getstat, returning :  ',results);
+ console.log(' getstat, returning aiax x all devices :  ',results);//  { inverter: 4.63, battery: 63 }
   return results;//  a promise if async (uso await !)  results={inverter:1.2,battery:2.5}, null if expired token , und if error
   }
 
@@ -587,7 +1201,8 @@ let results={},resu;
       { cloudly:  {body: null,// to be transf into url enc
                     extract:(data)=> {
                       console.log(' getWeath aiax extracting weather info from aiax data got: ',JSON.stringify(data,null,2));
-                      const d = new Date();let hour = d.getHours()+1;// rome time , <24
+                      let  d=new Date();d.setHours(d.getHours()+1);
+                      let hour = d.getHours();// rome time , <24
                       console.log(' getWeath , date: ',d,' hour: ',hour);
                       let ret1= data.hourly.cloudcover[hour],// better do a mean of next 2 hour
                       ret2=  data.hourly.cloudcover[hour+1];
@@ -701,6 +1316,8 @@ function customOn(these) {// set .on custom handler (event called by execute())
  // WARNING  : this connect event will run in step 0 event , if token is expired the step 0 will be redone (we reset this.state.stepInd=0)
  // will be  better put this async in processAsync function to run in event openapi
  
+// event to process anticipate algo :
+
  these.on('connect',
     // se tolgo async non posso usare await f ma devo usare f().then() 
     // >>>>>>>>>>>>>>>>>>><  probabilmente ,on non puo tornare un async func !!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -722,7 +1339,7 @@ function customOn(these) {// set .on custom handler (event called by execute())
     // start == login !
     // question what is context , the event manager instance itself ???
 
-  
+    console.log(' handler fired by event connect ');
 
     let state= this.state, // IS OK ???????, must be not null , defined in  app2 constructor()/clearState()
       plant=state.app.plantname;// the real input , no dummy !
@@ -759,7 +1376,7 @@ function customOn(these) {// set .on custom handler (event called by execute())
       // nbnb   se ho il token e poi al secondo step openapi fallisce perche scaduto allora annullo il token e resett rilanciando il event connect kkk 
  
   }else console.log('connect(): dont need a rest, token  alredy available: ',token); 
-  cb(0,state.token);	// goon with framework event chaining
+  cb(0,state.token);	// goon with framework event chaining, result is token but just x reporting
   return 1;// what .on returns ?,  anyway if  this.state.stepInd=0 app will restart ev2run loop 
 })
   ;
@@ -769,7 +1386,7 @@ function customOn(these) {// set .on custom handler (event called by execute())
     // await getstat(state.aiax);// the conn cfg data
     console.log(' event openapi fired handler , with input data: ',dummy);
     let state= these.state; // IS OK ???????
-    let resu=await getstat(state)//  ={inverter:1.2,battery:2.5};
+    let resu=await getstat(state)//  ={inverter:1.2,battery:2.5};  >>>  do aiax and store results on state.aiax to be used by startcheck
     .catch(error => { // se rejecta questa routine gira :e si torna un resu null !
       console.error('  openapi getstat() catched so results is null ,plant:', state.app.plantname, ',error: ',error);
       // 122022
@@ -793,14 +1410,15 @@ function customOn(these) {// set .on custom handler (event called by execute())
     this.state.stepInd=100;// exit from execute procedure
   }else  
 
-  console.log(' event openapi finally returning a global results on cb: ',resu);
-    cb(0,resu);// pass data on ev2run input, if undefined exit execute (stepInd=100), if null start again (stepInd=0) 
+  // LOG
+  console.log(' event openapi got devices aiax and store results on state.aiax , then  finally returning the global results on cb: ',resu);
+    cb(0,resu);// pass data on ev2run input if specified in it, if undefined exit execute (stepInd=100), if null start again (stepInd=0) 
   });
 
   these.on('weather', async function (dummy, cb) {// the fsm ask state updates (we use openapi) : will set input of 'startcheck' , best to set also corresponding state ( last data gathered from fusionsolar)
     // question what is context ?
     // await getstat(state.aiax);// the conn cfg data
-    console.log(' event weather fired handler , with input data: ',dummy);
+    console.log(' event weather fired handler , with dummy input data: ',dummy);
     let state= these.state; // IS OK ???????
     let resu=await getWeath(state,'https://api.open-meteo.com/v1/forecast?latitude=45.9655&longitude=12.6623&hourly=cloudcover&timezone=Europe%2FBerlin')//  ={inverter:1.2,battery:2.5};
     .catch(error => { 
@@ -808,15 +1426,19 @@ function customOn(these) {// set .on custom handler (event called by execute())
       // .............
   });
 
-  console.log(' event weather finally returning a global results on cb: ',resu);
+  console.log(' event weather store results on state.aiax , then finally returning a global results on cb: ',resu);
     cb(0,resu);// pass data on ev2run input
   });
 
-  these.on('startcheck', async function ( inp, cb) {// the fsm ask state updates (we use openapi) : will set input of 'startcheck' , best to set also corresponding state ( last data gathered from fusionsolar)
+  these.on('startcheck', async function ( inp_, cb) {// the fsm ask state updates (we use openapi) : will set input of 'startcheck' , best to set also corresponding state ( last data gathered from fusionsolar)
     // question what is context ?
 // i should got async data both in state.aiax.inverter....   and in inp={inverter:3.2,battery:0,,}
-    let proc;
-    if(inp)proc=inp.algo;
+    let proc,inp;
+   
+    if(inp_&&inp_.dataArr){// false
+      inp=inp_.dataArr;proc=inp_.algo}// ??
+
+
     let state=these.state;//this.state;
     console.log(' handler fired by event startcheck, with input data: ',inp,' state: ',state);
  
@@ -825,11 +1447,26 @@ function customOn(these) {// set .on custom handler (event called by execute())
       // ............
       return true;
     };*/
-    let endexec,aTT;
+    let aTT,res={};
 
-      if(aTT=anticipate(state,algo)){// algo : null if not anticipating, [pdc,...] if anticipating with its pump setting
-      attuators(these,aTT[0],aTT[1],aTT[2],aTT[3],aTT[4],aTT[5]);// (pdc,g,n,s)  set relais x level 1, then after 1 hour (1,1,1,0), if noeco (1,1,1,1)
-    endexec= aTT.toString();// pass aTT on ev2run input, seems useless
+    if((aTT=anticipate(state,'anticipate0'))&&aTT.length>0){// algo : null if not anticipating, [pdc,...] if anticipating with its pump setting
+
+      // await   // dont need to wait !
+      attuators(these,aTT[0],aTT[1],aTT[2],aTT[3],aTT[4],aTT[5])//[heat,pdc,g,n,s,split] val=true/false/null   set relais x level 1, then after 1 hour (1,1,1,0), if noeco (1,1,1,1)
+                                                                  // ?? (pdc,g,n,s)  set relais x level 1, then after 1 hour (1,1,1,0), if noeco (1,1,1,1)
+        .then((results) => { // could also await in this async func !
+         
+            console.log("All setPump resolved");
+
+            // do nothing with results array
+          //  resolve(results);  // WARNING :  hopily all it has called :
+        })
+        .catch((e) => {
+            // Handle errors here
+            console.error("attuators error: ",e);
+        });
+
+      res.execute=aTT.toString();// pass aTT on ev2run input, seems useless
 
     // register result of the exec procedure!
     //state.lastAnticipating={updatedate:new Date().toLocaleString(),level:1,policy:0,procedure:proc,pumps:aTT};// level is the temp level 0, then 1 after 1 hour. policy is the param of algo that will comand reays to perform a objective; eco,lt,ht,timetable
@@ -837,7 +1474,7 @@ function customOn(these) {// set .on custom handler (event called by execute())
 //     state.anticipating={date,level:1,policy:0};// level is the temp level 0, then 1 after 1 hour. policy is the param of algo that will comand reays to perform a objective; eco,lt,ht,timetable
       }else{// aTT returned undefined or null : 
       //  state.lastAnticipating=false;
-        endexec='noanticipating';// just exit  executing ev2run
+        res.noexec='noanticipating';// just exit  executing ev2run
         // trim some valves, ex base timetable
       }
 
@@ -845,11 +1482,166 @@ function customOn(these) {// set .on custom handler (event called by execute())
       // or directly:
       // io.sockets.emit('status',JSON.stringify(state,null,2));
     
-    cb(0, {execute:endexec});// false : nothing to do 
+    // cb(0, {execute:endexec});// false : nothing to do 
+    cb(0, res);// false : nothing to do 
   });
 
-}
 
+// end event to process anticipate algo 
+
+
+// event to process programming algo :
+
+these.on("initProg",// fill tSonda x next event
+
+
+// todo  from 'connect' schelethon 
+
+
+// se tolgo async non posso usare await f ma devo usare f().then() 
+// >>>>>>>>>>>>>>>>>>><  probabilmente ,on non puo tornare un async func !!!!!!!!!!!!!!!!!!!!!!!!!!
+//    or yes but .on returns immediately after got the promise. so goon must proceed with cb    
+    async function (dummyinput, cb) {// ?? only  event type 1, so events that after lauch startcheck, can fire start event to login to openapi. so anyway get token/login
+
+
+              /* ******    nb  plant is input data , framework say it can be :
+                            -a other event output (def in ev2run )
+                            - data set in   dataArr.connect
+                             nb  dataArr and ev2run are  execute() parameters
+                             here we do not need any input, we want to test plant token that is in state :
+
+
+              */
+
+// use same param like : execute(asyncFunc,that,asyMajorEv,asyProcess, ...args) ? NO
+
+// start == login !
+// question what is context , the event manager instance itself ???
+
+console.log(' handler fired by event initProg ');
+
+let state= this.state, // IS OK ???????, must be not null , defined in  app2 constructor()/clearState()
+  plant=state.app.plantname;// the real input , no dummy !
+
+// just update status to the  ....? if needed 
+
+let probes , reads=2,retry=false;
+
+    probes={};
+    probes.notte=parseFloat(await shellcmd('modbusRead',{addr:'notte',register:'temp',val:0}).catch(error => { // val useless
+      console.error('  shellcmd catched ,error: ', error);
+      retry=true;
+    }));
+    if(retry){
+      retry=false;
+      probes.notte=parseFloat(await shellcmd('modbusRead',{addr:'notte',register:'temp',val:0}).catch(error => { // val useless
+        console.error('  shellcmd catched ,error: ', error);
+        retry=true;
+      }));
+    }
+    if(retry){retry=false;reads--;}
+    probes.giorno=parseFloat(await shellcmd('modbusRead',{addr:'giorno',register:'temp',val:0}).catch(error => { // val useless
+      console.error('  shellcmd catched ,error: ', error);
+      retry=true;
+    }));
+    if(retry){
+      retry=false;
+      probes.giorno=parseFloat(await shellcmd('modbusRead',{addr:'giorno',register:'temp',val:0}).catch(error => { // val useless
+        console.error('  shellcmd catched ,error: ', error);
+        retry=true;
+      }));
+    }
+    if(retry){retry=false;reads--;}
+    console.log('  genZoneRele , reading temp , sonda gave:  ',probes);
+
+if(reads<1){probes=null;// todo retry if fails some read
+    //todo exit execute
+  }
+cb(0,probes);	// goon with framework event chaining probes={giorno:'19.2',notte:,,,,}
+return 1;// what .on returns ?,  anyway if  this.state.stepInd=0 app will restart ev2run loop 
+});
+
+these.on('genZoneRele', 
+
+// todo  from openapi and startcheck schelethon 
+
+// openapi :
+// .....
+
+
+// from startcheck :
+async function ( inp_, cb) {// the fsm ask state updates (we use openapi) : will set input of 'startcheck' , best to set also corresponding state ( last data gathered from fusionsolar)
+                            // inp_= {'initProg':{giorno:19.2,notte:,,,,},dataArr:{'giorno':{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}, 'notte':....}
+  let inp,probes=null;
+  if(inp_&&inp_.dataArr){inp=inp_.dataArr;//  inp={'giorno':{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}, 
+                                          //  'notte':....}
+  }
+if(inp_&&inp_.initProg){probes=inp_.initProg;// probes={giorno:19.2,notte:,,,,}
+
+  let state=these.state;//this.state;
+  console.log(' handler fired by event genZoneRele , with input data: ',inp_,' state: ',state);
+
+  /* old
+  let calc=(st) =>{// returns false if anticipating
+    // ............
+    return true;
+  };*/
+  let res={},aTT;
+
+    if((aTT=program(state,inp,probes))&&aTT&&aTT.length>0){//  probes={giorno:19.2,notte:,,,,}  
+                                          // inp={'giorno':{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}, 
+                                          //  'notte':....}
+
+      
+    attuators(these,aTT[0],aTT[1],aTT[2],aTT[3],aTT[4],aTT[5])// [heat,pdc,g,n,s,split] val=true/false/null   set relais x level 1, then after 1 hour (1,1,1,0), if noeco (1,1,1,1)
+
+    .then((results) => { // could also await in this async func !
+         
+      console.log("All setPump resolved");
+
+      // do nothing with results array
+    //  resolve(results);  // WARNING :  hopily all it has called :
+  })
+  .catch((e) => {
+      // Handle errors here
+      console.error("attuators error: ",e);
+  });
+
+
+
+    // endexec= aTT.toString();// pass aTT on ev2run input, seems useless
+  res.execute=aTT.toString();// in case of void array can be ""
+      
+  // register result of the exec procedure!
+  //state.lastAnticipating={updatedate:new Date().toLocaleString(),level:1,policy:0,procedure:proc,pumps:aTT};// level is the temp level 0, then 1 after 1 hour. policy is the param of algo that will comand reays to perform a objective; eco,lt,ht,timetable
+                                              // pumps relay set after
+//     state.anticipating={date,level:1,policy:0};// level is the temp level 0, then 1 after 1 hour. policy is the param of algo that will comand reays to perform a objective; eco,lt,ht,timetable
+    }else{// aTT returned undefined or null : 
+    //  state.lastAnticipating=false;
+     // endexec='genZoneRele: no action';// just exit  executing ev2run
+
+     res.noexec='noprogramming';
+
+      // trim some valves, ex base timetable
+    }
+
+    //sendstatus(state);//
+    // or directly:
+    // io.sockets.emit('status',JSON.stringify(state,null,2));
+  
+  cb(0, res);// false : nothing to do 
+
+
+};
+
+
+
+
+// end event to process programming algo 
+
+
+});
+}// ends custom
 
 
 function repdayly(plant,hin, hout, fn) {// old : prefer checkFactory()
@@ -950,7 +1742,7 @@ function gfg_Run() {
       //fn.execute(procName, evcontingencyparam, evAsyn,ev2run, evAsync,    processAsync, dataArr)
         fn.execute(procName, null              , null,  ev2run, asyncPoint, processAsync, dataArr,
           () =>{
-        console.log(' after execute we updates state running writeScriptsToFile()')
+        console.log(' after execute() we updates state running writeScriptsToFile()')
         //api.writeScriptsToFile(fn.state,fn.state.app.plantname)
         api.writeScriptsToFile(fn)
         .catch(function(err) {// pdate the state file
@@ -986,29 +1778,34 @@ function gfg_Run() {
 }
 
 function checkFactory(fn){// fn=ctl, sostituisce repdayly()
+                          // closure (private data) and its returning object functions  
                                        
 
   let timer;
+  let execParm;
    
-  const d = new Date();
+  //const d = new Date();
+/*
+  //  let{procName, a,b,ev2run, asyncPoint, processAsync, dataArr}=execParm;
   let procName='startcheck_'+ d.toLocaleString(),algo='base';
   console.log(' checkFactory()  define  procedure ',procName);
   if(fn);else {console.error(' checkfactory() cant find the ctl . stop ');console.log(' checkfactory() cant find the ctl . stop ');}
   
   let ev2run = {connect:null,openapi:null,weather:null,startcheck:null};// {the eventasynctorun in sequence:avalue?}startcheck=1 after updated the status will fire startcheck, null means dataArr data
-  
-  
   let dataArr=//{begin:0,startcheck:0}; 
   //{begin:null,openapi:null,startcheck:null}; 
   {begin:null,openapi:null,weather:null,startcheck:{algo}}; 
   let  evAsync={};// evAsync={aEv2runKey:itsasync,,,,,,}
   let processAsync={},asyncPoint={};
+*/
   
   
-    function callFn_() {// n-- , se positivo lancia fn.execute e dopo ulteriore ora itera callFn
-  
-  
-      console.log(' callFn start priodically exec procedure ',procName, ' for plant: ',fn.state.app.plantname,'.  cur time:',new Date(),' this day, after this exec, we run other ',n,' times');
+    function callFn_(execParm) {// n-- , se positivo lancia fn.execute e dopo ulteriore ora itera callFn
+
+      // {procName, null              , null,  ev2run, asyncPoint, processAsync, dataArr}=execParm
+        let{procName, a,b,ev2run, asyncPoint, processAsync, dataArr}=execParm;
+        let  pdate=new Date();pdate.setHours(pdate.getHours()+1);
+      console.log(' callFn start priodically exec procedure ',procName, ' for plant: ',fn.state.app.plantname,'.  cur time:',pdate);//,' this day, after this exec, we run other ',n,' times');
   //      n--;
   //      console.log(' callFn start priodically procname procedure now, time:',new Date(),' n is: ',n);
       // fn(asyncFunc,asyMajorEv,asyProcess, evname=startchec)k,evtype,evcontingencyparam,evfunc,evdata);
@@ -1016,7 +1813,7 @@ function checkFactory(fn){// fn=ctl, sostituisce repdayly()
       
       // fn.execute(asyncFunc, asyMajorEv, asyProcess, evname = startcheck, evtype, evcontingencyparam, evfunc, evdata);// check periodically the status of fv ctl)
       //fn.execute(procName, evcontingencyparam, evAsyn,ev2run, evAsync,    processAsync, dataArr)
-        fn.execute(procName, null              , null,  ev2run, asyncPoint, processAsync, dataArr,
+        fn.execute(procName,a,b,  ev2run, asyncPoint, processAsync, dataArr,
           () =>{
         console.log(' after execute we updates state running writeScriptsToFile()')
         //api.writeScriptsToFile(fn.state,fn.state.app.plantname)
@@ -1029,76 +1826,112 @@ function checkFactory(fn){// fn=ctl, sostituisce repdayly()
     }
     
     // state of repetition inclosure that is called at
-     let cilesxday,n;
-    function callF(){
-      
-      if(n--<=0) {clearInterval(timer);// condition before lowering n 
-        
-      }else {
-        console.log(' repeatcheckxSun :callF() called , after this curent check, daily checks procedure still to run  are: n= ',n); 
-        callFn_();
-      }
-  
-    }
-  
-    function gfg_Run_(hourinterval) {// daily job
-      n=cilesxday;
-      console.log(' repeatcheckxSun :gfg_Run() called , start day checks , n: ',n+1); //  ex 9 - 12  start the job at 9,10,11,12
+    // let cilesxday,n;
+
+    //function gfg_Run_(dminutes) {// daily job
+    //function gfg_Run_(dminutes,period,execParm_) {// nbnb daily job for dminutes in hours , every period in minutes
+      function gfg_Run_(cicles,period,execParm_){
+      //n=cilesxday;
+      execParm=execParm_; // to be used by stopRepeat()
+      let n=cicles;//dminutes*60/period;// cicles to do , period in minutes 
+      console.log(' repeatcheckxSun :gfg_Run_() called , start day checks,  period in min: ',period,' cicles: ',n+1); //  
     
       // callFn_();
-      n++;callF();
+      //n++;
+      callF();// 
 
-      if(n>0){// example run from 9 to 12   so run on 9 19 11 12  , so we run 9 (calling callFn_)ando then more n=12-9=3 time (calling callF)
-      let delta=3600000;
-      if(DEBUG1)delta=60000*2;//2 minuti
-      else if(hourinterval&&hourinterval>0&&hourinterval<6)delta=hourinterval*3600000;
-      timer = setInterval(callF, delta);//36000000
+      if(n>0){// example run from 9 to 12 n=3  so run on 9 19 11 12  , so we run 9 (calling callFn_)ando then more n=12-9=3 time (calling callF)
+      let delta=60*1000*period;// convert ms
+      if(DEBUG1){delta=delta;n=n}// periodo in  minuti non ore  ??   to correct
+      else {delta=delta*60;n=n/60}//if(dminutes&&dminutes>0&&dminutes<24)delta=dminutes*3600000;
+      timer = setInterval(callF, delta);//36000000 . run n times every delta millisecond
+      }
+      function callF(){
+        if(n--<0) {clearInterval(timer);// condition before lowering n 
+                  // clear algo last res state
+                  if(execParm.algo=='program')fn.state.lastProgramAlgo=false;
+                  if(execParm.algo=='anticipate')fn.state.lastAnticAlgo=false;
+
+
+        }else {
+
+          if(true){// debug only
+            let {procName, a,b,ev2run, asyncPoint, processAsync, dataArr}=execParm;
+            console.log(' repeatcheckxSun :callF repetition job (n: ',n,') will lauch execute with execParm : {procName, a,b,ev2run, asyncPoint, processAsync, dataArr}, ',execParm,'. procName: ',procName,' dataArr: ',dataArr); 
+          }
+          callFn_(execParm);
+          
+        }
       }
     }
          
-    function gfg_Run(hourinterval) {// daily job  old
-      n=cilesxday;
-      console.log(' repeatcheckxSun :gfg_Run() called , start day checks , n: ',n); 
-      let delta=3600000;if(hourinterval&&hourinterval>0&&hourinterval<6)delta=hourinterval*3600000;
-      timer = setInterval(callF, delta);//36000000
-      }
+
   
       function gfg_Stop() {// call from .......
       clearInterval(timer);
       }
-  
     let interv;
-      
-    return {repeatcheckxSun:function (hourin,hourout,hourinterval){// register the procedure to repeat
-      if(interv) clearInterval(interv); 
-      if(timer) clearInterval(timer);                                        //closure with inner callF, the closure state n will be updated till hourout is got !
-      console.log(' repeatcheckxSun : start hour ',hourin,' stop hour: ',hourout);                                                 
-      cilesxday=hourout-hourin;
-      let goon;
-      if(DEBUG) goon=true;else goon=false;// debug is true, production = false
-      if(goon)   gfg_Run_(0);// one day start immediately
-      else
-      interv=setInterval(function(){ // Set interval for checking, never stop till the repetion ends 
-        var date = new Date(); // Create a Date object to find out what time it is   gtm ?
-        let min=0;if(DEBUG1)min=hourinterval;
-        console.log(' repeatcheckxSun : setinterval  handler called on day hour: ',date.getHours()+1,' minutes: ',date.getMinutes(),' hin: ',hourin,' MIN: ',min); 
-
+    return {// object functions
+      repeatcheckxSun: function (hourin, hourout, period, execParm, cb2) {// register the procedure to repeat, period in minutes
+        if (interv) clearInterval(interv);
+        if (timer) clearInterval(timer);
+        const pdate = new Date();  pdate.setHours(pdate.getHours()+1);  //closure with inner callF, the closure state n will be updated till hourout is got !
        
+        // console.log(' repeatcheckxSun : start hour ',hourin,' stop hour: ',hourout);                                                 
+        let hourinterval = hourout - hourin;// ex  9-8=1  , the testing to do will be 2, one at 8 , one at 9
+        let goon, onceaday = true;
+        if (DEBUG) goon = true; else goon = false;// debug is true, production = false   , now false !
+        if (goon);//;// one day start immediately
+        else {
 
-        if((date.getHours()+1) == hourin && date.getMinutes() == min){ // Check the time
-          console.log(' repeatcheckxSun :::::::::::');
-            // run the repetitive procedure
-            gfg_Run_(hourinterval);// ex 10-9=1  so start 1 at 9:00 the other 1 after a hour 
-            // no , next will goon ! :   clearInterval(interv);
-        }else   console.log(' repeatcheckxSun ************** ');
-  
-    }, 60000); // Repeat every 60000 milliseconds (1 minute)
-    return 0;//ok, ??
-                    },
-            stopRepeat:function (){// stop requiredd by client browser
-              console.log(' stopRepeat() called ');              
-              clearInterval(interv);
-              
+          let min; if (DEBUG1) { min = pdate.getMinutes() + 2; }//if(min>59)min=min-60;}// start 2 min later
+          else min = 0;
+          //if(hourin==0)hourin=1;
+          console.log(' repeatcheckxSun : at ', pdate, ' setinterval  handler registering;  minutes to match: ', min, '; hour to match: >=', hourin, '; hourout: ', hourout, ', period: ', period, ', procname: ', execParm.procName);
+
+          let minIn = hourin * 60 / period,// in in minuti normalizzati
+            minOut = hourout * 60 / period,// in in minuti normalizzati
+            minN = min / period;// additional condition iniziale todo
+
+          interv = setInterval(function () { // Set interval for checking, never stop till the repetion ends 
+            var date = new Date(); // Create a Date object to find out what time it is   gtm ?
+            date.setHours(date.getHours()+1);
+            let dm = date.getMinutes(), dh = date.getHours();
+            if (dh == 0&&dm==0) onceaday = true;
+
+            let
+              dateN = (dh * 60 + dm) / period,// present time normlized
+              cicles = minOut - dateN;// cicles of period minutes to run execute
+              if(cicles<1)cicles=1;// min 
+
+            console.log(' repeatcheckxSun : setinterval  handler called x procName: ', execParm.procName, ' at hour: ', dh, ' and minutes: ', dm, '. present time norm: ', dateN, 'must be in: ', minIn, '-', minOut);
+            console.log(' normalization in minutes is: period: ', period, ' hourin: ', hourin, ' hourout: ', hourout);
+
+            // if(onceaday&&dh >= hourin && dm == min){ // Check the time to start repetitive task, start from 1:00 to 23:00
+            if (onceaday && dateN > minIn && dateN < minOut) { // Check the time to start repetitive task, start from 1:00 to 23:00
+              console.log(' repeatcheckxSun : interval match so fire gfg_Run_ repetion job for cicles: ',cicles);
+              onceaday = false;
+              // run the repetitive procedure
+              // hourinterval=hourout-dh;// better then hourinterval=hourout-hourin
+              //gfg_Run_(hourinterval,period,execParm);// ex  from 9 to 10, hourinterval=10-9=1 , cicles= 1 hour; so start 1 at 9:00 the other 1 after a hour 
+              gfg_Run_(cicles, period, execParm);// ex  from 9 to 10, hourinterval=10-9=1 , cicles= 1 hour; so start 1 at 9:00 the other 1 after a hour 
+              // if h_m=true  the span
+              // no , next will goon ! :   clearInterval(interv);
+            } else console.log(' repeatcheckxSun ************** procedure ', execParm.procName, 'setinterval hndler didnt match the firing condition, it is still to fire: ', onceaday);
+
+          }, 60000); // Repeat every 60000 milliseconds (1 minute)
+        }
+        return 0;//ok, ??
+      },
+        stopRepeat:function (){// stop requiredd by client browser
+              console.log(' stopRepeat() called . we must reset the runing intervals' );              
+              if(interv) clearInterval(interv); 
+              if(timer) clearInterval(timer);
+              if(execParm){
+              //.......correct ???  
+              if(execParm.algo=='program')fn.state.lastProgramAlgo=false;
+              if(execParm.algo=='anticipate')fn.state.lastAnticAlgo=false;
+              }
               /* we call later in ......
               fn.state.anticipate=false;
               api.writeScriptsToFile(fn)
@@ -1106,64 +1939,87 @@ function checkFactory(fn){// fn=ctl, sostituisce repdayly()
                 console.error(err);
                 process.exit(1);
                });*/
-                    }   
+        }   
   }
 }// ends checkFactory
 
 function sendstatus(state){// error: we need the socket that connect to browser !!!!!
   //io.sockets.emit('status',JSON.stringify(state,null,2));// no   , socket.emit...
-  io.sockets.emit('status',state);// no   , socket.emit...
+  let prettyjson=prettyJSONStringify(state, {
+    shouldExpand : function(object, level, key) {
+        if (key == 'lastT'||key=='TgiornoToll'||key=='probes'||key=='execute'||key=='PMCgiorno') return false;
+        if (key == 'doExpand') return true;
+        if (Array.isArray(object) && object.length < 8) return false;
+        if (level >= 2) return false;
+        return true;
+    }
+});
+console.log('sendstatus() pretty is: ',prettyjson);
+  io.sockets.emit('status',state,prettyjson);// no   , socket.emit...
 }
 
 
 
-function attuators(fn,heat,pdc,g,n,s,split){// ctl,true/false,,,
+function attuators(fn,heat,pdc,g,n,s,split){// ctl,true/false,,,   (heat,pdc,g,n,s,split)
 // we action simulating to push gpio button events
 let state=fn.state,relays=state.relays;
-console.log(' attuators() : current relays pump state is : ',relays,' target values: ',heat,pdc,g,n,s,split);
+console.log(' attuators() : current relays pump state is : ',relays,' target values (heat,pdc,g,n,s,split): ',heat,pdc,g,n,s,split);
 
 // todo use relaisEv.forEach( ...  and pump_=relaisEv.lastIndexOf(pump);// the index in relais_
 
 // debug:
 console.warn('  attention that order in state.relays ',state.relays,' same as fn.state.relays ',fn.state.relays,' can be different from fn.relaisEv ',fn.relaisEv);
 // so correct mapping state.relays > fn.relaisEv are done here !
-
-if(heat!=relays.heat){
+let promises=[];
+if(heat!= null &&// both null or undefined
+  
+  heat!=relays.heat){
   incong('heat',state);
   console.log(' attuators() : as current pdc pump state : ',relays.heat,' is different from newval call setPump(0,',heat,')');
   //relays.pdc=
-  setPump(0,heat,fn);}else;
-if(pdc!=relays.pdc){
+  promises.push(setPump(0,heat,fn));}else;
+if(pdc!= null &&
+  pdc!=relays.pdc){
   incong('pdc',state);
   console.log(' attuators() : as current pdc pump state : ',relays.pdc,' is different from newval call setPump(1,',pdc,')');
   //relays.pdc=
-  setPump(1,pdc,fn);}else;
-if(g!=relays.g){
+  promises.push(setPump(1,pdc,fn));}else;
+if(g!= null &&
+  g!=relays.g){
   incong('g',state);
   console.log(' attuators() : as current g pump state : ',relays.g,' is different from newval call setPump(2,',g,')');
   //relays.g=
-  setPump(2,g,fn);}else;
-if(n!=relays.n){
+  promises.push(setPump(2,g,fn));}else;
+if(n != null &&
+  n!=relays.n){
   incong('n',state);
   console.log(' attuators() : as current n pump state : ',relays.n,' is different from newval call setPump(3,',n,')');
   //relays.n=
-  setPump(3,n,fn);}else;
-if(s!=relays.s){
+  promises.push(setPump(3,n,fn));}else;
+if(s != null && s!=relays.s){
   incong('s',state);
   console.log(' attuators() : as current s pump state : ',relays.s,' is different from newval call setPump(4,',s,')');
   //relays.s=
-  setPump(4,s,fn);}else;
-  if(split!=relays.split){
+  promises.push(setPump(4,s,fn));}else;
+  if(split != null &&
+    split!=relays.split){
     incong('split',state);
     console.log(' attuators() : as current s pump state : ',relays.s,' is different from newval call setPump(5,',split,')');
     //relays.s=
-    setPump(5,split,fn);}else;
+    promises.push(setPump(5,split,fn));}else;
 
-function incong(pump,state){
+
+    // or wait x all
+    return Promise.all(promises);
+
+
+
+async function incong(pump,state){
   let value=state.relays[pump];// true/false, pump as recorded on status
   let   pump_=relaisEv.lastIndexOf(pump);// the index in relais_
-  if(pump_>=0){
-  curval=relais_[pump_].readSync();// 0/1
+  if(pump_>=0){// found
+  if(relais_[pump_])curval=await relais_[pump_].readSync();// 0/1
+  else curval=0;
   if(value&&curval==0||((!value&&curval==1))){// state != cur value 
     console.warn(' attuators(), find pump ',pump,' state different from current pump position thats: ',curval); 
     console.log(' attuators(), find pump ',pump,' state different from current pump position thats: ',curval); 
@@ -1186,11 +2042,12 @@ function setPump(pumpnumber,on,fn){// 0,1,2,3    on : changing value (true or fa
   console.log(' setpump() just emitted socket  event x pumpnumber',pumpnumber,' asking to set: ',on);
   //onRelais(pumpnumber,on_,'server',state);// anyway set directly the gpio relay, in case the browser is not connecte ! 
                                           // ERROR : pump not pumpnumber !
-  onRelais(relaisEv[pumpnumber],on_,'server',fn);// usually called before the duplicate coming from browser as feedback
+  onRelais(relaisEv[pumpnumber],on_,'server',fn);// dont wait, WARNING usually called before the duplicate coming from browser as feedback
                                     
                                           
   
-  return true;}
+  return Promise.resolve(true);
+}
 
 
 
@@ -1199,23 +2056,29 @@ function setPump(pumpnumber,on,fn){// 0,1,2,3    on : changing value (true or fa
 io.sockets.on('connection', function (socket) {// WebSocket Connection :server is listening a client browser so now we built the socket connection, transmit to server if there are status updates 
 
 console.log('socket connected to a client');
-  let eM,
-   repeat;// active rep func
-
+  let eM,//  >>> e' settato da socket.on('startuserplant',...  ed e' legata/propieta del connection handler dove sono def gli socket events es socket.on()
+        // poi usato da ......
+        
+   repeat,// active rep func x anticipate
+  repeat1;// active rep func x temperature programmer
   // define the listener :
   socket.on('startuserplant', function (data,feat) { // user press button to connect to some plant, so this event is fired , feat url enc
                                                       // inst/fn/ctl/eM :  here we create the ctl of the plant that will be passed to all the service functions 
+                                                      // todo : emit login screen x user=data
     console.log('event startuserplant listening handler for plant ',data,' feature: ',feat);
+
+    if(data);else return;
+
 
     // get user login or just the plant name in some html field + button start that will fire event startuserplant
     let user = { name: data };
-    eM = ccbb(user);// ** il fsm recupera/crea un siglethon x user/plant 
+    eM = ccbbRef(user);// ** il fsm recupera/crea un siglethon x user/plant 
     if(eM)console.error('startuserplant , eM is built ');
     if(eM)console.log('startuserplant , eM is built ');
     eM.socket=socket;// update/embed the socket to connect the browser client
     if (eM) {
      // startfv_(eM,user);// ** start/update singlethon 
-     recoverstatus.call(eM,user.name).then((em_) => startfv_(em_)); // >>>>   returns a promise resolved we we finish to write satus back with promise .writeScriptsToFile
+     recoverstatus.call(eM,user.name).then((em_) => startfv_(em_)); // >>>>   returns a promise resolved we we finish to write status back with promise .writeScriptsToFile
                                                                     // will cb startfv_   // TTGG  // why do not use eM invece di passarlo come em_ ?
                                                                     //recoverstatus_.call(eM,user.name).then((em_) => startfv_(em_));// will cb startfv_
 
@@ -1232,11 +2095,20 @@ console.log('socket connected to a client');
      
      
      if(state.anticipate){
-      let {hourinterval,starthour,stophour,triggers}=state.anticipate;
+      let {dminutes,starthour,stophour,triggers}=state.anticipate;
       console.log('event startuserplant loading the repeating procedure from state.anticipate:  ',state.anticipate);
 
       // same handler that : socket.on('repeatcheckxSun', );
-     repeatHandler(starthour,stophour,hourinterval,triggers);// rewite the state alredy wrote by TTGG  
+     repeatHandler(starthour,stophour,dminutes,triggers);// and rewite the state alredy wrote by TTGG  
+
+     }
+     // 
+     if(state.program){
+      let {dminutes,starthour,stophour,triggers2}=state.program;
+      console.log('event startuserplant loading the repeating procedure from state.anticipate:  ',state.program);
+
+      // same handler that : socket.on('repeatcheckxSun', );
+     repeatHandler1(starthour,stophour,dminutes,triggers2);// and rewite the state alredy wrote by TTGG  
 
      }
      eM.reBuildFromState=false;// reset now the ctl has the procurure loaded on closure checkFactory()
@@ -1272,7 +2144,7 @@ console.log('socket connected to a client');
   // set local gpio relay to some button on web page, web page will emit a socket event 'light' that will in this server activate
   // the gpio port
 
-  pushButton.watch(function (err, value) { //Watch for io hardware interrupts on pushButton  
+  if(pushButton)pushButton.watch(function (err, value) { //Watch for io hardware interrupts on pushButton  
                                             // to review , see also staff/webserver07112022.txt
 
     if (err) { //if an error
@@ -1336,14 +2208,19 @@ console.log('socket connected to a client');
                                   
      if(!eM)console.error('event connection setting hw button , eM is still null ');
      if(!eM)console.log('event connection setting hw button, eM is still null ');
-  relais[ind].watch(pumpsHandler[ind]=watchparam(pump));// attach a handler watchparam(pump) to all gpio pump  buttons 
+     pumpsHandler[ind]=watchparam(pump);
+  if(relais&&relais[ind])relais[ind].watch(pumpsHandler[ind]);// attach a handler watchparam(pump) to all gpio pump  buttons 
                                                         // that handler works also x algo handler called in attuators/setpump   ex pumpsHandler[0](err,value) 0 means pdc pump
   
  });
 
   socket.on('light', function (data) { //handler of  'light' event fired on browser ,get light switch status from client web page .   data=0/1 ?
     lightvalue = data;
-    if (lightvalue != LED.readSync()) { //only change LED if status has changed
+
+    LED.readSync().then((led)=> checkit(led));
+
+    function checkit(val){
+    if (lightvalue !=val) { //only change LED if status has changed
       LED.writeSync(lightvalue); //turn LED on or off
       /*if (buttoncaused) {
         buttoncaused = false;
@@ -1351,15 +2228,16 @@ console.log('socket connected to a client');
         // eM.emit('web', 1);
       }*/
     }else console.log(' brower ask to change value but is as before ?: ',lightvalue); // ex 0
-  });
+  }
+});
 
 // the same x relais , but without using a closure
 
 // moved 
- function onRelais_  (pump,data) { //pumps unique handlerget pumps switch status from client web page.  data =0/1
+ function onRelais_  (pump,data) { // dead code //pumps unique handlerget pumps switch status from client web page.  data =0/1
   lightvalue = data;
-  if (lightvalue != relais_[pump].readSync()) { //gpio comanding relays is called, only change LED if status has changed
-    relais_[pump].writeSync(lightvalue); //turn LED on or off
+  if (relais_[pump]&&lightvalue != relais_[pump].readSync()) { //gpio comanding relays is called, only change LED if status has changed
+    if(relais_[pump])relais_[pump].writeSync(lightvalue); //turn LED on or off
     /*
     if (buttoncaused) {// means that the relay is requested by user raspberry button press (or algo anticipating), not corresponding seb button press
       buttoncaused = false;
@@ -1382,7 +2260,7 @@ console.log('socket connected to a client');
     console.log(' onRelaisClos() called x pump: ',pump,' set value: ',val,' coming from: ',coming,' ctl is null: ',!eM);
     if(!eM)console.error('onRelaisClos(), eM is null , cant process browser old event call');
     if(!eM)console.log('onRelaisClos(), eM is null ');else console.log(' onRelaisClos(), eM is found '); 
-    if(eM)onRelais(pump,val,coming,eM);}// eM is set before in a preceeding  socket.on('startuserplant',,, ( like create a  closure var)
+    if(eM)onRelais(pump,val,coming,eM);}//dont wait! eM is set before in a preceeding  socket.on('startuserplant',,, ( like create a  closure var)
  }
 
 
@@ -1403,23 +2281,30 @@ console.log('socket connected to a client');
                             */
 
 
-function setanticipateflag(set_){
+function setanticipateflag(set_,algo,activeAlgoRes=null){ // store in state the algo launch params (ex: triggers), update state store :
+                                                          // state[algo]=.... ex state.anticipate={....}  .
+                                                          // if set_=null :  state.anticipate=false
+                                                          //    state[algo]=false     the algo init parm are false because the algo is not active
+                                                          //    and
+                                                          //    state[activeAlgoRes]=false    the last algo result are nullified so dont influence relay set 
+                                                          
   if(!eM)console.error('.. setanticipateflag() eM is null ');
   if(!eM)console.log('.. setanticipateflag() eM is null ');else console.log(' . setanticipateflag(), eM is found '); 
-    console.log(' setanticipateflag() called to set flag: ',set_);
-    anticipateFlag(set_,eM);}// eM is set before in a preceeding  socket.on('startuserplant',,, ( like create a  closure var)
+    console.log(' setanticipateflag() called to set running algo: ',algo,' init param: ',set_,' , in state.',algo,' ,(if null init parm will also  reset state.',activeAlgoRes);
+    //if(set_)
+    anticipateFlag(set_,eM,algo,activeAlgoRes);}// eM is set before in a preceeding  socket.on('startuserplant',,, ( like create a  closure var)
 
 
 // repeat=checkFactory(eM);// eM could not still be set by a preceeding  socket.on('startuserplant',,, ( like create a  closure var)
- console.log('repeat could not be set here because eM is null: ',eM);// infact here is still null !! we'll be set on :  socket.on('startuserplant'
+ console.log('repeat could not be set now because eM is still null !! well be set on :  socket.on(startuserplant...');
 
 socket.on('repeatcheckxSun',repeatHandler);// start anticipating algo with setting and run an execute()
-function repeatHandler(starthour,stophour,hourinterval,triggers) {// called also by ....
+function repeatHandler(starthour,stophour,dminutes,triggers) {// called also by ....
   if(!eM)console.error(' repeatHandler(), eM is null ');
   if(!eM)console.log(' repeatHandler(), eM is null ');else console.log(' repeatHandler(), eM is found '); 
     repeat=repeat||checkFactory(eM);// could be find null ???
-    if(repeat.repeatcheckxSun(starthour,stophour,hourinterval)==0)// exit ok 
-    setanticipateflag({running:true,starthour,stophour,hourinterval,triggers});
+    if(repeat.repeatcheckxSun(starthour,stophour,dminutes,antic_parmFact())==0)// exit ok 
+    setanticipateflag({running:true,starthour,stophour,dminutes,triggers},'anticipate');// store in state the algo launch params (ex: triggers), update state store
     else {repeat=null;
    console.log(' setanticipateflag() not called ');
     }
@@ -1431,12 +2316,50 @@ socket.on('stopRepeat',() => {
   console.log(' stopRepeat event fired');
   if(repeat){
   repeat.stopRepeat();
-  setanticipateflag(false);// same of registering  repeatcheckxSun()  ??
+  setanticipateflag(false,'anticipate','lastAnticAlgo');//// reset in state the algo launch params (ex: triggers), ex : state.anticipate=false
+                                                          //  update state.lastAnticAlgo
   }
   });// 
 
 
+// now the same x programming temperature x many zones
+socket.on('startprogrammer',repeatHandler1);// start anticipating algo with setting and run an execute()
+function repeatHandler1(starthour,stophour,dminutes,triggers2) {// sched triggers2 keys:extract2 = ["Tgiorno","PGMgiorno","Tnotte","PGMnotte"],
+  console.log(' startprogrammer socket event handler repeatHandler1() called with triggers2: ',triggers2 )   ;                                                            // sched={'giorno':['8:30':t1,"17:00":t2]} see initProg event x keys definitions
+  let sched={};// {giorno:{'16:10':-3,,,,},notte:{}} 
+  if(!triggers2)return;
+  // if(triggers2.Tgiorno&&triggers2.PGMgiorno)Object.assign(sched, triggers2.PGMgiorno);
+  // if(triggers2.Tnotte&&triggers2.PGMnotte)Object.assign(sched, triggers2.PGMnotte);
+  if(triggers2.Tgiorno&&triggers2.PGMgiorno){sched.giorno={sched:triggers2.PGMgiorno};
+    if(triggers2.PGMgiornoToll){sched.giorno.toll=triggers2.PGMgiornoToll;// // tolleranze (un valore x all), same keys of sched.giorno.sched
+      console.log(' startprogrammer socket event handler repeatHandler1() saved tollerate array: ',triggers2.PGMgiornoToll,'\n sched: ',sched);
+    }
+  }
+  if(triggers2.Tnotte&&triggers2.PGMnotte){sched.notte={sched:triggers2.PGMnotte};
+    if(triggers2.PGMnotteToll)sched.notte.toll=triggers2.PGMnotteToll;// // tolleranze (un valore x all), same keys of sched.giorno.sched
+  }
+  if(!eM)console.error(' repeatHandler1(), eM is null ');
+  if(!eM)console.log(' repeatHandler1(), eM is null ');else console.log(' repeatHandler(), eM is found '); 
+    repeat1=repeat1||checkFactory(eM);// could be find null ???
+    console.log(' startprogrammer socket event handler repeatHandler1() is launching repetition job repeatcheckxSun() with sched: ',sched );
+    if(repeat1.repeatcheckxSun(starthour,stophour,dminutes,prog_parmFact(sched))==0)// exit ok 
+    setanticipateflag({running:true,starthour,stophour,dminutes,triggers2},'program');
+    else {repeat1=null;
+   console.log(' startprogrammer() not called ');
+    }
+  }
 
+
+socket.on('stopprogrammer',() => {
+  repeat1=repeat1||checkFactory(eM);// could be find null ???
+  console.log(' stopprogrammer event fired');
+  if(repeat1){
+  repeat1.stopRepeat();
+  setanticipateflag(false,'program','lastProgramAlgo');// set state.program=null , so init parm = null means that the algo is not active !
+                                                        //// store in state the algo launch params (ex: triggers),  update state.lastAnticAlgo
+  
+  }
+  });// 
 
  }// ends function (socket) 
 
@@ -1449,21 +2372,25 @@ socket.on('stopRepeat',() => {
 // todo what is this ?
 // run a bash shell
 process.on('SIGINT', function () { //on ctrl+c
+  console.log('control c got');
   LED.writeSync(0); // Turn LED off
   LED.unexport(); // Unexport LED GPIO to free resources
-  pushButton.unexport(); // Unexport Button GPIO to free resources
+  if(pushButton)pushButton.unexport(); // Unexport Button GPIO to free resources
   process.exit(); //exit completely
 });
 
 
 
 
-return 'ok';
-function anticipateFlag(set_,fn){// like onRelais, write state after completed it . todo add fn in callers !!!!!
+//return 'ok';    ??
+
+
+function anticipateFlag(set_,fn,algo,activeAlgoRes){// like onRelais, write state after completed it to store anticipate algo init param// algo =anticipate/program
   if(!fn)console.error('anticipateFlag(), eM is null ');
-  if(!fn)console.log('anticipateFlag(), eM is null ');else console.log(' anticipateFlag(), eM is found ');
+  if(!fn){console.log('anticipateFlag(), eM is null ');}else console.log(' anticipateFlag(), eM is found ');
   let state=fn.state;
-  state.anticipate=set_;
+  state[algo]=set_;
+  if(set_==null)state[activeAlgoRes]=null;// nullify last algo results 
   return api.writeScriptsToFile(fn)
     .catch(function(err) {
       console.log(' anticipateFlag(),  writefile catched : ',err);
@@ -1473,14 +2400,15 @@ function anticipateFlag(set_,fn){// like onRelais, write state after completed i
       });
 }
 
-function onRelais  (pump,data,coming,fn) { //pumps unique handlerget pumps switch status from client web page  data=0/1 pump ='pdc'
+async function onRelais  (pump,data,coming,fn) { //pumps unique handlerget pumps switch status from client web page  data=0/1 pump ='pdc',,,
+                                                // return a promise but is never used !
                                   // accoppiato con emit('pump',)   
                                   // >> pump in relaisEv
                                   //  onRelais can be called  from :
                                   //     - this server using   setPump() che chiamera onRelais sia direttamente che via browser (feedback )
                                   //      or
                                   //     - browser(via .emit('pump',,'browser')) che ha origine da 
-                                  //          - browser user change flag
+                                  //          - browser user changing flag
                                   //          - come feedback del event 'pump' lanciato dal server dal gpio button handler  :
                                   //                pumpsHandler[pumpnumber]= watchparam(pump)) 
                                   //                this handler can be called by gpio button change or
@@ -1490,26 +2418,29 @@ function onRelais  (pump,data,coming,fn) { //pumps unique handlerget pumps switc
                                   //              setPump è chiamato da startfv, attuators
  
                                   // this is ....  global ?
-  console.log('OnRelais started x pump: ',pump, ' coming: ',coming);
+  console.log('OnRelais started x pump: ',pump, ' coming from ',coming);
   if(!fn)console.error('onRelais(), eM is null ');
   let state=fn.state;
-  let value=state.relays[pump];// true/false, pump as recorded on status
-  let lightvalue = data,// 0/1
+  let value=state.relays[pump];// true/false, pump value as recorded on status
+  let lightvalue = data,// 0/1 value to set
   pump_=relaisEv.lastIndexOf(pump);// the index in relais_
-  if(pump_>=0){
-  curval=relais_[pump_].readSync();// 0/1
+  if(pump_>=0){// found
+  if(relais_[pump_])
+    curval=await relais_[pump_].readSync();// 0/1 present value of gpio register
+  else 
+    curval=0;
   console.log(' onRelais, coming from: ',coming,', current rele position x ',pump,' is ',curval,' asking to set : ',data); 
   console.log('              onRelais, state: ',state); 
     let lchange=false;
-  if(value&&curval==0||((!value&&curval==1))){// state != cur value . a problem !
+  if(value&&curval==0||((!value&&curval==1))){// state != cur value . a problem if not just starting!
     console.warn(' onRelais, find pump ',pump,' state different from current pump position thats: ',curval); 
     console.log(' warn: onRelais, find pump ',pump,' state different from current pump position thats: ',curval); 
-    lchange=true;
+    lchange=true;// state and present value are different !
   }
   if (lightvalue != curval) { // 0/1 != 0/1 gpio comanding relays is called, only change gpio if current position/value is different from present position
     console.log(' onRelais,  changing current rele position/value x ',pump,' to: ',lightvalue); 
-    relais_[pump_].writeSync(lightvalue); //turn LED on or off
-    console.log(' onRelais,  verifying current rele  position/value changing  x ',pump,' now is: ',lightvalue); 
+    if(relais_[pump_])relais_[pump_].writeSync(lightvalue); //turn LED on or off
+    console.log(' onRelais,  todo : verifying current rele  position/value changing  x ',pump,' now is: ',lightvalue); 
     //console.log(' ****\n browser/algo ask ',pump,' relay to change value into : ',lightvalue); // ex 0
     /*
     if (buttoncaused) {// means that the relay is requested by user raspberry button press (or algo anticipating), not corresponding seb button press
@@ -1518,7 +2449,8 @@ function onRelais  (pump,data,coming,fn) { //pumps unique handlerget pumps switc
       // eM.emit('web', 1);
     }*/
 
-    // update staus in case the new pump data comes from button o from browser    
+    // update staus in case the new pump data comes from button o from browser   
+    // >>>  state and  cur value will be the same 
    
     if(value&&data==0||((!value&&data==1))){// state != cur value (data=lightvalue)
       // update state
@@ -1531,7 +2463,7 @@ function onRelais  (pump,data,coming,fn) { //pumps unique handlerget pumps switc
     console.log(' onRelais(), to update, now call writeScriptsToFile: ',plantname,' scripts/state: ',state);
     // return // not mandatory
     //return api.writeScriptsToFile(state,plantname,procedura)
-    return api.writeScriptsToFile(fn)
+    return api.writeScriptsToFile(fn)// upddate persistance and send status to browser
     .catch(function(err) {
       console.log(' onRelais(),  writefile catched : ',err);
         console.error(err);
@@ -1540,11 +2472,14 @@ function onRelais  (pump,data,coming,fn) { //pumps unique handlerget pumps switc
       });
     }
 
-  }else {console.log(' onRelais(), browser/algo ask ',pump,' rele to change value but is as before : ',lightvalue); // ex 0
+  }else {console.log(' onRelais(), browser/algo ask ',pump,' rele to change value but was alredy set : ',lightvalue); // ex 0
           if(lchange){state.relays[pump]=!state.relays[pump];
           console.warn(' onRelais() status ricociliato con current value : ',data);
           }
 }
+
+
+
 } else;// error
 }
 
@@ -1593,17 +2528,21 @@ function gfg_Run() {
 
 function recoverstatus(plantname){// this ctl is the ctl whose state must be updated from file if exist (persistnce)
   // this.state is asic state x new ctl. if we have stored , get it 
-  // >>>>   returns a promise resolved we we finish to write satus back with promise .writeScriptsToFile
-let that=this,state=that.state,reBuildFromState=that.reBuildFromState;
+
+  // old : >>>>   returns a promise resolved we  finish to write status back with promise .writeScriptsToFile
+let that=this,// context is the app event manager
+
+state=that.state,reBuildFromState=that.reBuildFromState;
   return new Promise(function(resolve, reject) {
 
     //console.log(' recoverstatus,  starting  : ',that);
  // api.loadScriptsFromFile(plantname,this).catch(function(err) {
     api.loadScriptsFromFile(plantname,that).catch(function(err) {
+
     console.log('Could not load scripts from file:',plantname, err);
     reject();
     process.exit(1);
-}).then(function(that_) {// that_ is that with updated state 
+}).then(function(that_) {// resolved results is that_ : it is that with updated state read from file
                         // the  current plant state: from saved in file or a basic state  if new controller (that)
     // verify that we can now write back to the file.
     console.log(' recoverstatus() , now loadScriptsFromFile is resolved so callwriteScriptsToFile() writefile: ',plantname,' script: ',that_.state);
@@ -1617,7 +2556,7 @@ let that=this,state=that.state,reBuildFromState=that.reBuildFromState;
 
     return api.writeScriptsToFile(that_)// or that is the same ! nb this promise  is thenable to a .then function if any. here have AWQ
     .catch(function(err) {
-      console.log(' recoverstatus,  writefile catched : ',err);
+      console.log(' recoverstatus,  writeScriptsToFile rejected so catched with error : ',err);
         console.error(err);
         reject();
         process.exit(1);
@@ -1642,7 +2581,228 @@ let that=this,state=that.state,reBuildFromState=that.reBuildFromState;
 
   });
 
+/*
+ that=this;
+ return new Promise(function(resolve, reject) {
+    api.loadScriptsFromFile(plantname,that)
+      .catch( .... reject())
+      .then(function(that_) {// resolved results is that_ : it is that with updated state read from file
+
+                ....
+                return api.writeScriptsToFile(that_)// or that is the same ! nb this promise  is thenable to a .then function if any. here have AWQ
+                  .catch(function(err) {
+                                reject();
+                  }
+            }
+          )
+
+
+
+      ).then(function(state) {  // >>>> after update file with writeScriptsToFile(that_) promise, we resolve  the promise returned by recoverstatus(plantname)
+
+            console.log(' recoverstatus,  resolving 2  state : ',that.state);
+            resolve(that);
+      ).catch(function(err) {
+              console.error('recoverstatus() failed, error: ',err);
+              process.exit(1);
+          )
+
+*/
+
+
+}
+  function antic_parmFact(noparms){
+  
+      //  let{procName, a,b,ev2run, asyncPoint, processAsync, dataArr}=execParm;
+  let  pdate=new Date();pdate.setHours(pdate.getHours()+1);
+  let procName='startAntic_'// 'anticipate'
+  + pdate.toLocaleString(),algo='anticipate';
+  console.log(' checkFactory()  define  procedure ',procName);
+  //if(fn);else {console.error(' checkfactory() cant find the ctl . stop ');console.log(' checkfactory() cant find the ctl . stop ');}
+  
+
+  // nb passing results via state , not in event chain 
+  let ev2run = {connect:null,openapi:null,weather:null,startcheck:null};// {the eventasynctorun in sequence:avalue?}startcheck=1 after updated the status will fire startcheck, null means dataArr data
+  
+  
+  let dataArr=//{begin:0,startcheck:0}; 
+  //{begin:null,openapi:null,startcheck:null}; 
+  {begin:null,// error todo  :  connect:null,
+    openapi:null,weather:null,startcheck:{dataArr:{algo}}};// use key dataArr to distinguish in consolidated input 
+  let  evAsync={};// evAsync={aEv2runKey:itsasync,,,,,,}
+  let a=processAsync={},b=asyncPoint={};// ok ?
+  return {procName, a,b,ev2run, asyncPoint, processAsync, dataArr,algo:"anticipate"};
+
+  }
+
+
+  function prog_parmFact(sched){// from browser we got sched={'giorno':['8:30':t1,"17:00":t2]}  , the key are the key generated in initProg that define the probes whose temperature must be controlled
+  
+    //  let{procName, a,b,ev2run, asyncPoint, processAsync, dataArr}=execParm;
+    let  pdate=new Date();pdate.setHours(pdate.getHours()+1);
+let procName='startProg_'// 'program'
++ pdate.toLocaleString(),algo='program';
+
+console.log(' prog_parmFact()  define  procedure ',procName,' with sched: ',sched);// input of genZoneRele will be {'initProg':{giorno:19.2,notte:,,,,},dataArr:sched={'giorno':{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}}
+//if(fn);else {console.error(' checkfactory() cant find the ctl . stop ');console.log(' checkfactory() cant find the ctl . stop ');}
+
+let ev2run = {initProg:null,// will put probes result as input of genZoneRele ev
+  // preparazione dati , checks,....
+  genZoneRele:"initProg"};// attivare valvole x risc generale e poi singole zone
+let dataArr=//{begin:0,startcheck:0}; 
+//{begin:null,openapi:null,startcheck:null}; 
+{initProg:null,genZoneRele:{dataArr:sched}};
+let  evAsync={};// evAsync={aEv2runKey:itsasync,,,,,,}
+let a=processAsync={},b=asyncPoint={};// todo 
+return {procName, a,b,ev2run, asyncPoint, processAsync, dataArr,algo:'program'};
+
 }
 
 
 
+
+
+
+
+
+  const { exec } = require('child_process');
+  async function shellcmd(sh,param){// param={addr:'notte',val:18}
+    console.log(' executing shellcmd() param: ',param);
+    let val=param.val,reg=4098;
+    if(sh=='modbusRead'&&param&&param.addr&&param.register){// in read val not used !
+      if(param.addr=='notte')addr=4;else if(param.addr=='giorno')addr=2;else if(param.addr=='taverna')addr=9;else if(param.addr=='studio')addr=5;else;
+      if(param.register=='temp')reg=4098;else if(param.addr=='active')reg=4188;else;
+      let myexec='python3 rs485.py r '+addr+' '+reg+' 0';
+      console.log(' executing cmd: ',myexec);
+    return new Promise(function(resolve, reject) {
+
+
+        exec(myexec,
+        (error, stdout, stderr) => {
+          console.log(' executing shell: ',stdout,' cioe ${stdout}');
+          console.log(' std error is ',stderr);
+          if (error !== null) {
+            console.log(`exec error: ${error}`);
+              reject(error);
+        }
+
+          else {resolve(stderr);
+            console.log(' shellcmd returned : ',stderr,' cioe ${stderr}');
+          }
+
+        });
+
+      });
+
+    }
+    else return null;
+  }
+
+  function consolidate(state,lastalgo,date){// [false, false, false, false,false,false]= [heat,pdc,g,n,s,split], lastalgo = anticipate,program,user
+// puo essere chiamato sia da anticipate che da program
+// heat : se impostato da program  antic puo solo fare or 
+
+
+// user part mut be todo
+
+
+// >>>>   program if not null cant have any null val !! ( only true or false)
+
+
+ let res=[];
+ let curpumps=state.relays,antic,program,user;
+ // see what set are active (lastxxxAlgo not false)
+ if(state.lastAnticAlgo
+  //||lastalgo=='anticipate'
+  )antic=state.lastAnticAlgo.pumps;// non vero : state.lastAnticAlgo could not jet assigned
+
+ if(state.lastProgramAlgo
+  // ||lastalgo=='program'
+  )program=state.lastProgramAlgo.pumps;
+ 
+ 
+ // check scadenza
+
+ if(state.lastUserAlgo)// is alredy stored in state.user
+   if(isscad(date,state.lastUserAlgo.scad)){// state.user=isscad(date,state.lastUserAlgo.scad);
+    state.lastUserAlgo=false;
+   }
+ if(state.lastUserAlgo
+  //||lastalgo=='user'
+  )user=state.lastUserAlgo.pumps;
+
+    if (antic) {console.log(' consolidate() found anticipate relays set: ',antic);
+    } else if (program) {console.log(' consolidate() found program relays set: ',program);
+    } else if (user) {
+      console.log(' consolidate() found manualuser  relays set: ',user);
+    }
+
+ /*
+ ricorda che quando un algo cambia relay, con setPump(), lancia 2 azioni  :  al browser e interna , il browser richiama l'interna che e in pratica un duplicato
+  invece se lo user modifica allora ilbrowser chiama l'interna 
+quindi se lo user cambia un rele per flaggare che lo user blocca per ,es, la giornata la modifica del rele da parte dei algo , bisogna evitare di spedire ilrichiamo del 
+browser !!!! see DEW
+ */
+
+
+    // a: process antic + program
+    if (antic) {
+
+      if (program) {// antic + program + possibly user
+        // program and antic  case 
+        // take current relays (program + day modification of user and apply some lastalgo proposal
+        if (lastalgo = 'program' || lastalgo == 'anticipate') {// useless
+          /*
+          res.push(antic[0] || program[0]);
+          // idem per pdc e g,n,s e split:
+          res.push(antic[1] || program[1]);
+          res.push(antic[2] || program[2]);
+          res.push(antic[3] || program[3]);
+          res.push(antic[4] || program[4]);
+          res.push(antic[5] || program[5]);
+          */
+
+
+          // anticipate and user can have null val (dont set that index), program  cant have null val .
+          antic.forEach((val,ind)=>{if(val==null)res.push(program[ind]);else res.push(val)});
+
+        }
+        // save 
+
+
+      } else 
+      res = antic;// only antic + possibly user
+    } else {
+      if (program) res = program;// only program + possibly user
+    }
+
+    console.log(' consolidate() merging anticipate and program relays merge into: ',res);
+
+    // b: apply user wants , initially user will have day validity res will bet set by antic and/or program if active or can be null
+    // apply default if no assign and program :
+    res=res||(new Array(6)).fill(false);
+
+   
+      res.forEach((val,ind)=>{
+        if(user){
+        if(user[ind]==null){
+          ;//if(res[ind]==null)res[ind]=false;// should not be any null val in res !!!
+        }else{res[ind]=user[ind];
+
+        }
+
+      }
+      if(res[ind]==null)res[ind]=false;// should not be any null val in res !!!
+      /*
+      // only for lastalgo=='user'
+      state.user=true;
+      */ 
+    });
+      return res;
+  
+
+    function isscad(date,scad){// check scadenza
+      return true;
+    }
+}
+  

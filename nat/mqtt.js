@@ -19,7 +19,7 @@ const options = {// conn opn
     protocol:"mqtts",
 
 
-    clientId: "sermovox-01",
+    clientId: "sermovox-01_persistence",//clientId: 'mqttjs_' + 'persistence'
     username: "sermovox",
     password: "sime01",
     clean: true,
@@ -225,17 +225,18 @@ let fc= function (gp,ind){// mqtt gpio constructor new fc will return the io ctl
     // return this ! if .isOn the ctl is active
 
 }
-fc.prototype.readSync = async function (){
+fc.prototype.readSync =// dont need  async 
+                        function (){
     // in case of a previous write the msg queue is cleared so the effect of a write can be read also waiting some time !
     let gp=this.gpio
     if(gpio[gp]&&client.connected
         // &&status[gp]
         ){// still registered, subscribed, connected 
 
-    let resolRead=await getgpio(gp);// get last queue entry
-    console.log('mqtt readsync read value from queue or listener : ',resolRead);
+    let resolRead=getgpio(gp);// get last queue entry
+    console.log('mqtt readsync read value from queue or listener, promise : ',resolRead);
             return resolRead;
-    }else return null;// data not available
+    }else return Promise.resolve(null);// data not available
 
 }
 
@@ -244,7 +245,7 @@ fc.prototype.writeSync = function (val){// val 0/1, can return false if in error
     if(gpio[gp]&&client&&client.connected&&status[gp]){// registered, subscribed, connected 
 
         let pub_topic=shelly_stopic+gpio[gp]+shelly_topicpp;// shellies/ + <model>-<deviceid> + /relay/0/command  
-        let message;if(val==0)message=messageOn;else message=messageOff;
+        let message;if(val==0)message=messageOff;else message=messageOn;
 
 // clear msg queue ( and its listener ?)
 // WARNING hope a message in transit dont get here meanwile !!!!
