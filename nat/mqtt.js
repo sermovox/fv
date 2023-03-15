@@ -43,12 +43,12 @@ let shelly_topicpp = '/relay/0/command';
 let messageOn = 'on', messageOff = 'off';
 let pub_options = {qos: 0, retain: false};// in http://www.steves-internet-guide.com/using-node-mqtt-client/ use    ={retain:true,qos:1}
 
-function isShelly(text){// text=topic, returning devid
+function isShelly(text){// text=topic, returning devid, the key in  gpio
     //= "shellies/shelly1-98F4ABF298AD/relay";
 let ok=35<=text.length;
 if(text.slice(0,8)=='shellies'&&text.slice(-8)==shelly_topicp&&ok){// ok also ?
    console.log("Received message  on  shelly topic: " + text);
-    let devName=text.slice(9,-8),devid;
+    let devName=text.slice(9,-8),devid;// devName=shelly1-98F4ABF298AD; devid=11 the keys in gp
    for(mel in gpio){if (gpio[mel]==devName){devid=mel;break;}}
    return devid;
      
@@ -215,7 +215,7 @@ risponde : su topic shellies/<model>-<deviceid>/relay  **
 
 let fc= function (gp,ind){// mqtt gpio constructor new fc will return the io ctl
     this.gpio=gp;// the gpio id as number of the device  io ctl
-    this.devNumb=ind;
+    this.devNumb=ind; // the associated rele order as displayed 
     // do later 
    //
     if(status[gp]) this.isOn=true;// is subscribed ! at least status[gp] =[]

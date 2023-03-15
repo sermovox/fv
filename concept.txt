@@ -1,0 +1,12 @@
+si comandano direttamente le pompe controllando che la t int non superi di 2 gradi il set opportunamente fissato/programmato
+
+il che si puo fattorizzare cosi 
+1) si modifica il set della temp desiderata delle varie zone in modo differenziato (+ per zone che mantengono la temp o x massa termica)
+2) si lascia il sistema normale reagire per regolare la new temp. set regolando i paraetri del sistema (preferenza x modalita low temp ) 
+
+quindi in pratica il anticipate non setta i pumps ma 
+    - aumenta il set del termostato (modifica in prospettiva : 
+            es se alle 12 imposto 18 e alla sera 20 magari con cost tempo lunga e alle 12 faccio check e vedo sole allora imposto
+            +23 alle 12 . infatti alla sera avro 23 - 2 gradi di calo =21  per la sera che è vicino a quello desiderato per la sera ) 
+        + i parametri (pr next ora) del sistema (LT+HT). 
+    - in backgrown gira un exec termostato che agisce sul sistem power 

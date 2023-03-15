@@ -1,0 +1,459 @@
+plant : 'MarsonLuigi_API  (registered to wuawei)
+
+see event loop chain start and cur status :
+	*****   goonstep called , exec procedure:  startcheck 02/01/2023, 19:29:32 , step:  3 
+
+see event loop progression and related input chain progression :
+	Outerfunction. updateData_: in procedure:  startcheck
+	 sets input chain as 
+	 
+see end of execute proc :
+	****
+ execute procedure: 
+	
+	
+	
+	
+see update on state persistance: note date to see if caused by  anticipating >  state.anticipating.date or user browser
+	writeScriptsToFile(): updated
+	
+	
+see rest token requirement on   event ( connect )
+	  connect(): token not available, so fired login rest await
+	  
+see relay set changes :
+	onRelays current status
+	
+_______________________________
+sequenza che precede server emit('pump)
+
+	- causata da anticipating :
+	
+			in repdayly(plant,hin, hout, fn)  called at init in startfv(eM) , we lauch each hour for a day interval :
+			execute procedure:   procName='startcheck '+ d.toLocaleString() 
+			       with event sequence  ev2run = {connect:null,openapi:null,weather:null,startcheck:null} 
+			 
+			 
+			the ececute precedure at last firing event startcheck   :
+			- runs cb set with : these.on('startcheck',cb)
+			- cb will : 
+			aTT=anticipate(state)) calcola inuovi valori per le pompe usati da :
+			attuators(state,pdc,g,n,s), per settare i pomp relais :
+				call setPump(i,status) to set iesimo relay value/state registered as state.relays.x 
+					
+			  	nb  setPump is created 1 each relasEv :
+			  	
+			  	
+			  	nb setPump is aslso used in startfv to deploy the initial state relays to pumps 
+			  	
+			  	
+			setPump(pumpnumber,on)  calls :
+			
+			 	- pumpsHandler[pumpnumber]  to set relais 
+			 	
+			 	- onRelais(pumpnumber,on_);   to set relais (assieme anche a ... )
+			 	
+					 	 //  nb onRelais can be called  from :
+				                  //     - this server using   setPump() che chiamera onRelais sia direttamente che via browser (feedback )
+				                  //      or
+				                  //     - browser(via .emit('pump',,'browser')) che ha origine da 
+				                  //          - browser user change flag
+				                  //          - come feedback del event 'pump' lanciato dal server dal gpio button handler  :
+				                  //                pumpsHandler[pumpnumber]= watchparam(pump)) 
+				                  //                this handler can be called by gpio button change or
+				                  //                 by  setPump() 
+				                  // 
+				                  //          nb setPump() chiama onRelais sia direttamente che via browser ( come feedback )
+				                  //              setPump è chiamato da startfv, attuators
+				
+		 
+	 - causata da user buttons relais :
+	     
+	 	relais=[new Gpio(18, 'in', 'both'),
+					new Gpio(19, 'in', 'both'),
+					new Gpio(20, 'in', 'both'),
+					new Gpio(21, 'in', 'both')
+					];
+		 watchparam(pumpname)  crea  un hanler set foreach button con : relais[ind].watch(handler) 
+	 	il handler e posto  anche in pumpsHandler[pumpnumber]  per essere usato da setPump , vedi sopra 
+	 	
+	 	il handler :  socket.emit('pump',pumpName, lightvalue); che va a settare il flag nel browser 
+	 
+
+	 		nb  relaisEv=['pdc','g','n','s'];
+_______________________________________________________
+sequence after .on('pump',,  , fired by browser (causato sia user flag button or .emit('pump' by server(see above)  )
+
+	- socket.on('pump',onRelais);/
+
+	- function onRelais  (pump,data) , data= valore da settare 
+		nb called anche direttamente dal server in setPump , contestualmente ad emettere emit('pump',,  via handler pumpsHandler[pumpnumber](0,on_)   )
+		
+		se il valore da settare e diverso dal valore corrente del pump rele lo setta
+		se il data non corrisponde allo state.relays[pump] lo si updata (serve quando si cambia valore via button nel server o i flag nel browser )
+		return api.writeScriptsToFile(scripts,plantname,procedura). : si updata lo state nel file 
+	  
+	  
+	- writeScriptsToFile
+	
+_______________________________________________________________________
+sequenza di init al press del button: load a plant
+	 <button type="button" onclick="startctl()">start controller</button> 
+	   dopo aver indicato il plant che si desidera gestire
+
+		nb 
+
+		1:  loadScriptsFromFile(src,ctl)
+		  carica il status dal file src in /.data se esiste 
+		  se no considera lo state base e lo completa con:
+		  	- plantname
+		  	- setta il state.relays[pump]=false   nb o settarlo copiando il value presente ???
+		  			 , pump in relaisEv
+
+	
+
+- start quando il browser si connette (si crea .socket e si lancia il init del socket (.on('connect',,) ) e clicca il button  onclick="startctl()
+		si spara il socket event :
+- socket.on('startuserplant', function (plantname,feat) 
+	- si crea il ctl con eM = ccbb(user={name:plantname});
+	
+			ccbb() will 
+			
+				recupera ctl : inst=started[name].inst = (new eMClass()).cfg(name); 
+					LLKK : NB inst.state.reBuildFromState=false
+							>> qui il inst e' già operativo compreso di 
+								(inst.socket) e
+								inst.state.anticipating...   e 
+								execute procedure regstrate nel closure .........
+				o si crea :
+				- crea il ctl : inst=started[name].inst = (new eMClass()).cfg(name);
+					dove in .cfg(), chiamando customOn(this), : si personalizza gli handler degli eventi (non socket) chiamati da app2.js  
+						NB reBuildFromState=true, so see .......
+	
+	- si registra o si aggiorna il ctl con   il socket corrente , cio permette di comunicare con la nuova sessione browser :
+			eM.socket=socket;
+
+	-  recoverstatus(plantname).then((em_) => startfv_(em_));  : con this= eM, updata il state recuperandolo dal file in /.data 		(BNM) 
+
+ 		> chiama  loadScriptsFromFile(src,ctl) ,che carica lo state nel ctl, e poi  (LKIO):
+ 			 writeScriptsToFile(scripts,plantname) in modo async (.then(),
+ 			 	writeScriptsToFile chiama anche socket.emit() per updatare :
+ 			 	 - file in /.data 
+ 			 	 - la parte di state che e' visualizzato nel browser via 
+ 			 	 			socket.emit('status',, e 
+ 			 	 			nel browser socket.on('status'...
+ 			 	 		es il .anticipate( )
+ 			 	 			TODO   aggiungere anche i browser triggers input !!!
+ 			 	 	(escluso i relays state che sone gestiti via event 'pump' , vedi anche DDRR )
+ 			 then 
+ 			risolve il promise returned by recoverstatus che lancia startfv_()
+ 	i thread procede (mentre i promise stanno risolvendosi : KIU) con:
+ 	if(eM.reBuildFromState){if(state.anticipate){ // se sto completando un controller con lo status recuperato 
+ 				>>>>>>>  naturalmente si spera che i promise che stanno lavorando in recoverstatus abbiano gia impostato lo status che qui si sta usando :
+ 					{hourinterval,starthour,stophour,triggers}=state.anticipate;  !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 					** sembra che node in recoverstatus esegua loadscriptsfromfile , poi proceda qui, scriva state.anticipate  e poi finisca il recoverstatus con writeScriptsToFile() riscrivendo fn.state (LKIO)
+ 						quindi naturalmente si va avanti con il promise chain (BNM) eseguendo startfv()
+ 						dettaglio : qui si chiama 
+ 		repeatHandler(starthour,stophour,hourinterval,triggers);
+ 		
+ 		 	reregister procedure execute chiamando lo stesso  handler del  socket.on('repeatcheckxSun',
+ 				 repeatHandler(starthour,stophour,hourinterval,state.triggers)
+ 				 	chiama checkFactory(eM)repeatcheckxSun(starthour,stophour,hourinterval)
+ 				 			che,like onRelais, write a state property (.anticipate correct?) :
+ 				 			setanticipateflag({running:true,starthour,stophour,hourinterval,triggers});
+
+							  fn.state.anticipate=set_;
+							  return api.writeScriptsToFile(fn)
+
+ 	- thread ends
+ 	
+ 	nel frattempo nei promise chain di recoverstatus (KIU)
+ 		
+		 	- startfv_(em_)   procede dopo il resolve del promise tornato da recoverstatus (risolto alla resolve del writeScriptsToFile ):
+		 		- startfv(eM)
+		 		
+		 			  - if (!Proto) customOn(eM);
+		 			  - eM.emit('reset', cfg);// reset fsm   todo 
+		 			  
+		 			  -  following  we allign state.relays[pump] , pump in relaisEv,   according with current recovered state running setPump()
+
+							DDRR : allign relays secondo il current state.relays recoverato
+							nb se i relay sono non coerenti con lo stato si allineano al ritorno del corrispondente pump event dal browser
+							in alternativa si potrebbe forzare il current state allo stato dei rele , ma non dovrebbe succedere  
+		  				relaisEv.forEach((pump,ind) => { setPump(ind,eM.state.relays[pump],eM)
+		  				
+		  					setPump will:
+			  					-pumpsHandler[pumpnumber](0,on_)=watchparam(pump);// called also by anticipating algo in attuators to set the pump relay in browser that call back to event pump calling 
+			  						onRelais(relaisEv[pumpnumber],on_,'browser....',fn);
+			  					
+			  					-onRelais(relaisEv[pumpnumber],on_,'server',fn); this is a copy of previous call , that we use if the browser is browser is off
+			  					
+				  						in onrelais se il valore da impostare e diverso la rele current value si updata la gpio con : 
+				  					relais_[pump_].writeSync(lightvalue);
+				  						quindi se lo stato non  state.relays[pump] non corrisponde lo aggiorno chiamando il promise 
+				  					
+				  					return api.writeScriptsToFile(fn)
+				  					che da lo stesso promise  come return di onRelais()
+				  					
+				  			non si aspetta il resolve di writeScriptsToFile(fn) e si ripete il ciclo relaisEv.forEach(
+			  				
+		  			- si allinea il flag 'procedura anticipate in corso'(ora il state: ACTIVE/INACTIVE ) , che lo copia dallo state.anticipate 
+		  				da accendere come feedback del socket event repeatcheckxSun
+		  				e il suo spegnimento come feedback di stopRepeat
+		  				
+		  			- old : 
+		  			  repdayly(plant,10, 12, eM); :lancia ogni ora un eceute procedure procName='startcheck '+ d.toLocaleString();
+		  			  > question : il primo execute e' eseguito subito sul thread corrente 
+		  			  		>>  evitare che il processo di init non sia  terminato (manca abilita() ) prima di startare il primo repdayly  
+		  			  		
+		  			  - now :		
+		  			  >>>>>   ora repdayly è sostituito dal socket event repeatcheckxSun lanciato da    ::::
+		  			  
+		  			  
+		  			  	
+		  			  	checkFactory(fn) genera :
+		  			  		- 	{ repeatcheckxSun: funzione per settare la ripetione giornaliera di exec orarie che realizzano algo anticipate
+		  			  						// exec proc name: 'startcheck_'+ d.toLocaleString();
+		  			  						// >>> viene lanciato da: socket.on('repeatcheckxSun'
+		  			  						//  after execute we updates state running writeScriptsToFile()'
+		 						  stopRepeat:function (){// stop della programmazione giornaliera
+		 						  			// >>> viene lanciato da: socket.on('stopRepeat'
+		 						}
+		 		- abilita(plant )
+		 			lancia il socket event 'view' che abilita la sezione plant "VDM001"
+		 			
+ 
+	_______________________________________________________________________
+sequenza di init prima del press del button
+	  <button type="button" onclick="startctl()">start controller</button> 
+
+
+si inizia con il init socket connection in cui si da il websocket che pemette la cominicazione con il s 
+
+	io.sockets.on('connection', function (socket) {/
+		- crea i socket event per cominicare con la essione aperta nel  browser:
+			>   socket.on('startuserplant', function (data,feat) { // user press button to connect to some plant, so this event is fired , feat url enc
+
+				vedi sopra
+			>  // set local gpio relay to some button on web page, web page will emit a socket event 'light' that
+				will in this server activate the gpio port
+
+  					pushButton.watch(function (err, value) { //Watch for io hardware interrupts on pushButton  
+                                            // to review , see also staff/webserver07112022.txt
+
+			>   // implements also a button/algo handler array for actuators / pumps
+					 relaisEv.forEach((pump,ind) => {// ['pdc',// socket event to sync raspberry buttons and web button
+									  // 'g','n','s']
+					  relais[ind].watch(pumpsHandler[ind]=watchparam(pump));// attach a handler watchparam(pump) to all gpio pump  buttons 
+						// that handler works also x algo handler called in attuators/setpump   ex pumpsHandler[0](err,value) 0 means pdc pump
+					  
+					 }); 
+			>   socket.on('light', function (data) { //
+			
+			>  socket.on('pump',onRelaisClos());// same handler for all pumps events
+  
+			
+____________________________________________________
+implementation staff 
+> see on app2.js :
+// new make this app fv fsm factory( factory of event mngobj) 
+// it also can be implemented as a server with user login and session (put in a session store service) will be the same as the event obj state(local vars))
+// so some socket events coming from browser (probably after a login to user and a logim to plant with related session/token ) that are addressed to specific plant mng will be routed to the implemented rest fsm server
+
+___________________________
+022023
+
+attenzione che watchparam e' usato per settare il flag del browser dal button click e dagli algo con setPump. pero mentre in setPump comunque si setta i relays con onRelays e quindi il feedback del browser e' inutile  in button click no 
+	quindo in questo ultimo caso il feedback e necessario >>>>>>>>>><   sistemare !!!!!
+	
+____________________________
+
+nested ref 022023
+
+in socket connection handler troviamo 
+	- eM (ctl)
+		settato da  socket.on('startuserplant'
+	- e gestori dei repetion job manager repeat e repeat1 
+		settati in socket.on('repeatcheckxSun' e socket.on('startprogrammer'   
+			con checkFactory(eM) (factory di fv3) dove si porta il ref eM
+		
+		in essi (repetition job manager)si lancia, nel suo closure,i rep job 
+			gfg_Run_(cicles,period,execParm_)
+			 
+			che ripete il callFn_(execParm); (sempre nel closure) 
+			
+			  che lancia  (eM=fn).execute(procName,a,b,  ev2run, asyncPoint, processAsync, dataArr,....
+			  		nel cui cb si chiama api.writeScriptsToFile(fn)   per il state persistant
+			  	che esegue gli event ev2run customizzati in  customOn(these)  lanciato in eM.prototype.cfg con customOn(this)
+			  	in tutti gli events del ctl eM
+			  			generati con (eM=these).on('genZoneRele', 
+			  		- è disponibile e condividuano  this=eM con il suo state this.eM.state
+			  	 		ad es  in these.on('genZoneRele',    un event che setta i results 
+			  	        		usera 
+			  	        		sub function interne  dove e' disponibile eM 
+			  	 
+			  	 			o sub esterne functions/obj dove passeta eM , 
+			  	 				es : 
+			  	 				attuators(these,
+			  	 				e aTT=program(state,inp,probes)){/
+			  	 	- e usano fun , es setanticipateflag(false,'program','lastProgramAlgo');		
+			  	 		
+	- le def dei sochet events  socket.on(.....  
+	
+	- e alcune utility f 
+		es setanticipateflag(false,'program','lastProgramAlgo');
+		che hanno sempre il ref eM
+			  	
+	che sono visibili da tutti i socket events socket.on() 
+_________________________________________
+alla fine di una exec :
+
+   nell'handler dell'ultimo evento girato nella exec il risultato viene passato col cb:
+   
+   
+   	 cb(0, res);
+   
+   
+   
+   esso viene usato da :
+    ends(stepNum,lastRes)
+    	che setta in state :
+    	state.lastRunnedProcedure={result:lastRunnedProcedure,procName,GMTdate}; ex : state.lastRunnedProcedure={result:{execute:pippo},procName,date}
+_______________
+
+setting results in last event of execute 
+
+ in  these.on('last even', 
+  - if(aTT=algo())
+  
+  
+  		algo (program or anticipate)   (state,inp,,,)
+  
+  			recover input from state and inp 
+  			ret=[]/null   order according to    relaisEv=['heat','pdc','g','n','s','split'];
+  			if(ret) 
+  			
+  				 if() 	state.lastProgramAlgo={updatedate:date.toLocaleString(),probes,pumps:ret,model:'programbase'};/false
+  				 	state.lastAnticAlgo={updatedate:pdate.toLocaleString(),level:1,policy:0,algo,pumps:ret,model}/false
+          			 if() ret=optimize(ret,date,h,m);//
+  				if(ret){// program wants to set some relays, ret can have nul val that must be resolved  also looking at other proposal user+ anticipate 
+  					return consolidate(state,'program',date);
+  				else 	return null   // means no result from algo, no action at all 
+  
+  
+   	attuators(these,aTT[0],aTT[1],aTT[2],aTT[3],aTT[4],aTT[5]);//[heat,pdc,g,n,s,split] val=true/false/null   set relais x level 1, then after 1 hour (1,1,1,0), if noeco (1,1,1,1)
+                                                                  // ?? (pdc,g,n,s)  set relais x level 1, then after 1 hour (1,1,1,0), if noeco (1,1,1,1)
+      	res.execute=aTT.toString();/
+      	
+    else   res.noexec='no....';
+    
+  - cb(0, res);
+   	
+_____________________________
+
+server imlem level > see also implementation staff 
+
+ immagino il server cme il bot che si connette in socket con il client (frame o android app) al event message estraggo lo user e recipero il instance/session che controlla lo user plant
+   il session sarebbe lo state e lo spazio degli url/event viene concentrato in una istanza del fsm che esegue gli event loop/chain execute.
+   
+   see also :
+   
+   	function ccbb(client) {// when client/plant got a request (a button) for a plant on a webpage , we fire : socket.on('startuserplant' ,that to operate/ register the fv ctl inst
+  	 so we instatiate or recover  the fsm: that is a eventmanager or connect to the server with a socket that has the same event managed (so the socket is the session/instance of the event manager for the 		plant)!
+  	 
+  il che vuol ire che con un server classico io recupero il sesstion state e poi apro un socket con un sever che gestisce gli eventi ( fsm instance) che e' in patica la connessione/associazione con il local fv3 factory che instanzia il ccbb
+  
+  il ccbb che fa il chaining routing del event ( custom) e' in pratica il dm che gestisce i threads/ convo quindi l'associazione tra gli eventi nel bot e' il intent resolver / thread mentre qui lo sono i vari execute event chains!. nel bot il evento message significa che è la continuazione di un chain/thread precedentemente individuato fino alla risoluzione del intent. dopo un intent ( execute) si passa a selezionare un altro master event o master intent fatto da vari thread / event chain !!!!!
+  
+  un event connected server e' come un server che gestisce uno spazio di routing/url ma piu articolato!
+  
+  
+  
+  
+  __________________________________________
+  
+  i pratica : api 
+  		> ricava dallo logonato user i state per navigare su ececute chain instance (ccbb) personalizzati e connessi via socket o events 
+  		
+  	si gestisce la pagina main ( presenta prodotto , configura , inorma  con una serie di url
+  	si fa login con user quando si vuole gestire un gruppo di plant
+  	si sceglie il plant e si apre una socket che gestisce uno gruppo di url tra user e fv3 che poi mappa le richieste sul socket instance messo su server o banalmente associato come modulo event driven
+  	 		 in pratica gli socket event sono intent che si risolvono in parallelo e gli event del instace ccbb sono gli eventi/entity base che sono raggruppati in execute(intent resolver) 				piuttisto che in threads
+  	 		 
+  	 fsmmanager(opt, function (app, opt, no_ccbb) 
+  	 	eMClass..cfg = function (plantname) { plant/user customizing}
+  	 	
+  	 		configura il fsm x gruppo di user/plants
+  	 	
+  	 	
+  	quano lo user vule getire un plant chiama l'evento/spazio di url ;
+  	socket.on('startuserplant', function (data,feat) { // user press button to connect to some plant, so this event is fired , feat url enc
+  	
+  				si chiama  eM = ccbb(user);// ** il fsm recupera/crea un siglethon x user/plant 
+
+				 si relaya/associa connette il fsm/server con un socket:  
+				 
+				   eM.socket=socket;// 
+				   
+				 in pratica una parte del socket gestisce un livello tra user e fv3 che fa da gestore di eventi di front end e configurazioni varie.... 
+				 mentre una parte si socket richiama direttamente il server/fsm  app2 per gestire gli chain di eventi della fsm (execute chain di event fsm) ( quelli di onCustom()
+                                                      
+  	 	
+  	 			si ricava lo state come dati per gli execute :  recoverstatus.call(eM,user.name).then((em_) => startfv_(em_))
+  	 			
+  	 			si riprendono processi interrotti :  if(state.anticipate){
+  	 			
+  	 			....
+  	 			
+  	 			
+  	 			
+  	
+  
+  let inst;
+  _____________________________________________________
+  inserire in run() dopo la prima fase della costruzione dei device ctl :  relais_
+  
+  _______________________________________
+  
+  dyn devices mng  to customize plants
+  
+    		nb error in :     setPump(ind,eM.state.relays[pump],eM);// setPump(ind,eM.state.relays[pump]); // todo xxx : is error ?
+  
+  pumps sono individuati dal index o dal nome :
+  nomi pumps : relaisEv ['heat','pdc','g','n','s','split'],   >>>> sono i relais monitorati nel browser !
+  
+  mapping pump index con devices (mqtt/gpio) :  gpionumb:[12,16,20,21,26,19,13,6]  e       mqttnumb:[11,null,null,null,null,null,null,null],
+  devices configurati vanno in : relais_ che hanno i metodi per leggere e scrivere (readsync e writesync)
+  
+
+	nbnb : se dimension di relais e maggiore di dim relaisEv vuol dire che le funzioni applicative non agiscono  su quei device ! 
+		se un device e' null es relais_[8]=null vuol dire che quando si legge e scrive si ottiene sempre 0 
+		
+applicativi che usano il name relaisEv che poi tradotto in index comandano relais_ :
+ - incong()
+
+ -  onRelais   (setta il rele ( index= pump_ e nome pump) e registra in state lo status per nome in state.relays[pump])
+ 				nb:
+                                   //  onRelais can be called  from :
+                                  //     - this server using   setPump() che chiamera onRelais sia direttamente che via browser (feedback )
+                                  //      or
+                                  //     - browser(via .emit('pump',,'browser')) che ha origine da 
+                                  //          - browser user changing flag
+                                  //          - come feedback del event 'pump' lanciato dal server dal gpio button handler  :
+                                  //                pumpsHandler[pumpnumber]= watchparam(pump)) 
+                                  //                this handler can be called by gpio button change or
+                                  //                 by  setPump() 
+                                  // 
+                                  //          nb setPump() chiama onRelais sia direttamente che via browser ( come feedback )
+                                  //              setPump è chiamato da startfv, attuators
+ 
+ 	- 		
+	  nb setPump(): imposta i pumps indicndo l'index 
+	  
+	  	chamato da function attuators(fn,heat,pdc,g,n,s,split){/    : è funzione applicativa che setta alcuni pump indicando gli index: es setPump(0,,,,,
+
+state : i pumps sono storati in state con key il loro nome in api.writeScriptsToFile(()   // upddate persistance and send status to browser
+       esso stora : JSON.stringify(new_scripts= new_scripts=fn.state  sul file_=fn.state.app.plantname;
+       
+       fn.state contiene status della app customizzata e in particlare i pumps che in onRelais vengono storati con key=nome !
+	

@@ -2,52 +2,19 @@
 <html>
 
 <head>
-  <title>Bootstrap Example</title>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
-
-  <style>
-    #myDIV {
-      position: absolute;
-      background-color: coral;
-      color: black;
-
-    }
-
-    #myDIV1 {
-      position: absolute;
-      color: black;
-
-    }
-    #myDIV2 {
-      position: absolute;
-      color: black;
-
-    }
-
-    body {
-      font-family: Arial, Helvetica, sans-serif;
-    }
-
-    /* Dashed border */
-    hr.dashed {
-      border-top: 3px dashed #bbb;
-    }
-
-
-    /* Solid border */
-    hr.solid {
-      border-top: 3px solid #bbb;
-    }
-  </style>
-
+  <%- include('../partials/head'); %>
 </head>
 
-<body>
+<body class="container">
+
+  <header>
+    <%- include('../partials/header'); %>
+  </header>
   <div class="container-fluid">
+
+
+      
+      <main>
 
     <h1 style="text-align:center"> Ottimizzazione del rendimento di Impianti con Pompa di calore e FotoVoltaico </h1>
     nb never start controller on old server browsersession page 
@@ -235,36 +202,28 @@
           <div class="row">
             <div class="col-sm-3" style="background-color:lavender;">
             
-            
-              <br><br>
-              <p><input type="checkbox" id="heat"> HEAT Low Temp</p>
-              <p><input type="checkbox" id="heatht"> HEAT High Temp</p>
-              <p><input type="checkbox" id="pdc"> PdC (vs GAS)</p>
-              <p><input type="checkbox" id="g"> Zona Giorno</p>
-              <p><input type="checkbox" id="n"> Zona Notte</p>
-              <p><input type="checkbox" id="s"> Seminterrato</p>
-              <p><input type="checkbox" id="split"> Splits</p>
-    
+
+              <div class="grid">
+                <% for (let product of ejscont.pumps) { %>
+                  <p><input type="checkbox" id=<%=product.id %>  <%=product.title %></p>
+                <% } %>
+              </div>
             
             
             </div>
             <div class="col-sm-2" style="background-color:lavenderblush;"> 
               <div id="VDM001x" style="display:block">
             
-                        
-              <br><br>
-              <p><input type="checkbox" id="sm1" onclick="man(1)">Set Manual</p>
-              <p><input type="checkbox" id="sm2" onclick="man(2)">Set Manual</p>
-              <p><input type="checkbox" id="sm3" onclick="man(3)">Set Manual</p>
-              <p><input type="checkbox" id="sm4" onclick="man(4)">Set Manual</p>
-              <p><input type="checkbox" id="sm5" onclick="man(5)">Set Manual</p>
-              <p><input type="checkbox" id="sm6" onclick="man(6)">Set Manual</p>
-              <p><input type="checkbox" id="sm7" onclick="man(7)">Set Manual</p>
-    
+  
+              <div class="grid">
+                <% let i=0; for (let product of ejscont.pumps) { i++;%>
+                <p><input type="checkbox" id="sm<%=i%>" onclick="man(<%=i%>)">Set Manual</p>
+                <% } %>
+              </div>   
             
               </div>
             
-            </div>
+            </div>unsafe-url
 
 
             <div class="col-sm-7" style="background-color:lavenderblush;">
@@ -278,7 +237,11 @@
               <p>>&emsp; <input type="checkbox" id="m6" style="display:none"> </p>
               <p>>&emsp; <input type="checkbox" id="m7" style="display:none"> </p>
     
-            
+              <div class="grid">
+                <%  i=0; for (let product of ejscont.pumps) { i++;%>
+                  <p>>&emsp; <input type="checkbox" id="m<%=i%>" style="display:none"></p>
+                <% } %>
+              </div>  
             
             
             
@@ -353,6 +316,7 @@ if (sessionStorage.getItem('__lock')) {
 sessionStorage.setItem('__lock', '1');
 
 
+var scope = <%=scope%>;// istead of <script src='scope.json', so in js get some content with scope.....  ex scope.
 
 
     let lastState;// filled in .on('status',)
@@ -425,11 +389,13 @@ sessionStorage.setItem('__lock', '1');
       }
     });
 
-
-    //  relays : https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001
+     //  relays : https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001
     // pdc relay
-    let relaisEv = ['heat', 'pdc', 'g', 'n', 's', "split"];// same as fv3.js , socket event to sync raspberry buttons and web button, same as fv3.js
+   // let relaisEv = ['heat', 'pdc', 'g', 'n', 's', "split"];// same as fv3.js , socket event to sync raspberry buttons and web button, same as fv3.js
     // >>>>>>>>> todo   add here and in fv3 a new item : heatht !!!!!!!!!!!!!!
+    let relaisEv=scope.relaisEv||['heat', 'pdc', 'g', 'n', 's', "split"];
+    
+
 
     window.addEventListener("load", function () { //when page loads
       /*var lightbox = document.getElementById("pdc");
@@ -992,6 +958,14 @@ io.on("connection", (socket) => {
     
 
   </script>
+
+
+</main>
+
+<footer>
+  <%- include('../partials/footer'); %>
+</footer>
+
 
 </body>
 

@@ -10,7 +10,7 @@ const jwtSecret= process.env.JWT_SECRET || "123456"
 const tokenExpirationInSeconds = 36000
 
 const log=  require('debug')("auth:controller");
-let users=require('../.data/users.json');
+let users=require('../.data/users.json');// user with customization of plant view that the user can manage
 
 class AuthController {
   constructor() {}
@@ -49,4 +49,4 @@ class AuthController {
   }
 }
 
-module.exports = new AuthController()
+module.exports = new AuthController();

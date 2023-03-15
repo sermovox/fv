@@ -5,7 +5,24 @@
 // IL fsm (locale o remoto (cms script o server remoto)) che torna una classe di fsm compatibile (fusionsolar)
 // 
 //  quando ho una connessione web istanzio/recupero un fsm singlethon che gestisce l'impianto user/plant luigi : > INSTANZ
-require('dotenv').config();
+
+// load page cfg 
+require('dotenv').config();// load .env
+const model=require("./nat/models.js");
+
+// app custom config staff:
+let {devid_shellyname,gpionumb,mqttnumb,relaisEv}=model.getcfg('luigi');//model.getconfig('luigi');// user luigi 
+                                  // gpionumb=[12,16,20,21,26,19,13,6]; mqttnumb=[11,null,null,null,null,null,null,null];
+                                  // relaisEv||['heat','pdc','g','n','s','split'];
+// custom context to generate html
+let ejscont=model.ejscontext('luigi'),// ejs generator 
+ scope={// to customize spa 
+  relaisEv
+
+
+}
+
+//require('dotenv').config();
 const PersFold=process.env.PersFold;// persistence folder .data
 const test1=require("cors");
 const IsRaspberry=process.env.IsRaspberry != 'false';
@@ -13,11 +30,184 @@ console.log(' is raspberry: ',IsRaspberry,PersFold);
 var https_ = require('https'); //require http server, and create server with function handler()
 var http_ = require('http'); //require http server, and create server with function handler()
 //console.log('http_.request:',http_.request);
-var http = http_.createServer(handler); //require http server, and create server with function handler()
+
+// following the expresss set up  to manage user auth using session , see 
+const EXPRESS=true;
+const express = require("express");
+const app = express();
+
+// serving static file using express :
+// ..... see https://www.tutorialsteacher.com/nodejs/serving-static-files-in-nodejs
+// dont work
+app.use(express.static(__dirname + 'public')); //Serves resources from public folder
+//app.use('/js',express.static(path.join(__dirname, 'public/js')));
+
+let server;
+if(EXPRESS) server= http_.createServer(app);else server = http_.createServer(handler); //require http server, and create server with function handler()
+const http=server;// duplicate name
+const session = require("express-session");
+/*
+  Warning The default server-side session storage, MemoryStore, is purposely not designed for a production environment. It will leak memory under most conditions,
+  does not scale past a single process, and is meant for debugging and developing.For a list of stores, see compatible session stores.
+*/
+const bodyParser = require("body-parser");
+const passport = require("passport");
+const LocalStrategy = require("passport-local").Strategy;
+
+const sessionMiddleware = session({ secret: "changeit", resave: false, saveUninitialized: false });
+app.use(sessionMiddleware);
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(passport.initialize());
+app.use(passport.session());
+
+// from https://www.digitalocean.com/community/tutorials/how-to-use-ejs-to-template-your-node-application
+// set the view engine to ejs
+app.set('view engine', 'ejs');
+
+
+/*
+// serving static file using express :
+// ..... see https://www.tutorialsteacher.com/nodejs/serving-static-files-in-nodejs
+
+// dont work
+app.use(express.static(__dirname + 'public')); //Serves resources from public folder
+*/
+
+const DUMMY_USER = {
+  id: 1,
+  username: "john",
+};
+
+passport.use(
+  new LocalStrategy((username, password, done) => {
+    if (username === "john" && password === "doe") {// add all user 
+      console.log("authentication OK");
+      return done(null, DUMMY_USER);
+    } else {
+      console.log("wrong credentials");
+      return done(null, false);
+    }
+  })
+);
+
+app.get("/", (req, res) => {
+  const isAuthenticated = !!req.user;
+  if (isAuthenticated) {
+    console.log(`user is authenticated, session is ${req.session.id}`);
+  } else {
+    console.log("unknown user");
+  }
+
+  if(isAuthenticated)
+  //spa(res);// old
+  
+  index(res);// ejs debug
+  // spapage(res);// ejs normale
+  
+  else
+  // res.sendFile(isAuthenticated ? "public/index.html" : "public/login.html", { root: __dirname });
+  res.sendFile( "public/login.html", { root: __dirname });
+
+ 
+
+});
+
+
+function index(res){// ejs debug
+
+  var mascots = [
+    { name: 'Sammy', organization: "DigitalOcean", birth_year: 2012},
+    { name: 'Tux', organization: "Linux", birth_year: 1996},
+    { name: 'Moby Dock', organization: "Docker", birth_year: 2013}
+  ];
+  var tagline = "No programming concept is complete without a cute animal mascot.";
+
+  res.render('pages/index', {
+    mascots: mascots,
+    tagline: tagline
+  });
+
+}
+
+function spapage(res){// ejs normale
+                      // see https://progressivecoder.com/nodejs-templating-using-express-ejs-with-partials/
+                      //   + https://www.digitalocean.com/community/tutorials/how-to-use-ejs-to-template-your-node-application
+
+ console.log('spapages, context is: ',JSON.stringify(ejscont,null,2),'\n',JSON.stringify(scope,null,2));
+  res.render('pages/spapage', {
+    scope,// obj used to extract obj used to custom the generted spa page ex data.scope (config staff)
+
+    // obj ued to generate dyn html content 
+    ejscont
+  });
+
+}
+
+
+// about page
+app.get('/about', function(req, res) {
+  res.render('pages/about');// ejs , still to do 
+});
+
+
+app.post(
+  "/login",
+  passport.authenticate("local", {
+    successRedirect: "/",
+    failureRedirect: "/",
+  })
+);
+
+app.post("/logout", (req, res) => {
+  console.log(`logout ${req.session.id}`);
+  const socketId = req.session.socketId;
+  if (socketId && io.of("/").sockets.get(socketId)) {
+    console.log(`forcefully closing socket ${socketId}`);
+    io.of("/").sockets.get(socketId).disconnect(true);
+  }
+  req.logout();
+  res.cookie("connect.sid", "", { expires: new Date() });
+  res.redirect("/");
+});
+
+passport.serializeUser((user, cb) => {
+  console.log(`serializeUser ${user.id}`);
+  //cb(null, user.id);
+  cb(null, user);
+});
+
+passport.deserializeUser((id, cb) => {
+  console.log(`deserializeUser ${id}`);
+  //cb(null, DUMMY_USER);
+  cb(null, id);
+});
+
+// end express set up
+
+var io = require('socket.io')(http) //require socket.io module and pass the http object (server on wich socket will be built)
+
+// session setup :
+// convert a connect middleware to a Socket.IO middleware
+const wrap = middleware => (socket, next) => middleware(socket.request, {}, next);
+
+io.use(wrap(sessionMiddleware));
+io.use(wrap(passport.initialize()));
+io.use(wrap(passport.session()));
+
+io.use((socket, next) => {
+  if (socket.request.user) {
+    next();
+  } else {
+    next(new Error('unauthorized'))
+  }
+});
+
+
+
 //console.log('after createserver , http_.request:',http.request);
 let mqtt=require('./nat/mqtt');
 var fs = require('fs'); //require filesystem module
-var io = require('socket.io')(http) //require socket.io module and pass the http object (server on wich socket will be built)
+
 var Gpio ;
 if(IsRaspberry)Gpio= require('onoff').Gpio; //include onoff to interact with the GPIO
 else Gpio=null;
@@ -58,8 +248,8 @@ asyncCall();
 
 
 
-let relais_=[],// the io dev ctl list , their name are in relaisEv array. if null the ctls func (readSync and writeSync ) wont be called 
-gpionumb=[12,16,20,21,26,19,13,6],mqttnumb=[11,null,null,null,null,null,null,null];
+let relais_=[];// the io dev ctl list , their name are in relaisEv array. if null the ctls func (readSync and writeSync ) wont be called 
+gpionumb=gpionumb||[12,16,20,21,26,19,13,6];mqttnumb=mqttnumb||[11,null,null,null,null,null,null,null];
 // usual module script cant have top lever await :item=await getio(12, 'out');relais_.push(item);// gpio phisical relays, see :YUIO
 
 // so :mhttps://stackoverflow.com/questions/31426740/how-to-return-many-promises-and-wait-for-them-all-before-doing-other-stuff
@@ -113,7 +303,7 @@ function fillctls() {
 
       console.log(' fillctls()  ctl (devtype: ',it.type,')  dev number : ',it.devNumb);//,' promise resolved in def time in :',JSON.stringify(it.ctl,null,2));
       if(it.ctl)console.log(' it has .readSync: ',it.ctl.readSync);
-      if(it.ctl==null)console.log(' nb ctl of type gpio are null if this server is not raspberry: ',!IsRaspberry );
+      if(it.ctl==null)console.log(' nb ( used in debug) ctl of type gpio are null if this server is not raspberry: ',!IsRaspberry );
       resu[it.devNumb]=it.ctl;resolved[it.devNumb]=true;});
 
     
@@ -155,11 +345,11 @@ fillctls();
 
 
 
-// start building relais_ the dev io ctl
+// start building relais_ the dev io ctl  
 // start mqtt connection :
 let isAvail;// old , better or mqtt.avail itself
 // register gpio 11 as mqtt device and try connecting
-if(!(isAvail=mqtt.init({11:'shelly1-34945475FE06'}))){// AAFF :after start mqtt connection  wait connection and subsribe all gpio , 
+if(!(isAvail=mqtt.init(devid_shellyname))){// AAFF :after start mqtt connection  wait connection and subsribe all gpio , 
                                                       // so  as soon cb is called we have status[gp]=[] (the subscription is ok )
   console.log(' fv3():mqtt client not available, exit/continue without the mqtt dev,  or retry connection to mosquitto');
 }
@@ -244,8 +434,8 @@ new Gpio(17, 'in', 'both')
 
 
 
-let relaisEv=['heat','pdc',// socket event to sync raspberry buttons and web button, the 'name' of relais_ !
-'g','n','s','split'];
+relaisEv=relaisEv||['heat','pdc','g','n','s','split'];// socket event to sync raspberry buttons and web button, the 'name' of relais_ !
+
 
 jrest_=require('./nat/rest.js');jrest_.init(http_,https_);
  const aiax=jrest_.jrest;//  che fa ?
@@ -262,6 +452,7 @@ const DEBUG=false,DEBUG1=true,MIN=35;
 
 
 function handler(req, res) { //create server html def page : user cfg and monitoring
+                              // user on behalf of express if is not present 
 // from https://www.vanmeegern.de/fileadmin/user_upload/PDF/Web_Development_with_Node_Express.pdf
  
     // normalize url by removing querystring, optional
@@ -1284,7 +1475,7 @@ function startfv(eM) {// ** start/update singlethon
   // allign relays current status to state.relays :
   relaisEv.forEach((pump,ind) => {// ['pdc',// socket event to sync raspberry buttons and web button
     // 'g','n','s']
-    setPump(ind,eM.state.relays[pump],eM);// setPump(ind,eM.state.relays[pump]);
+    setPump(ind,eM.state.relays[pump],eM);// setPump(ind,eM.state.relays[pump]); // todo xxx : is error ?
 });
 
 // console.log(' old : startfv  following  we start execute procedure startcheck  periodically');
@@ -2056,6 +2247,22 @@ function setPump(pumpnumber,on,fn){// 0,1,2,3    on : changing value (true or fa
 io.sockets.on('connection', function (socket) {// WebSocket Connection :server is listening a client browser so now we built the socket connection, transmit to server if there are status updates 
 
 console.log('socket connected to a client');
+
+
+// here the init x session auth :
+
+console.log('on connection have user: ',socket.request.user,`new connection ${socket.id}`);
+socket.on('whoami', (cb) => {
+  cb(socket.request.user ? socket.request.user.username : '');// set by passport ?
+});
+
+const session = socket.request.session;
+console.log(`saving sid ${socket.id} in session ${session.id}`);
+session.socketId = socket.id;
+session.save();// save socketid
+
+
+
   let eM,//  >>> e' settato da socket.on('startuserplant',...  ed e' legata/propieta del connection handler dove sono def gli socket events es socket.on()
         // poi usato da ......
         
