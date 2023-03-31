@@ -135,7 +135,14 @@ sequenza di init al press del button: load a plant
 
 	-  recoverstatus(plantname).then((em_) => startfv_(em_));  : con this= eM, updata il state recuperandolo dal file in /.data 		(BNM) 
 
- 		> chiama  loadScriptsFromFile(src,ctl) ,che carica lo state nel ctl, e poi  (LKIO):
+ 		> chiama  loadScriptsFromFile(src,ctl) ,che 
+ 					se c'e' in file=process.env.PersFold+src+'.json' un processdel plant  attivo:
+ 						lo  carica lo state nel ctl, 
+ 							>>>> nb quando disattivare un plant ??
+ 					se non c'e' init a new state sostanzialmente usando i pumps configutati per il plant : relaisEv
+ 						
+ 						
+ 			 e poi  (LKIO):
  			 writeScriptsToFile(scripts,plantname) in modo async (.then(),
  			 	writeScriptsToFile chiama anche socket.emit() per updatare :
  			 	 - file in /.data 
@@ -457,3 +464,35 @@ state : i pumps sono storati in state con key il loro nome in api.writeScriptsTo
        
        fn.state contiene status della app customizzata e in particlare i pumps che in onRelais vengono storati con key=nome !
 	
+	
+- nel rebuild della pagina exindexhtml.ejs (come model si prende il gia elaborata pagina spapage_copy.ejs (che non va perche i partial sono quelli di digital ocean ()) :
+
+	- si lascia il vecchio cdn :  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+	 		piuttosto che quello proposta da do :
+	 			<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/css/bootstrap.min.css">
+	 			
+	 - var str = '<ul class='xbreadcrumbs' style='position:absolute; bottom:0px'>';
+
+	- in https://stackoverflow.com/questions/7677028/how-can-i-dynamically-create-an-unordered-list-in-javascript
+		for(var i in $yourArray){
+		   str += '<li><a href="#">String 1</a></li>';
+		}
+
+		str += '</ul>';
+
+		$('body').append(str);
+________________________________________________________________
+
+ssh luigi@192.168.1.76   wifi
+ssh luigi@192.168.1.79   wifi
+
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+
+________________________________________________
+relevant logs start with : to print with log module .......
+anticipate algo calc new relays values....     or 	anticipate() find cloudily low so start pdc....
+Outerfunction. updateData_: in procedure:  startAntic
+
+
+
+

@@ -2,25 +2,67 @@
 <html>
 
 <head>
-  <%- include('../partials/head'); %>
+  
+  <title>Energy Plant Optimizator</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+  <script type="text/javascript" src="/js/relaisEv.js">// not used</script>
+
+
+
+
+
+
+
+
+  <style>
+    #myDIV {
+      position: absolute;
+      background-color: coral;
+      color: black;
+
+    }
+
+    #myDIV1 {
+      position: absolute;
+      color: black;
+
+    }
+    #myDIV2 {
+      position: absolute;
+      color: black;
+
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    /* Dashed border */
+    hr.dashed {
+      border-top: 3px dashed #bbb;
+    }
+
+
+    /* Solid border */
+    hr.solid {
+      border-top: 3px solid #bbb;
+    }
+  </style>
+
 </head>
 
-<body> class="container"
-
-  <header>
-    <%- include('../partials/header'); %>
-  </header>
-  <main>
+<body>
   <div class="container-fluid">
-
-
-  
 
     <h1 style="text-align:center"> Ottimizzazione del rendimento di Impianti con Pompa di calore e FotoVoltaico </h1>
     nb never start controller on old server browsersession page 
     <br>
     <form id="loginc">
-      <p>
+      <p> section not used :
         user <input type="text" id="user" name="user" value="" size="15" oninput="loginhand_()"> ,&ensp;&ensp;&ensp;&ensp;
         password: <input type="text" id="password" name="password" value="" size="10" oninput="loginhand_()">&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;
         <input type="button" name="button" value="Set Trigger Values" onClick="loginhand(this.form)">
@@ -31,16 +73,12 @@
     Nome Impianto da Controllare: <input type="text" id="myTempl" value="" size="15" oninput="setprname()"> ,
     feature(urlencoded): <input type="text" id="myFeat" value="" size="10" oninput="setprname()">
     <br><br> <button type="button" onclick="startctl()">start controller</button> <br>
-    _____________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________----___________________________________
-
 
     <div id="VDM001" style="display:none">
 
-      ___________________________________________________________________________________________________ll__________________________________________________________________________________________________________________________________________________________________________________________----___________________________________
 
       <div class="row">
         <div class="col-sm-4" style="background-color:lavender;">
-  
 
           <div style="background-color:lavenderblush;">
             <h3> &nbsp; &ensp; &emsp; PdC Triggers:</h3>
@@ -77,14 +115,14 @@
           <p><input type="checkbox" id="Tgiorno" name="Tgiorno"> Termostato HT zona giorno &ensp; delay (hours) <input type="number"
               id="delay1" placeholder=1 size="4" name="Dgiorno">
 
-          <br> &nbsp; &ensp; &emsp;
-          program:  <input type="text" id="PGMgiorno" name="PGMgiorno" value='{"8:30":25,"17:00":22}' size="30" oninput="setprname1(1,this.value)"> , valid JSON: 
-          <textarea id="validate1" name="valid1" rows="1" cols="5"></textarea>,
-          <br>&nbsp; &ensp;&nbsp; &ensp;  waiting pv tollerance: <input type="number" id="TgiornoTollerance" name="TgiornoTollerance" placeholder="0.7" size="3"> gradi 
-          <br><br>&nbsp; &ensp;&nbsp; &ensp;  manual set: <input type="number" id="TgiornoMan" name="TgiornoMan" placeholder="20" size="4"> validity: <input type="number" id="TgiornoVal" name="TgiornoVal" placeholder="3" size="2"> h
+        <br> &nbsp; &ensp; &emsp;
+        program:  <input type="text" id="PGMgiorno" name="PGMgiorno" value='{"8:30":25,"17:00":22}' size="30" oninput="setprname1(1,this.value)"> , valid JSON: 
+        <textarea id="validate1" name="valid1" rows="1" cols="5"></textarea>,
+        <br>&nbsp; &ensp;&nbsp; &ensp;  waiting pv tollerance: <input type="number" id="TgiornoTollerance" name="TgiornoTollerance" placeholder="0.7" size="3"> gradi 
+        <br><br>&nbsp; &ensp;&nbsp; &ensp;  manual set: <input type="number" id="TgiornoMan" name="TgiornoMan" placeholder="20" size="4"> validity: <input type="number" id="TgiornoVal" name="TgiornoVal" placeholder="3" size="2"> h
  
-          </p>
-          <br><br>
+      </p>
+      <br><br>
           <p><input type="checkbox" id="Tnotte" name="Tnotte"> Termostato HT zona notte &ensp; delay (hours) <input type="number"
               id="delay2" placeholder=1 size="4">
               <br> &nbsp; &ensp; &emsp;
@@ -200,12 +238,82 @@
 
         </div>
         <div class="col-sm-4" style="background-color:lavender;">
-          hghhj  kklll  ooiuyy   ppookkjjjuu
-          _____________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________----___________________________________
 
           <h2 style="text-align:center"> Relays Status: </h2>
-          hghhj  kklll  ooiuyy   ppookkjjjuu
 
+          <div class="row">
+            <div class="col-sm-3" style="background-color:lavender;">
+            
+
+              <div class="grid" id="pumplist">Current status:<br>
+
+              </div>
+            
+            
+            </div>
+            <div class="col-sm-2" style="background-color:lavenderblush;"> 
+              <div id="VDM001x" style="display:block">
+            
+  
+              <div class="grid" id="manlist">Set Manually<br>
+
+              </div>   
+            
+              </div>
+            
+            </div>
+
+
+            <div class="col-sm-7" style="background-color:lavenderblush;">
+            
+
+              <div class="grid" id="mansetlist">Choose on/off:<br>
+ 
+              </div>  
+            
+            
+            
+            </div>
+          </div>
+
+
+          <hr class="solid">
+          <h2 style="text-align:center"> General Status:</h2>
+          <p><label for="w3review2">legenda:</label>
+          <ul>
+            <li>
+              anticipate: if anticipate algo is currently running, show its launch params (ex: triggers), 
+              
+                <br> used  to recover anticipate algo scheduling ( scheduling is started by checkFactory.repeatcheckxSun() in event 'repeatcheckxSun')
+                <br> set by setanticipateflag() called in event 'repeatcheckxSun' just after checkFactory.repeatcheckxSun()
+                <br> cleared in event 'stopRepeat' by  setanticipateflag(false,'anticipate')
+                
+                          </li><li>
+              obsolete: anticipating: dati circa l'ultimo anticipate algo lanciato, algo param set in ... and also in in anticipate() (the algo launched by execute event 'startcheck') using triggers
+            </li><li>
+              lastAnticAlgo :   set by anticipate() (if succeeded) as reason to apply anticipate action  and result actions (pumps relays)
+              <br>  anticipate() is major pgm in the algo launched by execute event 'startcheck') using triggers
+               
+            </li><li>
+              lastRunnedProcedure: last anticipate/program internal execute result
+            </li><li>
+              program: if program algo is currently running show its launch params, 
+              <br> set by setanticipateflag() called in .....
+
+            </li><li>
+
+              lastProgramAlgo :  also set by program() as reason to apply anticipate action (pumps relays, if succeeded)
+              <br>  anticipate() is major pgm in the algo launched by execute   event 'startprogrammer' handler: repeatHandler1
+
+            </li>
+
+            </li>
+          </ul>
+          
+          </p>
+          <p><label for="w3review">ctl state:</label></p>
+          <textarea id="w3review" name="w3review" rows="30" cols="60"></textarea>
+          <br>
         </div>
       </div>
     </div>
@@ -235,9 +343,10 @@ if (sessionStorage.getItem('__lock')) {
 
 sessionStorage.setItem('__lock', '1');
 
-
-//var scope = <%=scope%>;// istead of <script src='scope.json', so in js get some content with scope.....  ex scope.
-var scope = '<%-scope.toString()%>';// istead of <script src='scope.json', so in js get some content with scope.....  ex scope.
+//var scope = < %=scope% > ; // istead of <script src='scope.json', so in js get some content with scope.....  ex scope.
+                          // error : must be srtingified the parsed !, so :'JSON.parse('< %-JSON.stringify(user)%   >');
+// var user = '< %-user.toString()%   >';// // we do not need to pass user: .emit('init',user)
+                                    // because user is available in session ! see socket.on('connection')
 
 
     let lastState;// filled in .on('status',)
@@ -272,14 +381,78 @@ var scope = '<%-scope.toString()%>';// istead of <script src='scope.json', so in
       socket.emit("light", data); //send push button status to back to server
     });
 
-    socket.on('view', function (data) { // data =plant name  data=0/1
+socket.on('view', function (data) { // data = context={ejscont{pumps:[{id:'pdc',title:'pompa calore'},{id:'g',title:'zona giorno'}]},scope:{relaisEv}};
 
-      // todo : here the code serving the request in id="button" andata a buonfine sul server fv.sia ch il ctl app2 sia gia instanzato che nel caso di una instanzazione
-      //      
+let relaisEv=data.scope.relaisEv,// to config the service functions
+ejscont=data.ejscont,
+div = document.getElementById("pumplist");
 
-      // let section=document.getElementById("VDM001"); //change checkbox according to push button on Raspberry Pi
-      // set prop style="display:block">  NNHH
-      // set new field wih content >data   ?
+
+ejscont.pumps.forEach((el,ind)=>{
+
+
+let p = document.createElement("p");//    <p><input type="checkbox" id=< %=product.id % > > < %=product.title % ></p>
+  let x = document.createElement("INPUT");
+  x.setAttribute("type", "checkbox");
+   x.setAttribute("id",el.id);
+  x.addEventListener('change',function () { //add event listener for when checkbox changes
+    // YYUU
+  socket.emit('pump', el.id, Number(this.checked), 'browserchangeflag'); //send browser flag status  to server, similar as HYN
+        });
+  //function jsFunc() {document.getElementById("io").style.backgroundColor = "Purple";}
+
+ p.append(x,el.title,"select it");
+// p.appendChild(x);
+div.append( p);
+//div.innerHTML += `<br> &nbsp; &ensp; &emsp; ciao <br><h1>${title}</h1>`; // cancella il onchange
+});
+
+div = document.getElementById("manlist");
+
+ejscont.pumps.forEach((el,ind)=>{
+
+
+let p = document.createElement("p");//    <p><input type="checkbox" id="sm< %=i% >" onclick="man(< %=i% >)">Set Manual</p>
+  let x = document.createElement("INPUT");
+  x.setAttribute("type", "checkbox");
+   x.setAttribute("id","sm"+ind);
+ // x.onchange = my2;
+  x.addEventListener('change',man(ind) );
+  //function jsFunc() {document.getElementById("io").style.backgroundColor = "Purple";}
+
+ p.append(x,"Set Manual");
+// p.appendChild(x);
+div.append( p);
+//div.innerHTML += `<br> &nbsp; &ensp; &emsp; ciao <br><h1>${title}</h1>`; // cancella il onchange
+});
+div = document.getElementById("mansetlist");
+
+ejscont.pumps.forEach((el,ind)=>{
+
+
+let p = document.createElement("p");//    <p>>&emsp; <input type="checkbox" id="m< %=i% >" style="display:none">set manual for 3 hours</p>
+  let x = document.createElement("INPUT");
+  x.setAttribute("type", "checkbox");
+   x.setAttribute("id","m"+ind);
+   x.setAttribute("stile","display:none");
+ // x.onchange = my2;
+  x.addEventListener('change',function (){
+      // same as YYUU TODO LASCIARNE SOLO UNO !!!!!!!!
+      socket.emit('pump', el.id, Number(this.checked), 'browserchangeflag'); //send browser flag status  to server, similar as HYN
+        });
+  
+  
+  //function jsFunc() {document.getElementById("io").style.backgroundColor = "Purple";}
+
+ p.append(x,"set manual for 3 hours");
+// p.appendChild(x);
+div.append( p);
+//div.innerHTML += `<br> &nbsp; &ensp; &emsp; ciao <br><h1>${title}</h1>`; // cancella il onchange
+});
+
+
+
+
       //alert(' view calling cambiastato');
       setViewStato("VDM001", data);
 
@@ -310,20 +483,20 @@ var scope = '<%-scope.toString()%>';// istead of <script src='scope.json', so in
       }
     });
 
-     //  relays : https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001
+
+    //  relays : https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001
     // pdc relay
    // let relaisEv = ['heat', 'pdc', 'g', 'n', 's', "split"];// same as fv3.js , socket event to sync raspberry buttons and web button, same as fv3.js
     // >>>>>>>>> todo   add here and in fv3 a new item : heatht !!!!!!!!!!!!!!
-    let relaisEv=scope.relaisEv||['heat', 'pdc', 'g', 'n', 's', "split"];
-    
+ //   let relaisEv=  // from serialize and parsing of : < %- scope.relaisEv % >
+ //   		relaisEv_;// from js download 
 
 
-    window.addEventListener("load", function () { //when page loads
-      /*var lightbox = document.getElementById("pdc");
-      if(lightbox)lightbox.addEventListener("change", function() { //add event listener for when checkbox changes
-        socket.emit("pdc", Number(this.checked)); //send button status to server (as 1 or 0)
-      });*/
+   /* window.addEventListener("load", function () { //when page loads
+
       let box;
+// move after 
+
       relaisEv.forEach((pump, ind) => {// socket event to sync raspberry buttons and web button load from a downloaded json file ?
         //// pump must be in  relaisEv=['pdc','g','n','s'];, see after
         box = document.getElementById(pump);
@@ -333,7 +506,9 @@ var scope = '<%-scope.toString()%>';// istead of <script src='scope.json', so in
         });
       });
     });
+    */
 
+    let relaisEv ;// filled in    ex = ['heat', 'pdc', 'g', 'n', 's', "split"];/
     let triggers_ = document.getElementById("triggers").elements;// form elements got by name
     let extract = ["PdCTrig", "temp", "PdCTrig1", "FVPower", "Tmax", "Psav", "Bsav"], triggers = {};// extract
 
@@ -486,6 +661,13 @@ var scope = '<%-scope.toString()%>';// istead of <script src='scope.json', so in
 
                 triggers2_[val].value=JSON.stringify(triggers2[val]);
               
+              
+
+
+
+
+
+
 
 
             }else if (el.type == 'checkbox') triggers2_[val].checked = triggers2[val];
@@ -504,6 +686,8 @@ var scope = '<%-scope.toString()%>';// istead of <script src='scope.json', so in
         }
       }
     });
+
+
 
     function startctl() {
       // client =  from token/client :
@@ -685,12 +869,27 @@ var scope = '<%-scope.toString()%>';// istead of <script src='scope.json', so in
       }
     }
 
-    function setViewStato(id, status) { // cambia ciclicamente la visibilità dell'elemento indicato status=0/1
+    function setViewStato(id, status) { // cambia ciclicamente la visibilità dell'elemento indicato status=0/1. 
+                                        // no ora status = plantid config 
+                                        // status=ejsCont={} ;   res.render('pages/exindexhtml', status=
+                                        //          page updated from index with minimum changs , just build the pump lists !, changes marked as KK
+                                        //  status= {plant:'plantname',
+                                        //          scope,// obj used to extract obj used to custom the generted spa page ex data.scope (config staff)
+                                        //                // obj used to generate dyn html content /
+                                        //                // from now is 
+                                        //            ejscont}
+
       // see https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001
       if (document.getElementById(id)) { // se un elemento con l'identificativo specificato esiste,
         if (al) alert(' view cambiastato is changing status view id:', id);
         if (status) { // 
+          
+          // build the plant view customiation ( on behalf of ejs)
+
+          // alredy added by caller : buildpumpsview(status);
+          
           document.getElementById(id).style.display = 'block'; // lo visualizza
+
 
         } else {
           document.getElementById(id).style.display = 'none'; // lo nasconde
@@ -728,7 +927,7 @@ var scope = '<%-scope.toString()%>';// istead of <script src='scope.json', so in
       var inputValue = form.Mod.value;
       console.log("You typed: " + inputValue);
       // now set promps
-      if (inputValue == 'SB') {
+      if (inputValue == 'SB') {// the radio with name Mod and value 'SB' was selected 
 
         document.getElementById("FVPower").value = 77;
         document.getElementById("Tmax").value = 24;
@@ -871,14 +1070,7 @@ io.on("connection", (socket) => {
 
   </script>
 
-
-</main>
-
-<footer>
-  <%- include('../partials/footer'); %>
-</footer>
-
-
+<%- include('../partials/footer'); %>
 </body>
 
 </html>

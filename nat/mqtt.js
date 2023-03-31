@@ -52,7 +52,7 @@ if(text.slice(0,8)=='shellies'&&text.slice(-8)==shelly_topicp&&ok){// ok also ?
    for(mel in gpio){if (gpio[mel]==devName){devid=mel;break;}}
    return devid;
      
-}else  console.log("Received message on  non shelly topic: " + text);
+}else  console.log("mqtt Received message on  non shelly topic: " + text);
 return null;
 }
 
@@ -63,9 +63,10 @@ return null;
 client = mqtt.connect(options);
 
 
-if(client)client.on('message', function (topic, message) {// message=obj=buffer
+if(client){console.log("mqtt client connecting .... , so registering message listener ...");
+client.on('message', function (topic, message) {// message=obj=buffer
     let msg=message.toString();
-    console.log("Received message: " + msg + ", on topic: " + topic.toString());
+    console.log("mqtt Received message: " + msg + ", on topic: " + topic.toString());
     let dev;
     if(dev=isShelly(topic)){// device  id ex: 11 , not : shelly1-34945475FE06
        // status[dev]=status[dev]||{};
@@ -84,51 +85,68 @@ if(client)client.on('message', function (topic, message) {// message=obj=buffer
         console.log(" Received message , current msg queue had: ",status[dev].length,' elements' );
         if(status[dev]&&status[dev].push(msg)>10)status[dev]= status[dev].slice(-2);// add queue
     }
-});
+});}
 let gpio;//={"11":'shelly1-34945475FE06'};// todo : fill with init !   nb dev=11  devname=shelly1-34945475FE06
 let status={},// queue ** su topic shellies/<model>-<deviceid>/relay if dev array is null (status[dev]=null) means no connected 
     statusList={};// the listener list  x last status {dev:[],dev2:[]}
-let stList=function (dev,token,cb){// cb is the promise resolve, this is the closure with private properties to reference the listener env (cb will operate on listener context)
+
+/*let stList=function (dev,token,cb){// cb is the promise resolve, this is the closure with private properties to reference the listener env (cb will operate on listener context)
     statusList[dev].push(function(lastmsg){
         console.log(' stlist() listener cb with lastmsg: ',lastmsg);
         cb(lastmsg);
     });
+}*/
+// easier :
+function stList(dev,token){
+   
+    return  new Promise((res,rej)=>{// the listener cb
+    statusList[dev].push(function(lastmsg){
+        console.log(' stlist() listener cb with lastmsg: ',lastmsg);
+        res(lastmsg);
+    });
+})}
 
-}
+
 // lare in init : Object.keys(gpio).forEach((el)=>{status[el]=null});
 
 let futurecb={};// cb of subcribe can resolve a request to get a new fc dev ctl
                 // but if the cb comes before someone request a new dev ctl , when the request is done will find the cb has called as 
 
-async function getgpio(gp){// last entry in status[gpio] array
+async function getgpio(gp){// get last entry in status[gpio] array, returns 0 or 1 !
+    let ret=0;// def return
     if(status[gp]){
         console.log('  getgpio wants read buffer for dev: ',gp,', , its  dim is: ',status[gp].length);
-        if(status[gp].length>0)return status[gp][status[gp].length-1];//  WARNING ::
+        if(status[gp].length>0)ret= status[gp][status[gp].length-1];//  WARNING ::
                                                                     //  last message in queue , <<<<  hope a message caused after a write operation, eventually rewrite the same value
                                                                     // till get a read = the last  write
         else {
             // wait till get a msg or timeout
             // add a promise in dev queue with a token associated to last write (better leave the write to add this listener ,
             // then here we can .then the promise with that token 
-            
+ 
+                /* error : no need to return a promise in a async call !!!!!!!!!!!!!!!!
                return  new Promise((res,rej)=>{// the listener cb
                     // register with token
                     // old : statusList[gp].push(function(){ return function(lastdata) });
-
-                    stList(gp,123,res);
-
-                })
-            
-
+                    stList(gp,123,res); })*/  
+            // easier: (yu can simplify all promises  returning only one promise here without using an async !)
+            ret=await stList(gp,123);
         }
+        if (ret=='on')return 1;else return 0;
     }
 }
 
 
 function start(){// wait connection and subsribe all gpio , so  as soon cb is called we have status[gp]=[] (the subscription is ok )
-if(!client)return false 
-console.log("mqtt start() : waiting connection cb  to mosquitto, connection state: " + client.connected);
-client.on("connect", function () {
+if(!client){
+    console.error("mqtt start() :client not available jet, too late ! recovering  todo ....");
+    return false }
+console.log("mqtt start() :  waiting connection cb  to mosquitto, connection state: " + client.connected);
+let onlyone=false;
+if(!client.connected)client.on("connect",onconnection);else if(client.connected)onconnection();
+function onconnection () {
+    if(onlyone)return;
+    onlyone=true;
     console.log("mqtt connected to mosquitto: " + client.connected,' now well subscript all devices ');
 
     client.subscribe('presence', function (err) {// to do to see if there is the dev connected 
@@ -142,7 +160,7 @@ client.on("connect", function () {
         // if('shelly')
         let devkey=gpio[key];
         let sub_topic=shelly_stopic+devkey+shelly_topicp;// shellies/<model>-<deviceid>/relay
-        client.subscribe(sub_topic, shelly_options, function (err) {
+        client.subscribe(sub_topic, shelly_options, function (err) {// in bash do : mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
             if (err) {
                 console.log("An error occurred while subscribing shelly")
             } else {
@@ -159,7 +177,7 @@ client.on("connect", function () {
 
     client.publish("testtopic", "test message", opt);
 
-});
+};
 // dont wait return async , wait later on futurecb[key]
 return true;
 }
@@ -235,7 +253,7 @@ fc.prototype.readSync =// dont need  async
 
     let resolRead=getgpio(gp);// get last queue entry
     console.log('mqtt readsync read value from queue or listener, promise : ',resolRead);
-            return resolRead;
+            return resolRead;// nb resolve value must be 0 or 1 !!!
     }else return Promise.resolve(null);// data not available
 
 }
