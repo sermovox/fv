@@ -112,7 +112,7 @@
           <div style="background-color:rgb(243, 205, 240);">
           <h3> &nbsp; &ensp; &emsp; HEAT Triggers:</h3>
           <form id="triggers2">
-          <p><input type="checkbox" id="Tgiorno" name="Tgiorno"> Termostato HT zona giorno &ensp; delay (hours) <input type="number"
+          <p><input type="checkbox" id="Tgiorno" name="Tgiorno"> Termostato 1: HT zona giorno &ensp; delay (hours) <input type="number"
               id="delay1" placeholder=1 size="4" name="Dgiorno">
 
         <br> &nbsp; &ensp; &emsp;
@@ -123,7 +123,7 @@
  
       </p>
       <br><br>
-          <p><input type="checkbox" id="Tnotte" name="Tnotte"> Termostato HT zona notte &ensp; delay (hours) <input type="number"
+          <p><input type="checkbox" id="Tnotte" name="Tnotte"> Termostato 2: HT zona notte &ensp; delay (hours) <input type="number"
               id="delay2" placeholder=1 size="4">
               <br> &nbsp; &ensp; &emsp;
               program:  <input type="text" id="PGMnotte" name="PGMnotte" value='{"notte":{"8:30":20,"17:00":22}}' size="30" oninput="setprname1(2,this.value)"> , valid JSON: 
@@ -132,6 +132,8 @@
               
             </p>
 
+            devmapping:  <input type="text" id="mapping" name="mapping" value='>>&&state.mapping=[0,1,2,3,4,5]' size="30" > 
+            probe mapping:  <input type="text" id="probMapping" name="probMapping" value='>>&&state.probMapping=[2,4,0,3,1,5]' size="30" > 
            
 
           </form>
@@ -510,10 +512,11 @@ div.append( p);
 
     let relaisEv ;// filled in    ex = ['heat', 'pdc', 'g', 'n', 's', "split"];/
     let triggers_ = document.getElementById("triggers").elements;// form elements got by name
-    let extract = ["PdCTrig", "temp", "PdCTrig1", "FVPower", "Tmax", "Psav", "Bsav"], triggers = {};// extract
+    let extract = ["PdCTrig", "temp", "PdCTrig1", "FVPower", "Tmax", "Psav", "Bsav"], triggers = {};// extract when receive status and use when send the start algo event
 
+    // send receive program algo staff 
     let triggers2_ = document.getElementById("triggers2").elements;// form elements
-    let extract2 = ["Tgiorno","PGMgiorno","Tnotte","PGMnotte","lastT"],// name in form triggers2 that are in triggers{} and in lastT
+    let extract2 = ["Tgiorno","PGMgiorno","Tnotte","PGMnotte","lastT","mapping","probMapping"],// name in form triggers2 that are in triggers{} and in lastT
      triggers2 = {};// extract
 
     socket.on('status', function (data,prettyjson) { //get button status from client, see https://www.w3schools.com/tags/tryit.asp?filename=tryhtml_textarea
@@ -737,7 +740,7 @@ div.append( p);
 
     }
 
-    function startprg() {
+    function startprg() {// transmit  program algo  param and call related event
       if(lastState.program)  {alert(' please stop before reset');return;}
       let start = document.getElementById("hourin2").value,
         stop = document.getElementById("hourout2").value,

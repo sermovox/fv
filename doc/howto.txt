@@ -459,7 +459,7 @@ applicativi che usano il name relaisEv che poi tradotto in index comandano relai
 	  
 	  	chamato da function attuators(fn,heat,pdc,g,n,s,split){/    : è funzione applicativa che setta alcuni pump indicando gli index: es setPump(0,,,,,
 
-state : i pumps sono storati in state con key il loro nome in api.writeScriptsToFile(()   // upddate persistance and send status to browser
+state : i pumps sono storati in state (con key il loro nome) in api.writeScriptsToFile(()   // upddate persistance and send status to browser
        esso stora : JSON.stringify(new_scripts= new_scripts=fn.state  sul file_=fn.state.app.plantname;
        
        fn.state contiene status della app customizzata e in particlare i pumps che in onRelais vengono storati con key=nome !
@@ -484,7 +484,7 @@ state : i pumps sono storati in state con key il loro nome in api.writeScriptsTo
 ________________________________________________________________
 
 ssh luigi@192.168.1.76   wifi
-ssh luigi@192.168.1.79   wifi
+ssh luigi@192.168.1.79  
 
 mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
 
@@ -493,6 +493,157 @@ relevant logs start with : to print with log module .......
 anticipate algo calc new relays values....     or 	anticipate() find cloudily low so start pdc....
 Outerfunction. updateData_: in procedure:  startAntic
 
+.................................
 
 
+__________________________________________
+01042023
+
+program algo 
+triggered by socket.on('startprogrammer',repeatHandler1);
+	- si calcola sched={giorno,notte} in funzione dei triggers triggers2 input
+		poi usando riggers2.custom si mappano i concetti giorno/notte ai plant devices :
+			es le zone giorno/notte saranno legati a 2 devices su cui agire 
+				> improvement :
+					i concetti degli algo si dovrebbero applicare a generici devices , quindi :
+						- caso program algo :usare programmatore uno e due e poi applicarli a devices di index 3 e 5 ! 
+						- caso anticipate : ad es mappare temp ext a devices, e mapping in uscita verso pdc e altri utilizzatori (zone, stufette,sanitario, )
+						
+						>> question : il mapping va fatto usando un campo mapping da fare eval o usare elementi dentro mdels ?
+							probabilmente entrambe in models concettualizzare i devices e poi in eval mappare i device concettualizzati a azioni proposte dagli algo !
+						
+	- si recupera  il .....  : repeat1=repeat1||checkFactory(eM);
+		checkFactory è closure returning {repeatcheckxSun: function (hourin, hourout, period, execParm, cb2) {// register the procedure to repeat, period in minutes
+						......
+						
+	
+				>> verificare che e' usato anche dal algo anticipate !!!! > si
+
+
+	
+	- che lancia l'ago utilizzando il param builder prog_parmFact(sched)) che li calcola in funzione dei trigger scelti :
+			nb il anticipate chiama invece : function antic_parmFact(noparms)   !!
+			    il prog_parmFact(sched)  :
+			    	setta : ev2run = {initProg:null,// will put probes result as input of genZoneRele ev
+						  genZoneRele:"initProg"};// attivare valvole x risc generale e poi singole zone
+						  
+						  		nb gli event sono def in function customOn(eM)  !
+						  
+						  	genZoneRele async function ( inp_, cb) 
+						  	esso come usuale per il last event calcola i nuovi valori degli attuatori usando program :
+						  		aTT=program(state,inp,probes))
+						  
+						  		e poi si settano i new value mappando i aTT index sul plant pumps (identity here ) 
+						  		
+						  			>>> advice: in order to costom std program algo to plant devices in plant web page :
+						  				> in program algo triggers insert a js to evaluate with some var in context to map the algo staff to plant devices 
+						  		
+						  			attuators(these,aTT[0],aTT[1],aTT[2],aTT[3],aTT[4],aTT[5])// set plant pumps relays
+						  		usando these (eM/fn) e agendo sui fn.
+						  
+						dataArr={initProg:null,genZoneRele:{dataArr:sched}};
+						evAsync={};// evAsync={aEv2runKey:itsasync,,,,,,}
+						a=processAsync={},b=asyncPoint={};// todo 
+				e torna  {procName, a,b,ev2run, asyncPoint, processAsync, dataArr,algo:'program'};
+	
+		repeat1.repeatcheckxSun(starthour,stophour,dminutes,prog_parmFact(sched) 
+				esso lancia nel periodo di  attivita il ricorente exec con :
+				 gfg_Run_(cicles, period, execParm);    >>> che e' un func (statico) del closure checkfactory
+				   chiama gfg_Run_(cicles,period,execParm_)
+				   	che chiama la callF()
+				   		che chiama ripetitivamente  callFn_(execParm);  
+				   		
+				   		 che lancia 
+				   		 	        fn.execute(procName,a,b,  ev2run, asyncPoint, processAsync, dataArr,
+									  () =>{
+									console.log(' after execute we updates state running writeScriptsToFile()')
+									//api.writeScriptsToFile(fn.state,fn.state.app.plantname)
+									api.writeScriptsToFile(fn)
+									.catch(function(err) {// pdate the state file
+									  console.error(err);
+									  process.exit(1);
+									 });
+									});
+		
+	- poi : setanticipateflag({running:true,starthour,stophour,dminutes,triggers2},'program');
+	
+
+____________________________________
+01042023
+
+at start, after login, we built+ customize (customOn(this);)  fn/eM using app2 basic ctl obj in :
+	run() 
+		torna/setta la func : ccbbRef=function ccbb(plantname) 
+		per creare recuperare il plant ctl dopo socket.on('startuserplant',
+		
+ socket.on('startuserplant', function (plant_,feat) {// inst/fn/ctl/eM :  here we create the ctl of the plant that will be passed to all the service functions 
+   - get model parm (principalmente fa il config dei devices )
+	plantcnt=model.ejscontext(plant_);// ejs context=plantcnt={pumps:[{id,title},,,,]}
+    	plantconfig=model.getconfig(plant_);// 
+    	plantcfg=model.getcfg(plant_);// get plant cfg from available pool. : return plants[plant].cfg;
+   - 
+   	 eM = ccbbRef(plantcfg.name);// ** il fsm recupera/crea un siglethon x plant , state to be updated with recoverstatus()
+
+   - recover/create the persistence status  
+	     recoverstatus.call(eM,plantcfg,plantcnt,plantconfig).then((em_) => startfv_(em_)); // >>>>   recoverstatus() returns a promise resolved. we finished to write status back with promise .writeScriptsToFile
+	     							avremo :
+                                                                    // ctl event status: in eM.state 
+                                                                    // socket in eM.socket
+                                                                    // plant cfg in eM.status.plantcfg, 
+                                                                    // dev i/o still to build 
+                                                                    // will cb startfv_   // TTGG  // why do not use eM invece di passarlo come em_ ?
+                                                                    //recoverstatus_.call(eM,user.name).then((em_) => startfv_(em_));// will cb startfv_
+                                                                    
+             mentre aspetto di recoverare status goon con :
+             >>> o lo giro in coda a startfv_ ???????????
+             
+               if(eM.reBuildFromState){// we got status in persistance, so check if we restart some algo (anticipate/program)
+               
+               
+               
+   -   function startfv_(eM){// entry point when staus is recovered from file   // // why do not use eM invece di passarlo come em_ ?
+  
+		    let plant=eM.state.app.plantname;// or app.plantcfg.name
+
+		    let plantconfig=eM.state.app.plantconfig;
+		    let{gpionumb,mqttnumb,relaisEv,devid_shellyname}=plantconfig;
+    
+
+			 - abilita(eM.state).then((devices)=>{ / abilita sezione gestione eventi ( relais_)  plant nella pagina
+			 	sostanzialmente runna 
+			 	- async function buildPlantDev(){// build here the plant ctl devices (ctl/eM/fn).iodev.relais_ dev/pumps (+ /button switch) and their handlers 
+			 		isAvail=mqtt.init(devid_shellyname))){// devid_shellyname={11:'shelly1-34945475FE06'}
+                                            // AAFF :after start mqtt connection  wait connection and subsribe all gpio , 
+                                            // so  as soon cb is called we have status[gp]=[] (the subscription is ok )
+                                            
+                                            torna promise return getio.getctls(gpionumb,mqttnumb);
+                                            
+                             .then((devices)=>{ / abilita sezione gestione eventi ( relais_)  plant nella pagina
+                             - al resolve si prosegue con :
+                             
+			 
+			 - abilita2(devices);
+			 	>>>  carica i devices come status di fn:
+
+						devices.ctls.forEach((mdev,index)=>{
+						  if(mdev){eM.iodev.relais_[index]=mdev.ctl;
+						    state.pumpMap[index]=devices.devmap[index].portnumb;
+						    
+						pumpsHandler[ind]=watchparam(pump);// handler for actuators, each handler emit the socket.emit('pump' to browser.
+						
+						context={ejscont,scope};
+    						socket.emit('view', context); // nb .on('pump',,) can be not jet assigned 
+			 
+			 -  startfv(eM);})// ** start/update/recover plant singlethon ctl eM state and .....
+			 
+			 	function startfv(eM) {// ** start/update singlethon 
+					  // console.log(' startfv : the ctl instance is :\n',JSON.stringify(eM,null,2));
+					  let plant=eM.state.app.plantname;
+					  console.log(' startfv plant: ',plant,' , following  we allign relay according with current recovered state running setPump()');
+
+					  if (!Proto) customOn(eM);		>>>>>>>>>>>>>>>>>>>>>>><   again ????
+ 					eM.emit('reset', cfg);// reset fsm   todo 
+ 					// allign relays current status to state.relays :
+					  relaisEv.forEach((pump,ind) => {// ['pdc','g','n','s']
+					    setPump(ind,eM.state.relays[pump],eM);//
 

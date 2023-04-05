@@ -15,11 +15,14 @@ cfgMarsonLuigi={ name:'MarsonLuigi_API',// duplicated FFGG
         // index : the index of a device 
       gpionumb:[12,16,20,21,26,19,13,6],//  raspberry device info. number is the raspberry gpio , null means no connection to dev available
       mqttnumb:[11,null,null,null,null,null,null,null],// mqtt device info. number is the device id to subscribe
+
+        // to do : add mqttprobes=[]
+
       relaisEv:['heat','pdc','g','n','s','split'],// dev name // >>>>>>>>> todo   add here and in fv3 a new item : heatht !!!!!!!!!!!!!!
                                                 // //  relays : https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001
       // titles:["HEAT Low Temp","HEAT High Temp"," PdC (vs GAS)","g"," Zona Notte"," Seminterrato"," Splits"],
       titles:["HEAT Low Temp"," PdC (vs GAS)","g"," Zona Notte"," Seminterrato"," Splits"],// description of device name
-      devid_shellyname:{11:'shelly1-34945475FE06'}// mqtt device id , details
+      devid_shellyname:{11:'shelly1-34945475FE06'}// mqtt device id relais and probes !!!!   , details
       };
 let plants={MarsonLuigi_API:{cfg:cfgMarsonLuigi,// will be put in state.app.plant
                 name:"MarsonLuigi_API",// duplicated FFGG
@@ -54,7 +57,8 @@ return cont;
 
 }
 
-function getprods(plant){
+function getprods(plant){// prepare the context to expand the plant relais in web page
+        if(plants[plant]&&plants[plant].cfg){
 let relaisEv=plants[plant].cfg.relaisEv,
 titles=plants[plant].cfg.titles;
 
@@ -70,6 +74,7 @@ else    prods=null;
 // ? prods=prods_||prods;// prefer downloaded json 
 // ? prods.forEach((pump, ind) =>{pump[ind].id=relaysEv[ind]});
 return prods;
+}else return null;
 }
         
 module.exports = {getconfig,// app funtionality custom cfg

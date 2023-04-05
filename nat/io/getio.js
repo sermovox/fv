@@ -75,7 +75,7 @@ item=await getio(6, 'out');relais_.push(item);
                           // (gp)=>{
                             function (gp){
                               Gpio=gp;return this;},
-                  getctls:function(gpionumb,mqttnumb){// gpionumb,= [number,,,null,,,]  number is the raspberry gpio , null means no connection to dev available
+                  getctls:function(gpionumb,mqttnumb,mqttprob){// gpionumb,= [number,,,null,,,]  number is the raspberry gpio , null means no connection to dev available
     // // mqttnumb = [number,,,null,,,]  number is the mqtt device id to subscribe
     //  >>>>> number not 0 !
     /* logic:
@@ -120,9 +120,10 @@ pr=doSomethingAsync(mqttnumb[i],i,true);//probj={ind:i,prom:pr};
 pr=doSomethingAsync(gpionumb[i],i);
 }
 promises.push(pr);resolved.push(null); 
+
 pr.then((it)=>{
-// {ctl:new fc(gp,ind)/null,devNumb:ind,type:'mqtt'};
-// {ctl:new Gpio(num, iotype)/null,devNumb:ind,type:'gpio'}
+// it={ctl:new fc(gp,ind)/null,devNumb:ind,type:'mqtt'};
+// it={ctl:new Gpio(num, iotype)/null,devNumb:ind,type:'gpio'}
 
 console.log(' fillctls() , now available dev ctl (devtype: ',it.type,')  dev number : ',it.devNumb);//,' promise resolved in def time in :',JSON.stringify(it.ctl,null,2));
 if(it.ctl)console.log(' it has .readSync: ',it.ctl.readSync);
@@ -135,7 +136,9 @@ resolved[it.devNumb].portnumb=null;// no hw device found, use a dummy device rea
 });// the available ctl status . mapping relaisEv to some dev
 
 }
-// wait a max time before resolve the SSSDD promise :
+
+
+// >>> wait a max time before resolve the SSSDD promise :
 const to=7000;//7s
 console.time('mqtt connection');
 
@@ -146,7 +149,7 @@ console.log("Resolving max time , the active ctl are: ",resolved,',in ',to,'ms, 
 console.timeEnd('mqtt connection');
 resolve({ctls:resu,devmap:resolved});// release the ctl array , max time to resolve the ctl has got, some item can be null
 }, to);
-// or wait x all before max time to resolve the SSSDD promise 
+// >>>  or wait x all before max time to resolve the SSSDD promise 
 Promise.all(promises)
 .then((results) => {
 clearTimeout(myto);

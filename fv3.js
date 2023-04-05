@@ -1387,7 +1387,7 @@ function customOn(these) {// set .on custom handler (event called by execute())
 
 
   } else if (resu === undefined) { // true
-    console.error(' getstat recover from device: ',key,'aiax result cant be calc ');
+    console.error(' getstat aiax result cant be calc ');
     this.state.stepInd=100;// exit from execute procedure
   }else  
 
@@ -1482,7 +1482,7 @@ these.on("initProg",// fill tSonda x next event
 // se tolgo async non posso usare await f ma devo usare f().then() 
 // >>>>>>>>>>>>>>>>>>><  probabilmente ,on non puo tornare un async func !!!!!!!!!!!!!!!!!!!!!!!!!!
 //    or yes but .on returns immediately after got the promise. so goon must proceed with cb    
-    async function (dummyinput, cb) {// ?? only  event type 1, so events that after lauch startcheck, can fire start event to login to openapi. so anyway get token/login
+    async function (inp_, cb) {// ?? only  event type 1, so events that after lauch startcheck, can fire start event to login to openapi. so anyway get token/login
 
 
               /* ******    nb  plant is input data , framework say it can be :
@@ -1506,38 +1506,53 @@ let state= this.state, // IS OK ???????, must be not null , defined in  app2 con
 
 // just update status to the  ....? if needed 
 
-let probes , reads=2,retry=false;
+let probes , reads=2,retry=false,inp;
+if(inp_&&inp_.dataArr){inp=inp_.dataArr;//  inp={
+                                        //    probMapping:[]}
+}
 
     probes={};
-    probes.notte=parseFloat(await shellcmd('modbusRead',{addr:'notte',register:'temp',val:0}).catch(error => { // val useless
+          // probe mappings:
+          let map;
+          if(inp&&inp.probMapping)map=inp.probMapping;// [2,4]
+          else map=[0,1,2,3,4,5];// identity x modbus
+
+    if(map[0]<1000){// is modbus
+    probes.notte=// 2
+    parseFloat(await shellcmd('modbusRead',{addr:map[1],register:'temp',val:0}).catch(error => { // val useless
       console.error('  shellcmd catched ,error: ', error);
       retry=true;
     }));
     if(retry){
       retry=false;
-      probes.notte=parseFloat(await shellcmd('modbusRead',{addr:'notte',register:'temp',val:0}).catch(error => { // val useless
+      probes.notte=parseFloat(await shellcmd('modbusRead',{addr:map[1],register:'temp',val:0}).catch(error => { // val useless
         console.error('  shellcmd catched ,error: ', error);
         retry=true;
       }));
     }
     if(retry){retry=false;reads--;}
-    probes.giorno=parseFloat(await shellcmd('modbusRead',{addr:'giorno',register:'temp',val:0}).catch(error => { // val useless
+    probes.giorno=parseFloat(await shellcmd('modbusRead',{addr:map[0],register:'temp',val:0}).catch(error => { // val useless
       console.error('  shellcmd catched ,error: ', error);
       retry=true;
     }));
     if(retry){
       retry=false;
-      probes.giorno=parseFloat(await shellcmd('modbusRead',{addr:'giorno',register:'temp',val:0}).catch(error => { // val useless
+      probes.giorno=parseFloat(await shellcmd('modbusRead',{addr:map[0],register:'temp',val:0}).catch(error => { // val useless
         console.error('  shellcmd catched ,error: ', error);
         retry=true;
       }));
     }
     if(retry){retry=false;reads--;}
     console.log('  genZoneRele , reading temp , sonda gave:  ',probes);
+  }else {// is mqtt
+    // todo : read the mqtt input devices (cant write ) stored in fn.devio.probes_
+    // NBNBNB     above we got the modbus probe devices just calling a python func , they do not need to be configured/generated in fn.devio
 
-if(reads<1){probes=null;// todo retry if fails some read
-    //todo exit execute
   }
+if(reads<1){probes=null;// todo retry if fails some read
+    //todo exit execute without call next event !!
+  }
+
 cb(0,probes);	// goon with framework event chaining probes={giorno:'19.2',notte:,,,,}
 return 1;// what .on returns ?,  anyway if  this.state.stepInd=0 app will restart ev2run loop 
 });
@@ -1552,12 +1567,13 @@ these.on('genZoneRele',
 
 // from startcheck :
 async function ( inp_, cb) {// the fsm ask state updates (we use openapi) : will set input of 'startcheck' , best to set also corresponding state ( last data gathered from fusionsolar)
-                            // inp_= {'initProg':{giorno:19.2,notte:,,,,},dataArr:{'giorno':{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}, 'notte':....}
+                            // inp_= {'initProg':{giorno:19.2,notte:,,,,},dataArr:{'giorno':{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}, 'notte':....,mapping:[3,null,null,5,null]}
   let inp,probes=null;
-  if(inp_&&inp_.dataArr){inp=inp_.dataArr;//  inp={'giorno':{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}, 
-                                          //  'notte':....}
+  if(inp_&&inp_.dataArr){inp=inp_.dataArr;//  inp={'giorno'/1:{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}, 
+                                          //  'notte'/2:....,
+                                          //    mapping:[]}
   }
-if(inp_&&inp_.initProg){probes=inp_.initProg;// probes={giorno:19.2,notte:,,,,}
+if(inp_&&inp_.initProg){probes=inp_.initProg;// probes={giorno/119.2,notte/2:,,,,}
 
   let state=these.state;//this.state;
   console.log(' handler fired by event genZoneRele , with input data: ',inp_,' state: ',state);
@@ -1567,14 +1583,22 @@ if(inp_&&inp_.initProg){probes=inp_.initProg;// probes={giorno:19.2,notte:,,,,}
     // ............
     return true;
   };*/
-  let res={},aTT;
+  let res={},aTT,resex=null;
+
+
 
     if((aTT=program(state,inp,probes))&&aTT&&aTT.length>0){//  probes={giorno:19.2,notte:,,,,}  
                                           // inp={'giorno':{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}, 
-                                          //  'notte':....}
-
+                                          //  'notte':....,
+                                        //    'mapping':[]}// opzionale
+      // mappings:
+      let map;
+      if(inp.mapping)map=inp.mapping;
+      else map=[0,1,2,3,4,5];// identity
       
-    attuators(these,aTT[0],aTT[1],aTT[2],aTT[3],aTT[4],aTT[5])// [heat,pdc,g,n,s,split] val=true/false/null   set relais x level 1, then after 1 hour (1,1,1,0), if noeco (1,1,1,1)
+    //attuators(these,aTT[0],aTT[1],aTT[2],aTT[3],aTT[4],aTT[5])// [heat,pdc,g,n,s,split] val=true/false/null   set relais x level 1, then after 1 hour (1,1,1,0), if noeco (1,1,1,1)
+    attuators(these,...map)
+
 
     .then((results) => { // could also await in this async func !
          
@@ -1582,6 +1606,12 @@ if(inp_&&inp_.initProg){probes=inp_.initProg;// probes={giorno:19.2,notte:,,,,}
 
       // do nothing with results array
     //  resolve(results);  // WARNING :  hopily all it has called :
+    // endexec= aTT.toString();// pass aTT on ev2run input, seems useless
+    resex=aTT.toString();// in case of void array can be ""
+      
+
+    //better add :
+    concludi();
   })
   .catch((e) => {
       // Handle errors here
@@ -1590,9 +1620,7 @@ if(inp_&&inp_.initProg){probes=inp_.initProg;// probes={giorno:19.2,notte:,,,,}
 
 
 
-    // endexec= aTT.toString();// pass aTT on ev2run input, seems useless
-  res.execute=aTT.toString();// in case of void array can be ""
-      
+
   // register result of the exec procedure!
   //state.lastAnticipating={updatedate:new Date().toLocaleString(),level:1,policy:0,procedure:proc,pumps:aTT};// level is the temp level 0, then 1 after 1 hour. policy is the param of algo that will comand reays to perform a objective; eco,lt,ht,timetable
                                               // pumps relay set after
@@ -1601,17 +1629,18 @@ if(inp_&&inp_.initProg){probes=inp_.initProg;// probes={giorno:19.2,notte:,,,,}
     //  state.lastAnticipating=false;
      // endexec='genZoneRele: no action';// just exit  executing ev2run
 
-     res.noexec='noprogramming';
+     resex='noprogramming';
 
       // trim some valves, ex base timetable
     }
 
-    //sendstatus(state);//
-    // or directly:
-    // io.sockets.emit('status',JSON.stringify(state,null,2));
+// concludi();
+function concludi(){
+
+  res.execute=resex;
   
   cb(0, res);// false : nothing to do 
-
+  }
 
 };
 
@@ -2136,13 +2165,37 @@ session.save();// save socketid
     let plant=eM.state.app.plantname;// or app.plantcfg.name
 
     // user=plant;todo recuperare da status ?? no gia sistemato col event 'whoami' see DDWW
-  
+    let plantconfig=eM.state.app.plantconfig;
+    // todo
+        // inserire qui la config del plant model che riguarde i pumps/devices in questa app, che nella precedente implementazione veniva fatta a priori nella app al init.
+        // infatti ora tale build (la config dei devices/pumps viene fatta dopo che e' individuato il plant)
+        // per quanto riguarda invece i execute che agiscono sul plant , se si vogliono personalizzare :
+        //  - ci sara da aggiungere una parte che configura tali execute in base al plant 
+        //    scegliendoli da un pool generale !
     
-  abilita(eM.state);//// abilita sezione gestione eventi ( relais_)  plant nella pagina
-  startfv(eM);// ** start/update/recover plant singlethon ctl eM state and .....
+      // let getconfig= model.getconfig(plant)=// general obj to customize the  app functions , 
+      // let getconfig= getconfig_(plantcfg),// general obj to customize the  app functions , 
+                                      //  = {gpionumb:users[user].cfg.gpionumb,
+                                      //    mqttnumb:users[user].cfg.mqttnumb,
+                                      //    relaisEv:users[user].cfg.relaisEv,
+                                      //    devid_shellyname:users[user].cfg.devid_shellyname
+                                      //  }
+    let{gpionumb,mqttnumb,relaisEv,devid_shellyname}=plantconfig;
+    
+ //  abilita(eM.state);//// abilita sezione gestione eventi ( relais_)  plant nella pagina
+ abilita(eM.state).then((devices)=>{ 
+
+  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><   todo   devices > {relais_:[],probes_:[]}// probs are input devices with only syncread() , can be mqtt or modbus
+
+  abilita2(devices);
+  startfv(eM);})// ** start/update/recover plant singlethon ctl eM state and .....
+// .catch();
 
 
-  }
+  // put here code that can be done waiting the devices resolution !
+  // ................
+
+//  }
       // DDWW nb con l'evento 'whoami' la pagina browser dovrebbe aver gia recepito lo user che sta chiedendo la gestione del plant
               //    todo:
               //         in tale .on('whoami',,) creare un session nel spa browser ( un obj) che ricorda alla spa lo user creato con passport che viene
@@ -2150,28 +2203,13 @@ session.save();// save socketid
   function    // configura il plant nella pagina per recepire la configurazione storata in state.app.plantcfg.name
 
   abilita(state){// plantcfg=               . build devices . gpio or mqtt
-    let plantconfig=state.app.plantconfig;
-// todo
-    // inserire qui la config del plant model che riguarde i pumps/devices in questa app, che nella precedente implementazione veniva fatta a priori nella app al init.
-    // infatti ora tale build (la config dei devices/pumps viene fatta dopo che e' individuato il plant)
-    // per quanto riguarda invece i execute che agiscono sul plant , se si vogliono personalizzare :
-    //  - ci sara da aggiungere una parte che configura tali execute in base al plant 
-    //    scegliendoli da un pool generale !
 
-  // let getconfig= model.getconfig(plant)=// general obj to customize the  app functions , 
-  // let getconfig= getconfig_(plantcfg),// general obj to customize the  app functions , 
-                                  //  = {gpionumb:users[user].cfg.gpionumb,
-                                  //    mqttnumb:users[user].cfg.mqttnumb,
-                                  //    relaisEv:users[user].cfg.relaisEv,
-                                  //    devid_shellyname:users[user].cfg.devid_shellyname
-                                  //  }
-let{gpionumb,mqttnumb,relaisEv,devid_shellyname}=plantconfig;
 
-let ejscont=app.plantcnt;// ejs context=ejscontext(plant).pumps=[{id,title},,,,]
+// let ejscont=state.app.plantcnt;// ejs context=ejscontext(plant).pumps=[{id,title},,,,]
                                   // getejscon(plantcfg);// noe the pumps view are generated from html and not using ejs !!!!
 // moved here , right location ?
 
-buildPlantDev();
+return buildPlantDev();
 
 
 async function buildPlantDev(){// build here the plant ctl devices (ctl/eM/fn).iodev.relais_ dev/pumps (+ /button switch) and their handlers 
@@ -2189,11 +2227,13 @@ if(!(isAvail=mqtt.init(devid_shellyname))){// devid_shellyname={11:'shelly1-3494
   console.log(' fv3():mqtt client not available, exit/continue without the mqtt dev,  or retry connection to mosquitto');
 }
  
-
+/*
 eM.iodev={relais_:[],// the io dev ctl list , their name are in relaisEv array. if null the ctls func (readSync and writeSync ) wont be called 
 //gpionumb=gpionumb||[12,16,20,21,26,19,13,6];mqttnumb=mqttnumb||[11,null,null,null,null,null,null,null];
 // methods, no attuators ,
-}
+probes_:[]// read only sensor
+}*/
+eM.iodev={};
 
 // using getio,  call old getctls(gpionumb,mqttnumb);
 
@@ -2202,24 +2242,29 @@ eM.iodev={relais_:[],// the io dev ctl list , their name are in relaisEv array. 
 
 // must await it !
 // eM.iodev.relais_= await getio.getctls(gpionumb,mqttnumb).ctls;
-let devices= await getio.getctls(gpionumb,mqttnumb);
+// let devices= await 
+return getio.getctls(gpionumb,mqttnumb);
+}// ends buildPlantDev
+  }// ends abilita
+
+function abilita2(devices){// todo 
 console.log(' buildPlantDev(),got dev ctl');
 eM.iodev.relais_=Array(devices.ctls.length).fill(null);
-
+let state=eM.state;
 state.pumpMap=Array(devices.ctls.length).fill(null);
 
 devices.ctls.forEach((mdev,index)=>{
   if(mdev){eM.iodev.relais_[index]=mdev.ctl;
-    state.pumpMap[index]=devices.devmap[index];
+    state.pumpMap[index]=devices.devmap[index].portnumb;// just to make easy the debug
   }
 });
 console.log(' buildPlantDev(),got dev ctl list: ',state.pumpMap);
 // ???????????????????????
 // run();// load in ctl the oparational available dev i/o
 
-}// ends buildPlantDev
+// 
 
-if(relaisEv.length>eM.iodev.relais_)console.error('buildPlantDev() : managed dev relaisEv are more then avalable devices .iodev.relais_ ! plesa abort ')
+if(relaisEv.length>eM.iodev.relais_.length)console.error('buildPlantDev() : managed dev relaisEv are more then avalable devices .iodev.relais_ ! plesa abort ')
   // implements also a button/algo handler array for actuators / pumps
   relaisEv.forEach((pump,ind) => {// ['pdc',// socket event to sync raspberry buttons and web button
     // 'g','n','s']
@@ -2239,15 +2284,15 @@ if(relais&&relais[ind])relais[ind].watch(pumpsHandler[ind]);// attach same handl
 scope={relaisEv}// pass the part of plantcfg che interessa lo spa nel browser , to config pumps in html js  after  emit('view',,)
 //was : ejscont=model.ejscontext('luigi')// to generate pumps list in html after  emit('view',,)
 
-
+let ejscont=state.app.plantcnt;// ejs context=ejscontext(plant).pumps=[{id,title},,,,]
     // view the relays input on browser , see there the def of context ={ejscont,scope}
     let context={ejscont,scope};
     socket.emit('view', context); // nb .on('pump',,) can be not jet assigned 
     console.log('event startuserplant : abilita(). it is  emitting socket event view, user plant is: ',plantconfig);
     // socket.emit('status',,,) .on('status',)
-  }// ends abilita()
+  }// ends abilita2()
 
-
+  }// ends startfv_
 
   var lightvalue = 0; //static variable for current status
 
@@ -2438,6 +2483,8 @@ function repeatHandler1(starthour,stophour,dminutes,triggers2) {// sched trigger
   if(triggers2.Tnotte&&triggers2.PGMnotte){sched.notte={sched:triggers2.PGMnotte};
     if(triggers2.PGMnotteToll)sched.notte.toll=triggers2.PGMnotteToll;// // tolleranze (un valore x all), same keys of sched.giorno.sched
   }
+  sched.probMapping=toeval(eM.state,triggers2.probMapping);// mapping algo vars to plant devices !, input used when call last event genZoneRele of related exec created with prog_parmFact(sched)
+  sched.mapping=toeval(eM.state,triggers2.mapping);// mapping algo vars to plant devices !, input used when call last event genZoneRele of related exec created with prog_parmFact(sched)
   if(!eM)console.error(' repeatHandler1(), eM is null ');
   if(!eM)console.log(' repeatHandler1(), eM is null ');else console.log(' repeatHandler(), eM is found '); 
     repeat1=repeat1||checkFactory(eM);// could be find null ???
@@ -2739,8 +2786,13 @@ state=that.state,reBuildFromState=that.reBuildFromState;
   }
 
 
-  function prog_parmFact(sched){// from browser we got sched={'giorno':['8:30':t1,"17:00":t2]}  , the key are the key generated in initProg that define the probes whose temperature must be controlled
-  
+  function prog_parmFact(sched,probSched){// from browser we got sched={'giorno':['8:30':t1,"17:00":t2],       todo :      1:[]
+                                          //                            notte:[],                               todo:        2:[]
+                                          //                            mapping:[0,1,3,2,4]}  
+                                          // from browser we got probSched={                               todo:        2:[]
+                                          //                            mapping:[4,2]}  // probe giorno/1 has addr 4 ,,,,
+                                          // , the key are the key generated in initProg that define the probes whose temperature must be controlled
+                                          // probSched= probe address={}
     //  let{procName, a,b,ev2run, asyncPoint, processAsync, dataArr}=execParm;
     let  pdate=new Date();pdate.setHours(pdate.getHours()+1);
 let procName='startProg_'// 'program'
@@ -2751,10 +2803,13 @@ console.log(' prog_parmFact()  define  procedure ',procName,' with sched: ',sche
 
 let ev2run = {initProg:null,// will put probes result as input of genZoneRele ev
   // preparazione dati , checks,....
-  genZoneRele:"initProg"};// attivare valvole x risc generale e poi singole zone
+  genZoneRele:"initProg"};// input coming from previous event initProg. attivare valvole x risc generale e poi singole zone
 let dataArr=//{begin:0,startcheck:0}; 
 //{begin:null,openapi:null,startcheck:null}; 
-{initProg:null,genZoneRele:{dataArr:sched}};
+{
+  // initProg:null,
+  initProg:{dataArr:probSched},// std input dataArr coming from probSched={ mapping:[4,2]}
+  genZoneRele:{dataArr:sched}};// std input dataArr coming from sched
 let  evAsync={};// evAsync={aEv2runKey:itsasync,,,,,,}
 let a=processAsync={},b=asyncPoint={};// todo 
 return {procName, a,b,ev2run, asyncPoint, processAsync, dataArr,algo:'program'};
@@ -2771,10 +2826,11 @@ return {procName, a,b,ev2run, asyncPoint, processAsync, dataArr,algo:'program'};
   const { exec } = require('child_process');
   async function shellcmd(sh,param){// param={addr:'notte',val:18}
     console.log(' executing shellcmd() param: ',param);
-    let val=param.val,reg=4098;
+    let val=param.val,reg=4098,addr;
     if(sh=='modbusRead'&&param&&param.addr&&param.register){// in read val not used !
-      if(param.addr=='notte')addr=4;else if(param.addr=='giorno')addr=2;else if(param.addr=='taverna')addr=9;else if(param.addr=='studio')addr=5;else;
-      if(param.register=='temp')reg=4098;else if(param.addr=='active')reg=4188;else;
+      // if(param.addr=='notte')addr=4;else if(param.addr=='giorno')addr=2;else if(param.addr=='taverna')addr=9;else if(param.addr=='studio')addr=5;else;
+      addr=param.addr;// 1-999
+      if(param.register=='temp')reg=4098;else if(param.register=='active')reg=4188;else;
       let myexec='python3 rs485.py r '+addr+' '+reg+' 0';
       console.log(' executing cmd: ',myexec);
     return new Promise(function(resolve, reject) {
@@ -2907,5 +2963,31 @@ browser !!!! see DEW
     function isscad(date,scad){// check scadenza
       return true;
     }
+}
+function toeval(state,evstr){// '>>&&  a js func working on state
+  let templP;
+  if(evstr)templP=evstr.split('&&');
+
+      if(templP){
+        if(templP[0]=='>>'){// when wants to set some var and return a value (state.mapping), beter work only in state var : '>>&&state.mapping=[0,1,3,2,4];'
+        // run eval
+        fc=templP[1];// jsfunctionText
+        console.log(' first looseJsonParse in template ...&&fc&&... evaluating fc js code , fc is :',fc);
+        let myf='"use strict";' + fc;
+        eval( fc);// eval has this scope to work with ! so also vars. eval() will return the last calculated expression 
+        console.log('looseJsonParse in ...&&fc&&... evaluating fc:',fc);
+        return state.mapping;// return
+      }
+      else       if(templP[0]=='=='){//// when wants only return a value
+        fc=templP[1];// jsfunctionText
+        console.log(' first looseJsonParse in template ...&&fc&&... evaluating fc js code , fc is :',fc);
+        let myf='"use strict";' + fc;
+        let calc=eval( fc);// eval has this scope to work with ! so also vars. eval() will return the last calculated expression 
+        console.log('looseJsonParse in ...&&fc&&... evaluating fc:',fc,' evaluated : ',calc);
+        return calc;
+      }
+    }
+return null;
+
 }
   
