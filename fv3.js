@@ -9,7 +9,7 @@
 // load page cfg 
 require('dotenv').config();// load .env
 const model=require("./nat/models.js");
-
+const dOraLegale=parseInt(process.env.dOraLegale)||0;
 
 // let getcfg=model.getcfg;//can  be used for plant cfg
 // app custom config staff:
@@ -742,7 +742,7 @@ let body=
 
 
 
-  function program(state,inp,probes){// /  probes={giorno:19.2,notte:,,,,}   
+  function program(state,inp,probes){// /  probes={giorno:19.2,notte:,,,,}   // will set real relays from program and anticipate virtual devices set!!
                                       // inp={'giorno':{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}, 
                                       //  'notte':....}
                                     // the program algo : returns the new pumps state, store algo result on state.lastProgramAlgo
@@ -750,13 +750,13 @@ let body=
 console.log('program() called with programming/scheduling data inp: ',inp,' and current probs: ',probes);
 console.log('program() NB before call consolidate ret=optimize(ret) can have any null value!');
 
-let ret=null,h,m;
-let  date=new Date();date.setHours(date.getHours()+1);
+let ret=null,h,m,optimRet=null;
+let  date=new Date();date.setHours(date.getHours()+dOraLegale);
 
 // register into the last read probes
 state.program.triggers2.lastT=[date.toLocaleString(),probes];//JSON.stringify(probes)]; anomalus array with different types
 // find zone to activate
-    if(probes&&inp){// zonaa,zonab ...
+    if(probes&&inp){// inp=sched={giorno:{'16:10':-3,,,,},notte:{},probMapping:[],mapping:[]} 
 
       let zonelist=  Object.keys(inp),toactivate=[],activation=false;;
      
@@ -765,14 +765,14 @@ state.program.triggers2.lastT=[date.toLocaleString(),probes];//JSON.stringify(pr
         // Do stuff
 
       for(let i=0;i<zonelist.length;i++){// scan inp keys : the zones to find the current index in inp
-        if(toact(zonelist[i],probes[zonelist[i]],inp[zonelist[i]])){// zona,valore sonda, programma x la zona
+        // todo improvement: if probes[i]= null allora non modificare il relativo pump !!!!  ( set null ! )
+
+        if(toact(zonelist[i],probes[zonelist[i]],inp[zonelist[i]])){// zona,valore sonda, programma orario x la zona
           activation=true;
-          toactivate.push(zonelist[i]);
+          toactivate.push(zonelist[i]);// inserisce il programma che necesita una attivazione in toactivate
         }
 
       }
-
-
 
 
       /*
@@ -783,121 +783,155 @@ state.program.triggers2.lastT=[date.toLocaleString(),probes];//JSON.stringify(pr
       */
 
       let changing=false;
-    if (activation)  {
-      ret = [true, null, toactivate.indexOf('giorno')>=0,toactivate.indexOf('notte')>=0, false,null];// [heat,pdc,g,n,s,split]
+    if (activation)  {// some section is cool
+      ret = [true, null, toactivate.indexOf('giorno')>=0,toactivate.indexOf('notte')>=0, false,null];// [heat,pdc,g,n,s,split]. program algo (specific) suggestion 
         // set pdc + split according to text + hour + fv power
         
-        if(ret&&state.lastProgramAlgo&&ch(ret,state.lastProgramAlgo.pumps)){// no change
-          state.lastProgramAlgo={updatedate:date.toLocaleString(),probes,pumps:ret,model:'programbase'};// rewrite , just to set update date
-          ret=null;
-          console.log('programming() found no changes in [heat,pdc,g,n,s,split], so set ret: ',ret);
+
+/*
+        if(!(ret&&state.lastProgramAlgo&&ch(ret,state.lastProgramAlgo.pumps))){// the algo produces a different ret from  previous algo
+          state.lastProgramAlgo={updatedate:date.toLocaleString(),time:date.getTime(),probes,pumps:ret,model:'programbase'};//  set this last program algo  virtual values in state, rewrite , just to set update date
+          optimRet=null;
+          console.log('programming() found no changes in [heat,pdc,g,n,s,split], so consolidation of program algo suggestion: ',ret,' is : null, infact is: ',optimRet);
         }else{
-          state.lastProgramAlgo={updatedate:date.toLocaleString(),probes,pumps:ret,model:'programbase'};
-          ret=optimize(ret,date,h,m);//
-          console.log('programming() found low temp in house, so after optimize() set relay [heat,pdc,g,n,s,split]: ',ret);
+          state.lastProgramAlgo={updatedate:date.toLocaleString(),time:date.getTime(),probes,pumps:ret,model:'programbase'};//  set this last program algo  virtual values in state
+          ret=optimize(ret,state.lastAnticAlgo,state.lastProgramAlgo);// consolidation taking care of anticipating algo and user manual set
+          console.log('programming() found low temp in house, so after optimize() set controlled relays (heat(index=0),g(zona giorno,index=2),n(zona notte, index=3)).');
+          console.log('so consolidation/optimizing of program algo virtual suggestion: ',ret,' is ([heat,pdc,g,n,s,split]) :  ',optimRet);
 
         }
-    }// else leave ret undefined !
-   
 
-  else {
+*/
+        
+      state.lastProgramAlgo={updatedate:date.toLocaleString(),time:date.getTime(),probes,pumps:ret,model:'programbase'};//  set this last program algo  virtual values in state, rewrite , just to set update date
+      optimRet=optimize(ret,state.lastAnticAlgo,state.lastProgramAlgo);// consolidation taking care of anticipating algo and user manual set
+      console.log('programming() found low temp in house, and suggests this virtual ([heat,pdc,g,n,s,split]) actions: ',ret);//,', \n so consolidation/optimizing with anticipating and manual set we got : ',optimRet);
+      if(state.lastAnticAlgo)console.log(' \n so consolidation/optimizing with last manual  and anticipating action : ', state.lastAnticAlgo.pumps);
+      console.log('\n at last got: : ',optimRet);
+
+
+
+
+    } else {//  no one of programs has temperature out of  target on current time slot 
     
-    ret =[false, null,false,false, false,null];// [false, null,null,null,null,null];
-    if(ret&&state.lastProgramAlgo&&ch(ret,state.lastProgramAlgo.pumps)){// no change
+    ret =[false, null,false,false, false,null];// [false, null,null,null,null,null];// desidered program algo virtual actions : heat e i rele zonali: off, e nessuna modifica x gli altri rele 
+
+      /*
+    if(!(ret&&state.lastProgramAlgo&&ch(ret,state.lastProgramAlgo.pumps))){// no change if all desidered actions are already done in previous check
       ret=null;
-      console.log('programming() found no changes in [heat,pdc,g,n,s,split], so set ret: ',ret);
+      console.log('programming() found no changes in [heat,pdc,g,n,s,split], so no modification needed for any relay . so set a null ret: ',ret);
 
     }else{
-      console.log('programming() didnt find any low temp in house');
-      state.lastProgramAlgo={updatedate:date.toLocaleString(),probes,pumps:ret,model:'programbase'};
+      console.log('programming() didnt find any low temp in house, so desidered actions : heat e i rele zonali: off, e nessuna modifica x gli altri rele .\n  >>>> so ret =[false, null,false,false, false,null]');
+      state.lastProgramAlgo={updatedate:date.toLocaleString(),time:date.getTime(),probes,pumps:ret,model:'programbase'};
+      ret=optimize(ret,state.lastAnticAlgo,state.lastProgramAlgo);// added 1304
     }
+    */
+    state.lastProgramAlgo={updatedate:date.toLocaleString(),time:date.getTime(),probes,pumps:ret,model:'programbase'};//  set this last program algo  virtual values in state, rewrite , just to set update date
+    optimRet=optimize(ret,state.lastAnticAlgo,state.lastProgramAlgo);// consolidation taking care of anticipating algo and user manual set
+    console.log('programming() found no low temp in house, and suggests this virtual ([heat,pdc,g,n,s,split]) actions: ',ret);
+    if(state.lastAnticAlgo)console.log(' \n so consolidation/optimizing with last manual  and anticipating action : ', state.lastAnticAlgo.pumps);
+    console.log('\n at last got: : ',optimRet);
+
+
   }
 
  
 
-    }  else { state.lastProgramAlgo=false;ret = null;}
-    if(state.lastAnticAlgo)console.log('programming  algo calc its new BASIC relays values proposal,present  lastAnticAlgo [pdc, g, n, s, heat,split] are : ',state.lastAnticAlgo.pumps);
-    console.log('   >>> basic (not null) are relays comandable by program algo (thermostat programs Tx and PGMx ) : , the others are set by other algo or by user via browser');
-    console.log('   >>> basic can control also relays specifically calc to optimize pdc/gas production (pdc and split and )');
-    console.log('   >>> ex : basic set heat and g/n and gas, then anticipate force heat g/n/s + split and pdc. when anticipate ends basic will be recovered . if user off n manually at next running progran can or not change n ');
+    }  else { state.lastProgramAlgo=false;optimRet = null;
+
+      console.log( 'programming() could not find any results , returns null');
+    }
+/*
+    if(state.lastAnticAlgo)console.log('programming  algo calc its new BASIC virtual relays values proposal,present  lastAnticAlgo [pdc, g, n, s, heat,split] are : ',state.lastAnticAlgo.pumps);
+    console.log('   >>> basic values(not null) are relays comandable by program algo (thermostat programs Tx and PGMx ) : , the others are set by other algo or by user via browser');
+    console.log('   >>> basic values can control also relays specifically calc to optimize pdc/gas production (pdc and split and )');
+    console.log('   >>> ex : programming basic values set heat and g/n and gas, then anticipate algo force heat g/n/s + split and pdc. when anticipate ends basic will be recovered . if user off n manually at next running progran can or not change n ');
     console.log('       (use some flag for temp user action (next run program will force its values ) or modify the sched temp PDCx and rerun program or manually set pumps blocking or not the algos x some time (day))');
    
-    console.log('BASIC values are anded with last assigned ANTICIPATE values recovered from state: : ',ret);
+    console.log(' tentative optimize algo :\n program algo BASIC virtual values are and-ed with last assigned ANTICIPATE virtual  values recovered from state: : ',ret);
     console.log('   >>> anticipte relays force some relays as in some zones would be found a low temp. also set relays to set values comptible with pdc production , whatever best cfg set by user or program algo ');
     console.log('   >>> when anticipate ends the stored relays state are recovered  ');
-
+/*
 
     /* old
     if(state.lastAnticAlgo&&(state.anticipate||state.user)) // modify the program res if there are also user and anticipate proposal
       return consolidate(state,'program');
     else return ret;// the program algo res , con be null
     */
+
+/*
+// now neednt to call consolidate     
 if(ret){// program wants to set some relays, ret can have nul val that must be resolved  also looking at other proposal user+ anticipate 
-  return consolidate(state,'program',date);
+  return consolidate(state,'program',date);// todo   optimize e abbastanza , inutile ?
 }return null;
+*/
+return optimRet;
 
 
+    function toact(zona, sonda, sc_) {// zona,valore sonda, sc=programma orario x la zona. verifica se una zone ha temperatora sonda <  alla programmata nello slot dove cade l'ora corrente
+                                      // se  torna true
 
-    function toact(zona,sonda,sc_){// zona,valore sonda, sc=programma x la zona. cerca le zone con temp inferiore alla programmata
       // sc={sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}
-
-      let sc=sc_.sched;
+      if (!sonda) return;
+      let sc = sc_.sched;
       // nb toll future use : query lastAnticAlgo to see if a fv production is expected in short time
       // if(lastAnticAlgo.short)dt=true;
-       let keylist=  Object.keys(sc);// orari del programma
-       
-       let slot=-1,last=keylist.length-1,temp=sc[keylist[last]],resu='none',tempx='';
-       // resu='slot x : '+ last +' temp ' + sc[keylist[keylist.length-1]; 
-        
-        for(let i=0;i<keylist.length;i++){//
-         //  Object.keys(bodies).forEach(function(key,index) {// for each bodies items post 
-            // key: the name of the object key
-            // index: the ordinal position of the key within the object 
-            //tempx =tempx + '-'+i; 
-            let ma=keylist[i].split(":");// ['8','30']
+      let keylist = Object.keys(sc);// orari del programma
 
-            console.log(' toact() analizing  zona: ',zona,' orario: ',keylist[i],',  with present hour min : ',h,m,)
-          
-            if(h<ma[0]){// 10 < '8'
-            // got! ends scan the index in sc is slot
-            slot=i-1;i=1000;
-            //tempx =tempx + ' - got slot '+ slot ;// ma[0]; 
-            console.log(' got slot because present hour is less then slot+1 hour');
+      let slot = -1, // time interval dove l'ora corrente cade, quindi   temp = sc[keylist[slot]] è la temperatura programmata !
+      last = keylist.length - 1, temp = sc[keylist[last]], resu = 'none', tempx = '';
+      // resu='slot x : '+ last +' temp ' + sc[keylist[keylist.length-1]; 
+
+      for (let i = 0; i < keylist.length; i++) {//
+        //  Object.keys(bodies).forEach(function(key,index) {// for each bodies items post 
+        // key: the name of the object key
+        // index: the ordinal position of the key within the object 
+        //tempx =tempx + '-'+i; 
+        let ma = keylist[i].split(":");// ['8','30']
+
+        console.log(' toact() analizing  zona: ', zona, ' orario: ', keylist[i], ',  with present hour min : ', h, m,)
+
+        if (h < ma[0]) {// 10 < '8'
+          // got! ends scan the index in sc is slot
+          slot = i - 1; i = 1000;// got slot
+          //tempx =tempx + ' - got slot '+ slot ;// ma[0]; 
+          console.log(' got slot because present hour is less then slot+1 hour');
+        }
+
+        else {
+          if (!(h > ma[0]) && m < ma[1]) {
+
+            slot = i - 1; i = 1000;// got slot
+            // tempx =tempx + ' - got slot '+ slot +' minute '+m;// ma[0]; 
+            console.log(' got slot because present hour is = but current min is < !');
           }
-          
-          else{      if(!(h>ma[0])&&m<ma[1]){
-            
-                               slot=i-1;i=1000;
-                              // tempx =tempx + ' - got slot '+ slot +' minute '+m;// ma[0]; 
-                              console.log(' got slot because present hour is = but current min is < !');
-                    }
-          
-               }
-          
-          }
-          if(slot<0)slot=last;
 
-          temp=sc[keylist[slot]];//programmed temp 
-          // if(lastAnticAlgo.short)// last anticipate expect to produce fv energy (> 2kWh) in short time (less 1 hour)
-          if(sc_.sched&&sc_.sched[keylist[slot]]>0&&sc_.sched[keylist[slot]]<1)
-            temp+=sc_.sched[keylist[slot]];
+        }
 
-          
-         
-      
-        //resu=tempx+' - slot '+ slot +'/'+(slot+1)+', temp ' + sc[keylist[slot]]; 
-        console.log(' toact() slot: ',slot, ' temp: ',temp);
-       // 
-       if (temp>sonda)  {
+      }
+      if (slot < 0) slot = last;
+
+      temp = sc[keylist[slot]];//programmed temp 
+      // if(lastAnticAlgo.short)// last anticipate expect to produce fv energy (> 2kWh) in short time (less 1 hour)
+      if (sc_.sched && sc_.sched[keylist[slot]] > 0 && sc_.sched[keylist[slot]] < 1)// tempettura desiderata ta 0 e 1  ?????????????
+       { temp += sc_.sched[keylist[slot]];
+        console.error(' toact() detect speculating condition , so change temp that now is ',temp)
+       }
+
+
+
+
+      //resu=tempx+' - slot '+ slot +'/'+(slot+1)+', temp ' + sc[keylist[slot]]; 
+      console.log(' toact() slot: ', slot, ' temp: ', temp);
+      // 
+      if (temp > sonda) {
         return true;
       }// else leave ret undefined !
-      
-      
-      else ;
-      
-      
-      }
-      function ch(ret,oldret){
+      else;
+    }
+
+      function ch(ret,oldret){// check for different values
 
         if(ret.join()==oldret.join())return false;// ret == oldret so pumps are the same 
         return true;
@@ -906,23 +940,67 @@ if(ret){// program wants to set some relays, ret can have nul val that must be r
 }
 
 
-function optimize(res,date,h,m){//res=[heat,pdc,g,n,s,split]
+function optimize(res_,lastAnticAlgo,lastProgramAlgo){//res=[heat,pdc,g,n,s,split] . here we see last anticipated algo proposal relays values and merge them into a summary 
   // set pdc + split according to text + hour + fv power  .>>    what is text ???
 // here calc pdc + split according to text and hour , 
-// can also call anticipate on behalf (al posto di usare) of anticipate exsec job that just fill state.aiax and state.anticipate but we must be shure program algo shoul be active !
+// can also call anticipate algo on behalf (al posto di usare) of anticipate exec job that just fill state.aiax and state.anticipate but we must be shure program algo should be active !
 // anyway user can reset the value
-res[1]=false;// pdc
-res[5]=false; //split
-  return res;
-}
+// todo : define rules to merge last proposed program and anticipate (if active)  virtual values into a summary
+// ... if antic is active (check lastanticalgo.updatedate) and it proposed pdc (lastanticalgo.pumps[1]==true) set true  also pdc and split (dont care the lastanticalgo.pumps[g/n/s] !  )
 
+// >>>>  return the same ret , modified!!!!!!
+
+let debcase=0;
+// let ret=[];for (i = 0; i < res.length; i++) {  ret[i] = res[i];}     or:
+let res=[...res_];
+if (lastProgramAlgo.time > lastAnticAlgo.time) {// program is last
+    if (lastProgramAlgo.time - lastAnticAlgo.time < 1000000) {// 18 min  so set pdc as antic algo did , both working
+      if (lastAnticAlgo.pumps[1]) {//     is pdc anticipate virtual relay on
+        res[1] = true; res[5] = true; // confirm pdc , + split 
+        debcase=1;
+      } else {// if(// to write manual algo with time expiration for each pump: lastManualAlgo.pumps[1]){}// dont set (we could have been set it manually )
+        res[1] = false;
+        res[5] = false;
+        debcase=2;
+      }
+    } else {// anticipate last values are not valid, confirm just program values
+      res[1] = null;// dont set , someone else could have set it
+      res[5] = null;
+      debcase=3;
+    }
+  } else {// anticipate is last
+    if (lastAnticAlgo.time - lastProgramAlgo.time < 1000000) {// 18 min  so set zones as program  algo did , so both working
+      // lastProgramAlgo.pumps[2]) // g ever true !
+      if (lastProgramAlgo.pumps[3]) {//     is n program virtual relay on
+        res[3] = true;// confirm n active 
+        debcase=4;
+      } else {
+        res[3] = false;
+        debcase=5;
+      }
+    } else {// program last values are not valid, confirm just anticipate values
+      res[3] = null;// dont set 
+      debcase=6;
+    }
+  }
+
+// >> todo   add manual set part !!!
+
+
+
+
+//res[1]=false;// pdc
+// res[5]=false; //split
+console.log(' optimize() used case: ', debcase);
+
+  return res;//ret;//res;// better clone
+}
 
 function anticipate(state,algo){// the algo : returns the new pumps state, store algo result on state.lastAnticAlgo
 /*
     "battLevel": 0,
     "inverter": 3,
     "cloudly": 55.5
-
      "anticipate": {
     "running": true,
     "starthour": "9",
@@ -967,9 +1045,9 @@ if(triggers.PdCTrig1){a=2; console.log(' anticipate algo find required policy : 
 ret= null;//[false, false, false, false,false,false];  
 }
 if(ret){
-let  pdate=new Date();pdate.setHours(pdate.getHours()+1);
+let  pdate=new Date();pdate.setHours(pdate.getHours()+dOraLegale);
 //state.lastAnticAlgo={updatedate:new Date().toLocaleString(),level:1,policy:0,algo,pumps:aTT,model};// level is the temp level 0, then 1 after 1 hour. policy is the param of algo that will comand relays to perform a objective; eco,lt,ht,timetable
-state.lastAnticAlgo={updatedate:pdate.toLocaleString(),level:1,policy:0,algo,pumps:ret,model};// level is the temp level 0, then 1 after 1 hour. policy is the param of algo that will comand relays to perform a objective; eco,lt,ht,timetable
+state.lastAnticAlgo={updatedate:pdate.toLocaleString(),time:pdate.getTime(),level:1,policy:0,algo,pumps:ret,model};// level is the temp level 0, then 1 after 1 hour. policy is the param of algo that will comand relays to perform a objective; eco,lt,ht,timetable
 
 // pumps relay set after
 }else {// do nothing , reset last antic results
@@ -1177,7 +1255,7 @@ resu;
       { cloudly:  {body: null,// to be transf into url enc
                     extract:(data)=> {
                       console.log(' getWeath aiax extracting weather info from aiax data got: ',JSON.stringify(data,null,2));
-                      let  d=new Date();d.setHours(d.getHours()+1);
+                      let  d=new Date();d.setHours(d.getHours()+dOraLegale);
                       let hour = d.getHours();// rome time , <24
                       console.log(' getWeath , date: ',d,' hour: ',hour);
                       let ret1= data.hourly.cloudcover[hour],// better do a mean of next 2 hour
@@ -1430,14 +1508,26 @@ function customOn(these) {// set .on custom handler (event called by execute())
     };*/
     let aTT,res={};
 
-    if((aTT=anticipate(state,'anticipate0'))&&aTT.length>0){// algo : null if not anticipating, [pdc,...] if anticipating with its pump setting
+    if((aTT=anticipate(state,'anticipate0'))&&aTT.length>0){// can be [true, true, true,null, null,true];// [heat,pdc,g,n,s,split] 
+                                                            // HHGG so virtual devices of anticipate algo are heat,pdc,g,split
+                                                            // algo : null if not anticipating, [pdc,...] if anticipating with its pump setting
 
       // await   // dont need to wait !
-      attuators(these,aTT[0],aTT[1],aTT[2],aTT[3],aTT[4],aTT[5])//[heat,pdc,g,n,s,split] val=true/false/null   set relais x level 1, then after 1 hour (1,1,1,0), if noeco (1,1,1,1)
+      // attuators(these,aTT[0],aTT[1],aTT[2],aTT[3],aTT[4],aTT[5])//[heat,pdc,g,n,s,split] val=true/false/null   set relais x level 1, then after 1 hour (1,1,1,0), if noeco (1,1,1,1)
                                                                   // ?? (pdc,g,n,s)  set relais x level 1, then after 1 hour (1,1,1,0), if noeco (1,1,1,1)
-        .then((results) => { // could also await in this async func !
+
+
+
+      // tuti i real dev non mappati andranno settati null, il che vuoldire che non vengono modificati !!! 
+      let map;
+      if(inp.mapping)map=inp.mapping;// sched.mapping
+      else map=[0,1,2,3,-1,5];// // HHGG so virtual devices of anticipate algo are heat,pdc,g,split. stessa cosa che settare identity=[0,1,2,3,4,5]
+      
+    //attuators(these,aTT[0],aTT[1],aTT[2],aTT[3],aTT[4],aTT[5])// [heat,pdc,g,n,s,split] val=true/false/null   set relais x level 1, then after 1 hour (1,1,1,0), if noeco (1,1,1,1)
+    attuators(these,map,aTT)
+                                                                  .then((results) => { // could also await in this async func !
          
-            console.log("All setPump resolved");
+            console.log("attuators() , All setPump resolved");
 
             // do nothing with results array
           //  resolve(results);  // WARNING :  hopily all it has called :
@@ -1501,14 +1591,18 @@ these.on("initProg",// fill tSonda x next event
 
 console.log(' handler fired by event initProg ');
 
-let state= this.state, // IS OK ???????, must be not null , defined in  app2 constructor()/clearState()
+let state= 
+these.state,
+// or : 
+// this.state, // IS OK ???????, must be not null , defined in  app2 constructor()/clearState()
+
+
   plant=state.app.plantname;// the real input , no dummy !
 
 // just update status to the  ....? if needed 
 
 let probes , reads=2,retry=false,inp;
-if(inp_&&inp_.dataArr){inp=inp_.dataArr;//  inp={
-                                        //    probMapping:[]}
+if(inp_&&inp_.dataArr){inp=inp_.dataArr;//  inp=sched
 }
 
     probes={};
@@ -1517,8 +1611,13 @@ if(inp_&&inp_.dataArr){inp=inp_.dataArr;//  inp={
           if(inp&&inp.probMapping)map=inp.probMapping;// [2,4]
           else map=[0,1,2,3,4,5];// identity x modbus
 
-    if(map[0]<1000){// is modbus
-    probes.notte=// 2
+
+// to do   invece di mappare giorno e notte rinominare i programmi 0 e 1 e poi mappare con map[0/1] che sara o l'indirizzo modbus 
+//  o il mqtt dev registrato in these/eM/fn.iodev.probes_[map[0]]
+
+
+    if(map[1]<1000){// is modbus dev to manage al volo
+    probes.notte=// 1
     parseFloat(await shellcmd('modbusRead',{addr:map[1],register:'temp',val:0}).catch(error => { // val useless
       console.error('  shellcmd catched ,error: ', error);
       retry=true;
@@ -1530,7 +1629,24 @@ if(inp_&&inp_.dataArr){inp=inp_.dataArr;//  inp={
         retry=true;
       }));
     }
-    if(retry){retry=false;reads--;}
+    if(retry){retry=false;reads--;
+      probes.notte=null;}
+  }else {// is mqtt registered device
+    // todo : read the mqtt input devices (cant write ) stored in fn.iodev.probes_
+    // ...
+    // probes.giorno=these.iodev.probes_[map[0]]
+    // ....
+    // NBNBNB     above we got the modbus probe devices just calling a python func , they do not need to be configured/generated in fn.iodev
+
+    // map[0]>=1000
+    let curval
+    if(these.iodev.probes_[map[1]])// curval=await this.relais_[pump_].readSync();// 0/1
+    curval=await these.iodev.probes_[map[1]].readSync();// 0/1
+    probes.notte=curval;
+
+  }
+
+  if(map[0]<1000){// is modbus
     probes.giorno=parseFloat(await shellcmd('modbusRead',{addr:map[0],register:'temp',val:0}).catch(error => { // val useless
       console.error('  shellcmd catched ,error: ', error);
       retry=true;
@@ -1542,13 +1658,26 @@ if(inp_&&inp_.dataArr){inp=inp_.dataArr;//  inp={
         retry=true;
       }));
     }
-    if(retry){retry=false;reads--;}
-    console.log('  genZoneRele , reading temp , sonda gave:  ',probes);
+    if(retry){retry=false;reads--;
+      probes.giorno=null;}
   }else {// is mqtt
-    // todo : read the mqtt input devices (cant write ) stored in fn.devio.probes_
-    // NBNBNB     above we got the modbus probe devices just calling a python func , they do not need to be configured/generated in fn.devio
+    // todo : read the mqtt input devices (cant write ) stored in fn.iodev.probes_
+    // ...
+    // probes.giorno=these.iodev.probes_[map[0]]
+    // ....
+    // NBNBNB     above we got the modbus probe devices just calling a python func , they do not need to be configured/generated in fn.iodev
+
+    // map[0]>=1000
+    let curval
+    if(these.iodev.probes_[map[0]])// curval=await this.relais_[pump_].readSync();// 0/1
+    curval=await these.iodev.probes_[map[0]].readSync();// 0/1
+    probes.notte=curval;
 
   }
+
+
+    console.log('  genZoneRele , reading temp , sonda gave:  ',probes);
+
 if(reads<1){probes=null;// todo retry if fails some read
     //todo exit execute without call next event !!
   }
@@ -1567,11 +1696,15 @@ these.on('genZoneRele',
 
 // from startcheck :
 async function ( inp_, cb) {// the fsm ask state updates (we use openapi) : will set input of 'startcheck' , best to set also corresponding state ( last data gathered from fusionsolar)
-                            // inp_= {'initProg':{giorno:19.2,notte:,,,,},dataArr:{'giorno':{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}, 'notte':....,mapping:[3,null,null,5,null]}
+                            // inp_= {'initProg':{giorno:19.2,notte:,,,,},
+                            //  dataArr(=sched)
+  
+  console.log(' handler fired by event genZoneRele , with input data: ',JSON.stringify(inp_,null,2));
+  
   let inp,probes=null;
-  if(inp_&&inp_.dataArr){inp=inp_.dataArr;//  inp={'giorno'/1:{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}, 
-                                          //  'notte'/2:....,
-                                          //    mapping:[]}
+  if(inp_&&inp_.dataArr){inp=inp_.dataArr;//  inp=sched={programs:{giorno:{'16:10':-3,,,,},notte:{}},probMapping:[],mapping:[]} 
+                                          // giorno'/1:{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}, 
+
   }
 if(inp_&&inp_.initProg){probes=inp_.initProg;// probes={giorno/119.2,notte/2:,,,,}
 
@@ -1583,21 +1716,29 @@ if(inp_&&inp_.initProg){probes=inp_.initProg;// probes={giorno/119.2,notte/2:,,,
     // ............
     return true;
   };*/
-  let res={},aTT,resex=null;
+  let res={},
+  aTT,// virtual devices. each algo will set virtual device. after , in attuators(these,map,aTT), we set real devices mapping virtual into real dev
+  resex=null;
 
-
-
-    if((aTT=program(state,inp,probes))&&aTT&&aTT.length>0){//  probes={giorno:19.2,notte:,,,,}  
+    if((aTT=program(state,inp.programs,probes))&&aTT&&aTT.length>0){// virtual devices to map are index: 0,2,3,( in future 4)
+                                          //  probes={giorno:19.2,notte:,,,,}  
                                           // inp={'giorno':{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}, 
                                           //  'notte':....,
                                         //    'mapping':[]}// opzionale
       // mappings:
+      // algo program has virtual relais [heat,pdc,g,n,s,split]  di cui si agisce solo su heat,g,n e poi s .
+      // cha vanno mappati nei real device  del plant .
+      // es map[7,-1,5,6,8,-1] significa :
+      //  setta il real dev con index 7 come il virtual device di index 0, 
+      //  setta il real dev con index 5 come il virtual device di index 2,
+      //  ......
+      // tuti i real dev non mappati andranno settati null, il che vuoldire che non vengono modificati !!! 
       let map;
-      if(inp.mapping)map=inp.mapping;
-      else map=[0,1,2,3,4,5];// identity
+      if(inp.mapping)map=inp.mapping;// sched.mapping from browser cfg 
+      else map=[0,1,2,3,-1,5];// only s is not affected by progrm/anticipate algo 
       
     //attuators(these,aTT[0],aTT[1],aTT[2],aTT[3],aTT[4],aTT[5])// [heat,pdc,g,n,s,split] val=true/false/null   set relais x level 1, then after 1 hour (1,1,1,0), if noeco (1,1,1,1)
-    attuators(these,...map)
+    attuators(these,map,aTT)
 
 
     .then((results) => { // could also await in this async func !
@@ -1637,12 +1778,12 @@ if(inp_&&inp_.initProg){probes=inp_.initProg;// probes={giorno/119.2,notte/2:,,,
 // concludi();
 function concludi(){
 
-  res.execute=resex;
+  res.execute=resex;// the program algo suggestion : aTT.tostring()
   
   cb(0, res);// false : nothing to do 
   }
 
-};
+}else console.log(' handler fired by event genZoneRele , cant process actions because probs are not evailable!');
 
 
 
@@ -1659,7 +1800,7 @@ function repdayly(plant,hin, hout, fn) {// old : prefer checkFactory()
                                         // note that these events must be defined on customOn()
                                         // to do  to start at a time in a day . it will call ececute .. and at every hour 
 const d = new Date();
-let procName='startcheck'+ d.toLocaleString();
+let procName='startcheck'+ d.toString();//d.toLocaleString();
 
 
 console.log(' old (prefer .....) repdayly()  start  procedure ',procName,' fn: ',fn);
@@ -1814,7 +1955,7 @@ function checkFactory(fn){// fn=ctl, sostituisce repdayly()
 
       // {procName, null              , null,  ev2run, asyncPoint, processAsync, dataArr}=execParm
         let{procName, a,b,ev2run, asyncPoint, processAsync, dataArr}=execParm;
-        let  pdate=new Date();pdate.setHours(pdate.getHours()+1);
+        let  pdate=new Date();pdate.setHours(pdate.getHours()+dOraLegale);
       console.log(' callFn start priodically exec procedure ',procName, ' for plant: ',fn.state.app.plantname,'.  cur time:',pdate);//,' this day, after this exec, we run other ',n,' times');
   //      n--;
   //      console.log(' callFn start priodically procname procedure now, time:',new Date(),' n is: ',n);
@@ -1885,7 +2026,7 @@ function checkFactory(fn){// fn=ctl, sostituisce repdayly()
       repeatcheckxSun: function (hourin, hourout, period, execParm, cb2) {// register the procedure to repeat, period in minutes
         if (interv) clearInterval(interv);
         if (timer) clearInterval(timer);
-        const pdate = new Date();  pdate.setHours(pdate.getHours()+1);  //closure with inner callF, the closure state n will be updated till hourout is got !
+        const pdate = new Date();  pdate.setHours(pdate.getHours()+dOraLegale);  //closure with inner callF, the closure state n will be updated till hourout is got !
        
         // console.log(' repeatcheckxSun : start hour ',hourin,' stop hour: ',hourout);                                                 
         let hourinterval = hourout - hourin;// ex  9-8=1  , the testing to do will be 2, one at 8 , one at 9
@@ -1905,7 +2046,7 @@ function checkFactory(fn){// fn=ctl, sostituisce repdayly()
 
           interv = setInterval(function () { // Set interval for checking, never stop till the repetion ends 
             var date = new Date(); // Create a Date object to find out what time it is   gtm ?
-            date.setHours(date.getHours()+1);
+            date.setHours(date.getHours()+dOraLegale);//dOraLegale);
             let dm = date.getMinutes(), dh = date.getHours();
             if (dh == 0&&dm==0) onceaday = true;
 
@@ -1914,7 +2055,7 @@ function checkFactory(fn){// fn=ctl, sostituisce repdayly()
               cicles = minOut - dateN;// cicles of period minutes to run execute
               if(cicles<1)cicles=1;// min 
 
-            console.log(' repeatcheckxSun : setinterval  handler called x procName: ', execParm.procName, ' at hour: ', dh, ' and minutes: ', dm, '. present time norm: ', dateN, 'must be in: ', minIn, '-', minOut);
+            console.log(' repeatcheckxSun : setinterval  handler called x procName: ', execParm.procName, ',  at hour: ', dh, '(dOraLegale:',dOraLegale,') and minutes: ', dm, '. present time norm: ', dateN, 'must be in: ', minIn, '-', minOut);
             console.log(' normalization in minutes is: period: ', period, ' hourin: ', hourin, ' hourout: ', hourout);
 
             // if(onceaday&&dh >= hourin && dm == min){ // Check the time to start repetitive task, start from 1:00 to 23:00
@@ -1969,8 +2110,72 @@ console.log('sendstatus() pretty is: ',prettyjson);
 }
 
 
+function attuators(fn,map,aTT){// aTT: the program() algo resuts (after consolidating with anticipate algo and manual set)
+                                  //  in attuators(these,map,aTT), we set (calling setPump(i,relaisEv[i],fn)) real devices (i) mapping virtual (if its map>=0) into real dev (of index i=map) 
+                                  //                              nb only if the new set/value  of  real device is changed from its status  state.relays[pump=])
+                                  // setPump will then call (eventually ) browser then call:
+                                  //                          >>  onRelais   (setta i singoli real device/rele ( index= pump_ e nome pump) e registra in state lo status per nome in state.relays[pump])
+                                  //                                 only if the new set/value  of real hw device is changed ! 
+                                  // when all setpump promises resolves we cb for event termination setting the execute program algo results : aTT.toString() , see Outerfunction. updateData_ .....
+                                  //                          >> the execute result was then stored in "relHistory" state as string!
+                                  //                          nb program() algo specific result (before consolidating ) was  stored in lastProgramAlgo obj  as pumps array ! as lastProgramAlgo array 
+                                  //					because they need to consolidate all related algo results  when  next algo result is coming
 
-function attuators(fn,heat,pdc,g,n,s,split){// ctl,true/false,,,   (heat,pdc,g,n,s,split)
+
+                                // or function attuators(fn,map,aTT){// heat=aTT[0],pdc=aTT[1],,,,,,,,,
+  // 
+  // ctl,true/false,,,   (heat,pdc,g,n,s,split) si riferiscono ai nomi dei rele nel virtual algo
+  // >> in un customized plant avremo dei cust device con indici 0,1,,max 
+  // e noi mapperemo ordinatamente i virtual device sui customized index !!!
+// we action simulating to push gpio button events
+let state=fn.state,relays=state.relays,relaisEv=state.app.plantconfig.relaisEv;
+console.log(' attuators() : current real custom relays pump state is : ',relays,' VIRTUAL target values : ',aTT,' to map into: ',map);
+if(!map||!aTT)return Promise.reject('cant compute');
+// todo use relaisEv.forEach( ...  and pump_=relaisEv.lastIndexOf(pump);// the index in relais_
+
+// debug:
+console.warn('  ?? attention that order in state.relays ',state.relays,' same as fn.state.relays ',fn.state.relays,' can be different from fn.relaisEv ',fn.relaisEv);
+// so correct mapping state.relays > fn.relaisEv are done here !
+let promises=[];
+let i,mmax=aTT.length;
+if(map.length<mmax)mmax=map.length;
+for(i=0;i<mmax;i++){
+  if(aTT[i]!= null &&// both null or undefined
+map[i]>=0 &&//  iesimo virtual is mapped to index= map[i] of name: relaisEv[i], con state:relays[relaisEv[i]])  ,i=-1 means do not map, virtual not used here 
+aTT[i]!=relays[relaisEv[i]]){//
+incong(relaisEv[i],state);// segnala se c'e' differenza tra il current state relay value e il reale hw relay value , se c'e quando lo sistemo ??????
+console.log(' attuators() : as current heat pump state : ',relays[relaisEv[i]],' is different from newval call setPump(0,',relaisEv[i],')');
+//relays.pdc=
+promises.push(setPump(i,relaisEv[i],fn));}else;// anyway se richiedo un set diverso dal corrente cambio il suo valore 
+
+}
+
+
+
+// or wait x all
+return Promise.all(promises);/// returns also when promises=[]
+
+
+
+async function incong(pump,state){// segnala solo se il current state pump value is different from the hw relais value !
+let value=state.relays[pump];// true/false, pump as recorded on status
+let   pump_=state.app.plantcfg.relaisEv.lastIndexOf(pump);// the index in relais_
+if(pump_>=0){// found
+if(fn.iodev.relais_[pump_])// curval=await this.relais_[pump_].readSync();// 0/1
+curval=await fn.iodev.relais_[pump_].readSync();// 0/1
+else curval=0;
+if(value&&curval==0||((!value&&curval==1))){// state value != cur rele value 
+console.warn(' bug to fix : attuators(), find pump ',pump,' state different from current pump position thats: ',curval); 
+console.log(' bug to fix : attuators(), find pump ',pump,' state different from current pump position thats: ',curval); 
+}
+}}
+}
+
+function attuators_old(fn,map,heat,pdc,g,n,s,split){// or function attuators(fn,map,aTT){// heat=aTT[0],pdc=aTT[1],,,,,,,,,
+                                            // 
+                                            // ctl,true/false,,,   (heat,pdc,g,n,s,split) si riferiscono ai nomi dei rele nel virtual algo
+                                            // >> in un customized plant avremo dei cust device con indici 0,1,,max 
+                                            // e noi mapperemo ordinatamente i virtual device sui customized index !!!
 // we action simulating to push gpio button events
 let state=fn.state,relays=state.relays;
 console.log(' attuators() : current relays pump state is : ',relays,' target values (heat,pdc,g,n,s,split): ',heat,pdc,g,n,s,split);
@@ -2028,8 +2233,8 @@ async function incong(pump,state){// segnala solo se il current state pump value
   let value=state.relays[pump];// true/false, pump as recorded on status
   let   pump_=state.app.plantcfg.relaisEv.lastIndexOf(pump);// the index in relais_
   if(pump_>=0){// found
-  if(fn.devio.relais_[pump_])// curval=await this.relais_[pump_].readSync();// 0/1
-    curval=await fn.devio.relais_[pump_].readSync();// 0/1
+  if(fn.iodev.relais_[pump_])// curval=await this.relais_[pump_].readSync();// 0/1
+    curval=await fn.iodev.relais_[pump_].readSync();// 0/1
   else curval=0;
   if(value&&curval==0||((!value&&curval==1))){// state value != cur rele value 
     console.warn(' bug to fix : attuators(), find pump ',pump,' state different from current pump position thats: ',curval); 
@@ -2180,7 +2385,7 @@ session.save();// save socketid
                                       //    relaisEv:users[user].cfg.relaisEv,
                                       //    devid_shellyname:users[user].cfg.devid_shellyname
                                       //  }
-    let{gpionumb,mqttnumb,relaisEv,devid_shellyname}=plantconfig;
+    let{gpionumb,mqttnumb,mqttprob,relaisEv,devid_shellyname}=plantconfig;
     
  //  abilita(eM.state);//// abilita sezione gestione eventi ( relais_)  plant nella pagina
  abilita(eM.state).then((devices)=>{ 
@@ -2221,8 +2426,8 @@ async function buildPlantDev(){// build here the plant ctl devices (ctl/eM/fn).i
 // start mqtt connection :
 let isAvail;// old , better or mqtt.avail itself
 // register gpio 11 as mqtt device and try connecting
-if(!(isAvail=mqtt.init(devid_shellyname))){// devid_shellyname={11:'shelly1-34945475FE06'}
-                                            // AAFF :after start mqtt connection  wait connection and subsribe all gpio , 
+if(!(isAvail=mqtt.init(devid_shellyname))){// devid_shellyname={11:'shelly1-34945475FE06',,}
+                                            // AAFF :temporaneamente use shelly 1 std, so after start mqtt connection  wait connection and subsribe all gpio , 
                                             // so  as soon cb is called we have status[gp]=[] (the subscription is ok )
   console.log(' fv3():mqtt client not available, exit/continue without the mqtt dev,  or retry connection to mosquitto');
 }
@@ -2243,22 +2448,69 @@ eM.iodev={};
 // must await it !
 // eM.iodev.relais_= await getio.getctls(gpionumb,mqttnumb).ctls;
 // let devices= await 
-return getio.getctls(gpionumb,mqttnumb);
+let myctls,myprobs;
+myctls_= getio.getctls(gpionumb,mqttnumb);
+                                          // {ctls:[ctl1,,,,,],devmap:[{devNumb,devType,portnumb},,,,]}
+                                          // get pump/relais r/w devices from preferred  mqtt or gpio arrays
+myprobs_= getio.getctls(null,mqttprob,true);//   {ctls,devmap} , get probs  read only devices from  mqtt, true means is a probe type (type='in')
+
+
+return   new Promise(function(resolve, reject) {
+myctls_.then(
+  (ctl1)=>{
+          myprobs_.then((ctl2)=>{
+                                resolve({myctls:ctl1,myprobs:ctl2});
+  });
+}
+)
+});
+
 }// ends buildPlantDev
   }// ends abilita
 
-function abilita2(devices){// todo 
+function abilita2(devices_){// {myctls,myprobs}
+  let devices=devices_.myctls,// {ctls:[ctl1,,,],devmap:[{devNumb,devType,portnumb},,,,]}
+      probes=devices_.myprobs;// 
 console.log(' buildPlantDev(),got dev ctl');
-eM.iodev.relais_=Array(devices.ctls.length).fill(null);
+eM.iodev.relais_=Array(devices.ctls.length).fill(null);// fill relays/pump  list in browser 
+eM.iodev.probs_=Array(probes.ctls.length).fill(null);// in algo triggers frame we assign the probs to use for each input used by algo , 
+                                                      // ex : the number 2 (night)program schedule use the 2nd registered probe models , 
+                                                      //    that is the shelly dev number mqttprob[2] or mqttprob[2-1]  
 let state=eM.state;
-state.pumpMap=Array(devices.ctls.length).fill(null);
+state.devMap=Array(devices.ctls.length).fill(null);
+state.probMap=Array(probes.ctls.length).fill(null);
 
-devices.ctls.forEach((mdev,index)=>{
+/*devices.ctls.forEach((mdev,index)=>{
   if(mdev){eM.iodev.relais_[index]=mdev.ctl;
     state.pumpMap[index]=devices.devmap[index].portnumb;// just to make easy the debug
   }
-});
-console.log(' buildPlantDev(),got dev ctl list: ',state.pumpMap);
+});*/
+builddev(devices,eM.iodev.relais_,state.devMap,0);// transform devices={devmap,ctls} >>  state.devMap eM.iodev.relais_  : the action relays listed in browser
+builddev(probes,eM.iodev.probs_,state.probMap,1); //                                      state.probMap eM.iodev.probs_   : will be used in events like these.on("initProg", and these.on('genZoneRele',
+                                                //                                                                         looking at its input set in the exec  builder prog_parmFact(sched) :
+                                                //                                                                              let dataArr={
+                                                //                                                                              initProg:{dataArr:sched},// std input dataArr coming from probSched={ mapping:[4,2]}
+                                                //                                                                              genZoneRele:{dataArr:sched}}
+                                                //                                                                                  nb consumed in the events as sched.mapping   and sched.probMapping
+
+                                                //                                                                          called by event socket.on('startprogrammer',repeatHandler1);
+                                                //                                                                            where from input coming from browser (triggers2) we get the 
+                                                //                                                                              sched.probMapping=toeval(eM.state,triggers2.probMapping);// mapping algo vars to plant devices !, input used when call last event genZoneRele of related exec created with prog_parmFact(sched)
+                                                //                                                                              sched.mapping=toeval(eM.state,triggers2.mapping); //  = [0,1,2,3,4,5]
+                                                //                                                                                   where sched.probMapping is filled in probemapping input where usually also set state.probmapping 
+                                                //                                                                                   where sched.mapping is filled in devmapping input where usually also set state.devmapping 
+                                                //                                                                            
+function builddev(devices,ct,map,type){// fill obj map with dev id/port (see models.js) + fill ctl in ct[index of devices],  
+devices.ctls.forEach((mdev,index)=>{
+  if(mdev){ct[index]=mdev;
+    map[index]=devices.devmap[index].portnumb;// just to make easy the debug
+   if(type) console.log(' builddev(), device of type probe , id/port ',map[index],' was added on ctl.iodev.probs_');
+   else console.log(' builddev(), device of type relay , id/port ',map[index],' was added on ctl.iodev.relais_');
+  }
+});}
+
+
+console.log(' buildPlantDev(),got dev ctl list: ',state.devMap);
 // ???????????????????????
 // run();// load in ctl the oparational available dev i/o
 
@@ -2471,20 +2723,24 @@ socket.on('stopRepeat',() => {
 socket.on('startprogrammer',repeatHandler1);// start anticipating algo with setting and run an execute()
 function repeatHandler1(starthour,stophour,dminutes,triggers2) {// sched triggers2 keys:extract2 = ["Tgiorno","PGMgiorno","Tnotte","PGMnotte"],
   console.log(' startprogrammer socket event handler repeatHandler1() called with triggers2: ',triggers2 )   ;                                                            // sched={'giorno':['8:30':t1,"17:00":t2]} see initProg event x keys definitions
-  let sched={};// {giorno:{'16:10':-3,,,,},notte:{}} 
+  let sched={programs:{}};// sched={programs:{giorno:{'16:10':-3,,,,},notte:{}},probMapping:[],mapping:[]} 
   if(!triggers2)return;
   // if(triggers2.Tgiorno&&triggers2.PGMgiorno)Object.assign(sched, triggers2.PGMgiorno);
   // if(triggers2.Tnotte&&triggers2.PGMnotte)Object.assign(sched, triggers2.PGMnotte);
-  if(triggers2.Tgiorno&&triggers2.PGMgiorno){sched.giorno={sched:triggers2.PGMgiorno};
+  if(triggers2.Tgiorno&&triggers2.PGMgiorno){sched.programs.giorno={sched:triggers2.PGMgiorno};
     if(triggers2.PGMgiornoToll){sched.giorno.toll=triggers2.PGMgiornoToll;// // tolleranze (un valore x all), same keys of sched.giorno.sched
       console.log(' startprogrammer socket event handler repeatHandler1() saved tollerate array: ',triggers2.PGMgiornoToll,'\n sched: ',sched);
     }
   }
-  if(triggers2.Tnotte&&triggers2.PGMnotte){sched.notte={sched:triggers2.PGMnotte};
+  if(triggers2.Tnotte&&triggers2.PGMnotte){sched.programs.notte={sched:triggers2.PGMnotte};
     if(triggers2.PGMnotteToll)sched.notte.toll=triggers2.PGMnotteToll;// // tolleranze (un valore x all), same keys of sched.giorno.sched
   }
+
   sched.probMapping=toeval(eM.state,triggers2.probMapping);// mapping algo vars to plant devices !, input used when call last event genZoneRele of related exec created with prog_parmFact(sched)
+                                                            // // preferred use :  ('==&&state.mapping=[0,1,3,2,4];')   will fill the state.mapping var ! and returs the array 
   sched.mapping=toeval(eM.state,triggers2.mapping);// mapping algo vars to plant devices !, input used when call last event genZoneRele of related exec created with prog_parmFact(sched)
+
+
   if(!eM)console.error(' repeatHandler1(), eM is null ');
   if(!eM)console.log(' repeatHandler1(), eM is null ');else console.log(' repeatHandler(), eM is found '); 
     repeat1=repeat1||checkFactory(eM);// could be find null ???
@@ -2764,7 +3020,7 @@ state=that.state,reBuildFromState=that.reBuildFromState;
   function antic_parmFact(noparms){
   
       //  let{procName, a,b,ev2run, asyncPoint, processAsync, dataArr}=execParm;
-  let  pdate=new Date();pdate.setHours(pdate.getHours()+1);
+  let  pdate=new Date();pdate.setHours(pdate.getHours()+dOraLegale);
   let procName='startAntic_'// 'anticipate'
   + pdate.toLocaleString(),algo='anticipate';
   console.log(' checkFactory()  define  procedure ',procName);
@@ -2786,15 +3042,11 @@ state=that.state,reBuildFromState=that.reBuildFromState;
   }
 
 
-  function prog_parmFact(sched,probSched){// from browser we got sched={'giorno':['8:30':t1,"17:00":t2],       todo :      1:[]
-                                          //                            notte:[],                               todo:        2:[]
-                                          //                            mapping:[0,1,3,2,4]}  
-                                          // from browser we got probSched={                               todo:        2:[]
-                                          //                            mapping:[4,2]}  // probe giorno/1 has addr 4 ,,,,
+  function prog_parmFact(sched){// from browser we got sched
                                           // , the key are the key generated in initProg that define the probes whose temperature must be controlled
                                           // probSched= probe address={}
     //  let{procName, a,b,ev2run, asyncPoint, processAsync, dataArr}=execParm;
-    let  pdate=new Date();pdate.setHours(pdate.getHours()+1);
+    let  pdate=new Date();pdate.setHours(pdate.getHours()+dOraLegale);
 let procName='startProg_'// 'program'
 + pdate.toLocaleString(),algo='program';
 
@@ -2804,15 +3056,15 @@ console.log(' prog_parmFact()  define  procedure ',procName,' with sched: ',sche
 let ev2run = {initProg:null,// will put probes result as input of genZoneRele ev
   // preparazione dati , checks,....
   genZoneRele:"initProg"};// input coming from previous event initProg. attivare valvole x risc generale e poi singole zone
-let dataArr=//{begin:0,startcheck:0}; 
+let dataArr_=//{begin:0,startcheck:0}; 
 //{begin:null,openapi:null,startcheck:null}; 
 {
   // initProg:null,
-  initProg:{dataArr:probSched},// std input dataArr coming from probSched={ mapping:[4,2]}
+  initProg:{dataArr:sched},// std input dataArr coming from sched
   genZoneRele:{dataArr:sched}};// std input dataArr coming from sched
 let  evAsync={};// evAsync={aEv2runKey:itsasync,,,,,,}
 let a=processAsync={},b=asyncPoint={};// todo 
-return {procName, a,b,ev2run, asyncPoint, processAsync, dataArr,algo:'program'};
+return {procName, a,b,ev2run, asyncPoint, processAsync, dataArr:dataArr_,algo:'program'};
 
 }
 
@@ -2858,11 +3110,13 @@ return {procName, a,b,ev2run, asyncPoint, processAsync, dataArr,algo:'program'};
   }
 
   function consolidate(state,lastalgo,date){// [false, false, false, false,false,false]= [heat,pdc,g,n,s,split], lastalgo = anticipate,program,user
-// puo essere chiamato sia da anticipate che da program
+// puo essere chiamato sia da anticipate che da program. ma ultimamente program chiama optimize() !!!  >>> todo  sistemare un unico optimize !?!
 // heat : se impostato da program  antic puo solo fare or 
 
+// >>>  torna il valori dei rele , ricalcolati tenuto conto di 3 calcoli degli algo , il piu recente e i due precedenti  set !!! 
 
-// user part mut be todo
+
+// user part must still todo
 
 
 // >>>>   program if not null cant have any null val !! ( only true or false)
@@ -2923,7 +3177,7 @@ browser !!!! see DEW
 
 
           // anticipate and user can have null val (dont set that index), program  cant have null val .
-          antic.forEach((val,ind)=>{if(val==null)res.push(program[ind]);else res.push(val)});
+          antic.forEach((val,ind)=>{if(val==null)res.push(program[ind]);else res.push(val)});// prog e antic active : take antic values if not null otherwise let program values !
 
         }
         // save 
@@ -2964,19 +3218,19 @@ browser !!!! see DEW
       return true;
     }
 }
-function toeval(state,evstr){// '>>&&  a js func working on state
+function toeval(state,evstr){// preferred use :  '>>&&state.devmapping=[0,1,3,2,4];'   will fill the state.devmapping var !
   let templP;
   if(evstr)templP=evstr.split('&&');
 
       if(templP){
-        if(templP[0]=='>>'){// when wants to set some var and return a value (state.mapping), beter work only in state var : '>>&&state.mapping=[0,1,3,2,4];'
+        if(templP[0]=='>>'){//preferred : when wants to set some var and return a value (state.mapping), beter work only in state var : '>>&&state.mapping=[0,1,3,2,4];'
         // run eval
         fc=templP[1];// jsfunctionText
         console.log(' first looseJsonParse in template ...&&fc&&... evaluating fc js code , fc is :',fc);
         let myf='"use strict";' + fc;
-        eval( fc);// eval has this scope to work with ! so also vars. eval() will return the last calculated expression 
+        eval( fc);// set devmapping. eval has this scope to work with ! so also vars. eval() will return the last calculated expression 
         console.log('looseJsonParse in ...&&fc&&... evaluating fc:',fc);
-        return state.mapping;// return
+        return state.devmapping;// return
       }
       else       if(templP[0]=='=='){//// when wants only return a value
         fc=templP[1];// jsfunctionText

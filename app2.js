@@ -6,7 +6,7 @@ const readline = require('readline').createInterface({// see https://stackoverfl
   input: process.stdin,
   output: process.stdout,
 });
-
+const dOraLegale=parseInt(process.env.dOraLegale)||0;
 /*
 
 summary:
@@ -393,7 +393,7 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
         asyncNam = asyncPoint[stepNum];
         let outpu='goonstep called , exec procedure: '+procName+', step: '+stepNum+', event: '+step+'\n state: '+JSON.stringify(that.state,null,2)+'\n  async to run: '+asyncNam+'\n\n';
         //console.log('\n *****   goonstep called , exec procedure: ',procName,', step: ',stepNum,'\n state: ',that.state,'\n event: ',step,', async to run: ',asyncNam,'\n');
-        console.log('\n *****  ',outpu);
+        console.log('\n ***** ## ',outpu);
       
         let outprompt='>>>>>>>>>>>> please input somethig togoon step.'+outpu;
         if(DEBUG1){
@@ -436,7 +436,7 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
 
       // ends goonstep loop :
       function ends(stepNum,lastRunnedProcedure){
-        let dd=new Date();dd.setHours(dd.getHours()+1);
+        let dd=new Date();dd.setHours(dd.getHours()+dOraLegale);
         let GMTdate=dd.toLocaleString();
         that.state.lastRunnedProcedure={result:lastRunnedProcedure,procName,GMTdate};
         that.state.relHistory=that.state.relHistory||[];
@@ -464,9 +464,9 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
     function runEvent(myev) {//run event myev with in data primariamente in ev2run
       //  var myev='begin';
       let par1 = 0;
-      console.log(' runEvent: firing handler of event : ',myev);
+      console.log(' ## app2.runEvent(): firing handler of event : ',myev);
       var emmitMyev = OuterFunction(par1, myev).call(that,null);//,_mycb);// prepare senza usare zzzz
-      console.log(' runEvent(): promise was started ( probably terminated)  , event ', myev, ', ev2run is:', ev2run,' dataCon is: ', dataCon, ', dataInv: ', dataInv);
+      console.log(' runEvent(): promise was started ( probably terminated)  , event ', myev, ', ev2run is:', ev2run,' dataCon is: ', dataCon, ', dataInv(quali eventi sono alimentati): ', dataInv);
     }
 
     async function runAsync(asynckey) {// run async associated to event with input=dataArr[asynckey].processAsync

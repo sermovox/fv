@@ -21,7 +21,11 @@ async function getio(num, iotype, ind, ismqtt = false) {// returns promise , res
       let retu;
         if(mqtt.avail) 
         // antipattern: retu=await mqtt.fact(num);//
-        retu=mqtt.fact(num,ind);//promise
+        retu=mqtt.fact(num,ind),iotype;//a promise resolving to :
+                                        //  a relais or 
+                                        // if (iotype='in', a probes 
+                                        // mqtt dev 
+                                        // iotype is the capability requested and must match the dev registration data done in init()
         else retu= null;
       return retu;//
   
@@ -75,7 +79,7 @@ item=await getio(6, 'out');relais_.push(item);
                           // (gp)=>{
                             function (gp){
                               Gpio=gp;return this;},
-                  getctls:function(gpionumb,mqttnumb,mqttprob){// gpionumb,= [number,,,null,,,]  number is the raspberry gpio , null means no connection to dev available
+                  getctls:function(gpionumb,mqttnumb,isProbe=false){// gpionumb,= [number,,,null,,,]  number is the raspberry gpio , null means no connection to dev available
     // // mqttnumb = [number,,,null,,,]  number is the mqtt device id to subscribe
     //  >>>>> number not 0 !
     /* logic:
@@ -95,19 +99,24 @@ item=await getio(6, 'out');relais_.push(item);
                         quando promises[x] e risolto (in it) (entro un tempo max ) fatti i controlli su it si filla resu[it.devNumb]=it.ctl
         - fillctls risolve finalmente il promise con resu
     */
+   let numOfDev;
+        if(gpionumb)numOfDev=gpionumb.length;else if(mqttnumb) numOfDev=mqttnumb.length; else numOfDev=0;
 return new Promise((resolve) => {// the returning SSSDD promise
 
 
-function doSomethingAsync(gpio,ind,ismqtt=false) {// a wrapper
-return getio(gpio, 'out',ind,ismqtt);// return a promise
+function doSomethingAsync(gpio,ind,ismqtt=false) {// a wrapper to getio()
+  let type;
+  if(isProbe)type='in';// temp use std shelly ht mqtt protocol
+  else type='out';// temp use shelly 1 protocol 
+return getio(gpio,type,ind,ismqtt);// return a promise
 }
 
 function fillctls() {
 const promises = [];
-let resu=Array(8).fill(null);// the returning dev ctl array, null means there is no dev , the sw will not do any write and anyway read a 0 state 
+let resu=Array(numOfDev).fill(null);// the returning dev ctl array, null means there is no dev , the sw will not do any write and anyway read a 0 state 
 let pr,resolved= [],probj;//Array(8).fill(false);
 
-for(i=0;i<gpionumb.length;i++){
+for(i=0;i<numOfDev;i++){
 // first ctl :
 if(mqtt&&mqtt.avail&&mqttnumb[i]){// try first to get the mqtt device 
 // use a mqtt device topic as gpio as registered in BBVV
@@ -115,20 +124,21 @@ if(mqtt&&mqtt.avail&&mqttnumb[i]){// try first to get the mqtt device
 
 // mqtt ctl registered at key/index 11 in AAFF
 pr=doSomethingAsync(mqttnumb[i],i,true);//probj={ind:i,prom:pr};
-
 }else{// if there is a spare in local gpio 12
 pr=doSomethingAsync(gpionumb[i],i);
 }
+
+
 promises.push(pr);resolved.push(null); 
 
-pr.then((it)=>{
+pr.then((it)=>{// when resolved fill items of resolved[devNumb]={devNumb,devtype,portnumber},resu[devNumb]=ctl
 // it={ctl:new fc(gp,ind)/null,devNumb:ind,type:'mqtt'};
 // it={ctl:new Gpio(num, iotype)/null,devNumb:ind,type:'gpio'}
 
 console.log(' fillctls() , now available dev ctl (devtype: ',it.type,')  dev number : ',it.devNumb);//,' promise resolved in def time in :',JSON.stringify(it.ctl,null,2));
 if(it.ctl)console.log(' it has .readSync: ',it.ctl.readSync);
 
-resu[it.devNumb]=it.ctl;// the available ctl array
+resu[it.devNumb]=it.ctl;// the available ctl array, usefull?
 resolved[it.devNumb]={devNumb:it.devNumb,devType:it.type};
 if(it.ctl==null){console.log(' nb ( used in debug) ctl of type gpio are null if this server is not raspberry: ' );
 resolved[it.devNumb].portnumb=null;// no hw device found, use a dummy device reading always 0
@@ -147,7 +157,8 @@ const myto=setTimeout(() => {
 
 console.log("Resolving max time , the active ctl are: ",resolved,',in ',to,'ms,  nb false position  cant be operated !');
 console.timeEnd('mqtt connection');
-resolve({ctls:resu,devmap:resolved});// release the ctl array , max time to resolve the ctl has got, some item can be null
+resolve({ctls:resu,// ctls=[ctl1,,,,,]
+  devmap:resolved});// devmap=[{devNumb,devType,portnumb},,,,],release the ctl array , max time to resolve the ctl has got, some item can be null
 }, to);
 // >>>  or wait x all before max time to resolve the SSSDD promise 
 Promise.all(promises)
@@ -158,7 +169,7 @@ console.log("All ctls done, the array of resolved ctl is", JSON.stringify(result
 
 // resolve(resultsCtl);only the results[i].ctl
 // or , hopily all it has called :
-resolve({ctls:results,devmap:resolved}); // WARNING :  hopily all it has called :
+resolve({ctls:resu,devmap:resolved}); // WARNING :  hopily all it has called :
 })
 .catch((e) => {
 // Handle errors here

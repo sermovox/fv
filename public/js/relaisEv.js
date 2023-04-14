@@ -1,1 +1,1 @@
-let relaisEv_=['pippo','poppo'];
+let relaisEv_=['heat','pdc','g','n','s','split'];

@@ -609,7 +609,7 @@ at start, after login, we built+ customize (customOn(this);)  fn/eM using app2 b
 		    let{gpionumb,mqttnumb,relaisEv,devid_shellyname}=plantconfig;
     
 
-			 - abilita(eM.state).then((devices)=>{ / abilita sezione gestione eventi ( relais_)  plant nella pagina
+			 - abilita(eM.state).then((devices)=>{ / abilita sezione gestione eventi ( relais_)  plant nella pagina  SSSTTT
 			 	sostanzialmente runna 
 			 	- async function buildPlantDev(){// build here the plant ctl devices (ctl/eM/fn).iodev.relais_ dev/pumps (+ /button switch) and their handlers 
 			 		isAvail=mqtt.init(devid_shellyname))){// devid_shellyname={11:'shelly1-34945475FE06'}
@@ -627,7 +627,7 @@ at start, after login, we built+ customize (customOn(this);)  fn/eM using app2 b
 
 						devices.ctls.forEach((mdev,index)=>{
 						  if(mdev){eM.iodev.relais_[index]=mdev.ctl;
-						    state.pumpMap[index]=devices.devmap[index].portnumb;
+						    state.pumpMap[index]=devices.devmap[index].portnumb;// the dev id in models.js
 						    
 						pumpsHandler[ind]=watchparam(pump);// handler for actuators, each handler emit the socket.emit('pump' to browser.
 						
@@ -646,4 +646,77 @@ at start, after login, we built+ customize (customOn(this);)  fn/eM using app2 b
  					// allign relays current status to state.relays :
 					  relaisEv.forEach((pump,ind) => {// ['pdc','g','n','s']
 					    setPump(ind,eM.state.relays[pump],eM);//
+_____________________________________________
+fare merge tra consolidate() e optimize() :
+
+  function consolidate(state,lastalgo,date){// [false, false, false, false,false,false]= [heat,pdc,g,n,s,split], lastalgo = anticipate,program,user
+// puo essere chiamato sia da anticipate che da program. ma ultimamente program chiama optimize() !!!  >>> todo  sistemare un unico optimize !?!
+// heat : se impostato da program  antic puo solo fare or 
+.........
+_________________________________________________
+
+chiarimenti sullo state dei 'dev/relay/pumps
+
+i  device ctl sono mappati via indice in eM/fn.iodev.relais_
+i nomi assegnati (calcolato from  models.js) sono eM.state.app.plantconfig.relaisEv;(mappa indice/nome)
+lo stato dei device sono torati nell'oggetto : eM.state.ralays secondo key/nome relaysEv
+
+ eM/fn.iodev.relais_ e eM/fn.iodev.probes_ hanno i dev/prob che sono ottenuti dagli id/port in model.js  secondo i :
+    "devMap" : [11, 16, 20, 21, 26, 19, 13, 6],
+    "probMap" : [],
+    
+    >>> cancellare pumpMap  dal persistant file ! in rapberry   , + anche  quache altro refuso ?
+
+ state.plantcnt.pumps  contiene i dati x creare espandere la view dei pump list nel browser 
+ 
+  
+___________________________________
+set date:
+
+const dOraLegale=parseInt(process.env.dOraLegale)||0;
+            var date = new Date(); // Create a Date object to find out what time it is   gtm ?
+            date.setHours(date.getHours()+dOraLegale);//dOraLegale);
+            
+ or:
+     let  pdate=new Date();pdate.setHours(pdate.getHours()+dOraLegale);
+	localdate= pdate.toLocaleString(),algo='program';
+            
+_____________________________________
+integrating program and anticipate algo , summary in :
+function attuators(fn,map,aTT){// aTT: the program() algo resuts (after consolidating with anticipate algo and manual set in optimize())
+                                //  in attuators(these,map,aTT), we set (calling setPump(i,relaisEv[i],fn)) real devices (i) mapping virtual (if its map>=0) into real dev (of index i=map) 
+                                //                              nb only if the new set/value  of  real device is changed from its status  state.relays[pump=])
+                                // setPump will then call (eventually ) browser then call:
+                                //                          >>  onRelais   (setta i singoli real device/rele ( index= pump_ e nome pump) e registra in state lo status per nome in state.relays[pump])
+                                //                                 only if the new set/value  of real hw device is changed ! 
+                                // when all setpump promises resolves we cb for event termination setting the execute program algo results : aTT.toString() , see Outerfunction. updateData_ .....
+                                //                          >> the execute result was then stored in "relHistory" state as string!
+                                //                          nb program() algo specific result (before consolidating ) was  stored in lastProgramAlgo obj  as pumps array ! as lastProgramAlgo array 
+                                //					because they need to consolidate all related algo results  when  next algo result is coming
+
+
+_____________________________________
+
+nuovo algo : the base pdc algo : in funzione di temp ext e orario setta pdc e split e ht via dei optimIndex=0,1,2   0: usa solo split e pdc  1: usa split pdc e g/n/s   2: usa solo ht e g/n/s 
+ schema di optimize :
+ - ora base assegna 0,1,2   , antic modifica il base, program assegna i rele guardando base e singole zone :
+ split on se antic split
+ 
+ premessa : ogni plant ha i suoi custom rele mappati dai virtual dev secondo map
+ per agire sui virtual dev si inseriscono i algo triggers sulla pagina del plant con relative map che connettono i custom rele
+ ogni algo triggers ha anche dei virtual( non esistono pero reali) status var che registrano eventi intermedi che, se trovati,  vengono usati da tutti algo semplificando i calcoli usando i valori intermedi(context) che possono anche essere settati a mano !(magari usando node red che imposta il var usando un connettore mqtt !!!!.
+ 	in pratica rele che sono sotto gruppo state.var che hanno dei setpumps che agganciano dei onRelais che settano solo lo state , tali var possono essere usati anche come probe, leggendo i dati  dello state senza avere un real probe attaccato !!! 
+ 		quindi i state,var saranno generati con una prsonalizzazione di getio.getctls(gpionumb,mqttnumb);   che non avranno la parte di dev ctl essendo inutile, il device e' proprio la var stessa !! ( see SSSTTT)
+ 		> tutti gli algo avranno a disposizione direttamente il valore come se usassero un lastVarAlgo piuttosto che leggere un dato udando un probe virtuale !!!!!
+ 		
+ 		cioe il anticipate cambia solo i l base var status. poi quando si gira il program non si guarda solo il base var al posto del setting dei rele
+ 		in parole povere il optimize qando chiamato da un program calcola i rele anche pe la parte che ora e' in anticipate guardando solo il base var !!!!
+ 		
+ 		
+ 		oppure aggancio il var state a uno state su mqtt che registro come registrare un rele e un probe allo stesso tempo . quindi il var state  legge scrive su tale device mqtt assieme/interagendo anche via node red 
+ 		quindi con un ago base o con nodered impostro la modalita base , poi anticipate algo resetta il base e chiama il program algo per calcolare i real devices. poi program algo girera autonomamente lavorando sul base var ! 
+ 		
+ 		quindi si potrebbe per semplificare raggruppare i probe facendogli fare anche funzione di var e lasciandogli uno spazio di state var sotto i state rele 
+__________________________________________________
+
 

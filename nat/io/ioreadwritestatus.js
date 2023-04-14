@@ -128,7 +128,7 @@ const api={// see https://javascript.info/promise-chaining
     //fn.socket.emit('status',JSON.stringify(fn.state,null,2));// send the status to the browser too, also if the related section is not jet visible !
     let prettyjson=prettyJSONStringify(fn.state, {
       shouldExpand : function(object, level, key) {
-          if (key == 'lastT'||key=='TgiornoToll'||key=='probes'||key=='execute'||key=='PMCgiorno'||key=='relays'||key=='pumpMap') return false;
+          if (key == 'lastT'||key=='TgiornoToll'||key=='probes'||key=='execute'||key=='PMCgiorno'||key=='relays'||key=='devMap'||key=='probMap') return false;
           if (key == 'doExpand') return true;
           if (Array.isArray(object) && object.length < 8) return false;
           if (level >= 3) return false;

@@ -1,0 +1,199 @@
+extracts to explain 
+- devises (pump/relays) definition  and probs definition from model.js >>  see state.devMap state.probMap
+- the mappings of virtual device and probs in algo triggers (input ) 	>>>	see state.devmapping e state.probmapping  
+
+
+
+
+_______________________________
+ 
+ function abilita2(devices_){// {myctls,myprobs}
+ ..............
+ 
+ builddev(devices,eM.iodev.relais_,state.pumpMap);// transform devices={devmap,ctls} >>  state.pumpMap eM.iodev.relais_  : the action relays listed in browser
+builddev(probes,eM.iodev.probs_,state.probMap); //                                      state.probMap eM.iodev.probs_   : will be used in events  these.on("initProg", and these.on('genZoneRele',
+                                                //                                                                         looking at its input set in the exec  builder prog_parmFact(sched) 
+                                                //                                                                              let dataArr={
+                                                //                                                                              initProg:{dataArr:sched},// std input dataArr coming from probSched={ mapping:[4,2]}
+                                                //                                                                              genZoneRele:{dataArr:sched}}
+                                                //                                                                                  nb consumed in the events as sched.mapping   and sched.probMapping
+															prog_parmFact(sched) is
+                                                //                                                                          called by event socket.on('startprogrammer',repeatHandler1);
+                                                //                                                                            where from input coming from browser (triggers2) 
+                                                //									  we build sched[]=sched={programs:{giorno:{'16:10':-3,,,,},notte:{}},probMapping:[],mapping:[]}  :
+                                                										    - giorno:{'16:10':-3,,,,},    only if Tgiorno!=null
+                                                										    - notte:{},			only if Tnotte!=null
+                                                //                                                                              -probMapping=toeval(eM.state,triggers2.probMapping);// mapping algo vars to plant devices !, 
+                                                													input used when call last event genZoneRele of related exec created with prog_parmFact(sched)
+                                                //                                                                              -mapping=toeval(eM.state,triggers2.mapping); //  = [0,1,2,3,4,5]
+                                                										  where sched.probMapping is filled in probemapping input where usually also set state.probmapping 
+                                                										  where sched.mapping is filled in devmapping input where usually also set state.devmapping 
+                                                //                                                                            
+ _____________________________
+ 
+ function toeval(state,evstr){// preferred use :  '==&&state.mapping=[0,1,3,2,4];'   will fill the state.mapping var ! and return it 
+ 
+ 
+_____________________________________________ 
+ 
+     if(triggers2.PGMnotteToll)sched.notte.toll=triggers2.PGMnotteToll;// // tolleranze (un valore x all), same keys of sched.giorno.sched
+  }
+  sched.probMapping=toeval(eM.state,triggers2.probMapping);// mapping algo vars to plant devices !, input used when call last event genZoneRele of related exec created with prog_parmFact(sched)
+  sched.mapping=toeval(eM.state,triggers2.mapping);// mapping algo vars to plant devices !, input used when call last event genZoneRele of related exec created with prog_parmFact(sched)
+  if(!eM)console.error(' repeatHandler1(), eM is null ');
+  if(!eM)console.log(' repeatHandler1(), eM is null ');else console.log(' repeatHandler(), eM is found '); 
+    repeat1=repeat1||checkFactory(eM);// could be find null ???
+    console.log(' startprogrammer socket event handler repeatHandler1() is launching repetition job repeatcheckxSun() with sched: ',sched );
+    if(repeat1.repeatcheckxSun(starthour,stophour,dminutes,prog_parmFact(sched))==0)// exit ok 
+    setanticipateflag({running:true,starthour,stophour,dminutes,triggers2},'program');
+    else {repeat1=null;
+   console.log(' startprogrammer() not called ');
+ 
+ 
+ 
+ 
+ ________________________________________
+ 
+ 
+  function prog_parmFact(sched){// from browser we got sched={'giorno':['8:30':t1,"17:00":t2],       todo :      1:[]
+                                          //                            notte:[],                               todo:        2:[]
+                                          //                            mapping:[0,1,3,2,4]}  
+                                          // from browser we got probSched={                               todo:        2:[]
+                                          //                            mapping:[4,2]}  // probe giorno/1 has addr 4 ,,,,
+                                          // , the key are the key generated in initProg that define the probes whose temperature must be controlled
+                                          // probSched= probe address={}
+    //  let{procName, a,b,ev2run, asyncPoint, processAsync, dataArr}=execParm;
+    let  pdate=new Date();pdate.setHours(pdate.getHours()+1);
+let procName='startProg_'// 'program'
++ pdate.toLocaleString(),algo='program';
+
+console.log(' prog_parmFact()  define  procedure ',procName,' with sched: ',sched);// input of genZoneRele will be {'initProg':{giorno:19.2,notte:,,,,},dataArr:sched={'giorno':{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}}
+//if(fn);else {console.error(' checkfactory() cant find the ctl . stop ');console.log(' checkfactory() cant find the ctl . stop ');}
+
+let ev2run = {initProg:null,// will put probes result as input of genZoneRele ev
+  // preparazione dati , checks,....
+  genZoneRele:"initProg"};// input coming from previous event initProg. attivare valvole x risc generale e poi singole zone
+let dataArr=//{begin:0,startcheck:0}; 
+//{begin:null,openapi:null,startcheck:null}; 
+{
+  // initProg:null,
+  initProg:{dataArr:sched},// std input dataArr coming from probSched={ mapping:[4,2]}
+  genZoneRele:{dataArr:sched}};// std input dataArr coming from sched
+let  evAsync={};// evAsync={aEv2runKey:itsasync,,,,,,}
+let a=processAsync={},b=asyncPoint={};// todo 
+
+
+
+________________________________________________
+
+
+  
+  
+these.on("initProg",// fill tSonda x next event
+
+   
+    async function (inp_, cb) {// ?? only  event type 1, so events that after lauch startcheck, can fire start event to login to openapi. so anyway get token/login
+
+
+
+console.log(' handler fired by event initProg ');
+
+let state= 
+these.state,
+// or : 
+// this.state, // IS OK ???????, must be not null , defined in  app2 constructor()/clearState()
+
+
+  plant=state.app.plantname;// the real input , no dummy !
+
+// just update status to the  ....? if needed 
+
+let probes , reads=2,retry=false,inp;
+if(inp_&&inp_.dataArr){inp=inp_.dataArr;//  inp={
+                                        //    probMapping:[]}
+}
+
+    probes={};
+          // probe mappings:
+          let map;
+          if(inp&&inp.probMapping)map=inp.probMapping;// [2,4]
+          else map=[0,1,2,3,4,5];// identity x modbus
+
+    if(map[0]<1000){// is modbus
+    probes.notte=// 2
+    parseFloat(await shellcmd('modbusRead',{addr:map[1],register:'temp',val:0}).catch(error => { // val useless
+      console.error('  shellcmd catched ,error: ', error);
+      retry=true;
+    }));
+    if(retry){
+      retry=false;
+      probes.notte=parseFloat(await shellcmd('modbusRead',{addr:map[1],register:'temp',val:0}).catch(error => { // val useless
+        console.error('  shellcmd catched ,error: ', error);
+        retry=true;
+      }));
+    }
+    if(retry){retry=false;reads--;}
+    probes.giorno=parseFloat(await shellcmd('modbusRead',{addr:map[0],register:'temp',val:0}).catch(error => { // val useless
+      console.error('  shellcmd catched ,error: ', error);
+      retry=true;
+    }));
+    if(retry){
+      retry=false;
+      probes.giorno=parseFloat(await shellcmd('modbusRead',{addr:map[0],register:'temp',val:0}).catch(error => { // val useless
+        console.error('  shellcmd catched ,error: ', error);
+        retry=true;
+      }));
+    }
+    if(retry){retry=false;reads--;}
+    console.log('  genZoneRele , reading temp , sonda gave:  ',probes);
+  }else {// is mqtt
+    // todo : read the mqtt input devices (cant write ) stored in fn.devio.probes_
+    // ...
+    // probes.giorno=these.devio.probes_[map[0]]
+    // ....
+    // NBNBNB     above we got the modbus probe devices just calling a python func , they do not need to be configured/generated in fn.devio
+
+  }____________________________________________
+  
+  these.on('genZoneRele', 
+
+// todo  from openapi and startcheck schelethon 
+
+// openapi :
+// .....
+
+
+// from startcheck :
+async function ( inp_, cb) {// the fsm ask state updates (we use openapi) : will set input of 'startcheck' , best to set also corresponding state ( last data gathered from fusionsolar)
+                            // inp_= {'initProg':{giorno:19.2,notte:,,,,},dataArr:{'giorno':{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}, 'notte':....,mapping:[3,null,null,5,null]}
+  let inp,probes=null;
+  if(inp_&&inp_.dataArr){inp=inp_.dataArr;//  inp=sched={'giorno'/1:{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}, 
+                                          //  'notte'/2:....,
+                                          //    mapping:[]}
+  }
+if(inp_&&inp_.initProg){probes=inp_.initProg;// probes={giorno/119.2,notte/2:,,,,}
+
+  let state=these.state;//this.state;
+  console.log(' handler fired by event genZoneRele , with input data: ',inp_,' state: ',state);
+
+  /* old
+  let calc=(st) =>{// returns false if anticipating
+    // ............
+    return true;
+  };*/
+  let res={},aTT,resex=null;
+
+
+
+    if((aTT=program(state,inp,probes))&&aTT&&aTT.length>0){//  probes={giorno:19.2,notte:,,,,}  
+                                          // inp={'giorno':{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}, 
+                                          //  'notte':....,
+                                        //    'mapping':[]}// opzionale
+      // mappings out relais_:
+      let map;
+      if(inp.mapping)map=inp.mapping;// sched.mapping
+      else map=[0,1,2,3,4,5];// identity
+      
+    //attuators(these,aTT[0],aTT[1],aTT[2],aTT[3],aTT[4],aTT[5])// [heat,pdc,g,n,s,split] val=true/false/null   set relais x level 1, then after 1 hour (1,1,1,0), if noeco (1,1,1,1)
+    attuators(these,...map)
+  
