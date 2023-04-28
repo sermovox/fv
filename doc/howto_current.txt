@@ -47,11 +47,14 @@ sequenza che precede server emit('pump)
 			  	nb setPump is aslso used in startfv to deploy the initial state relays to pumps 
 			  	
 			  	
-			setPump(pumpnumber,on)  calls :
+			setPump(pumpnumber,on)  calls :		  **AK78
 			
-			 	- pumpsHandler[pumpnumber]  to set relais 
+			 	- pumpsHandler[pumpnumber](0,on_)  to set relais , 
+			 						nb esso è settato in startfv_/abilita2/builddev():
+			 							pumpsHandler[ind]=watchparam(pump);// handler for actuators, each handler emit the socket.emit('pump' to browser.
+										if(relais&&relais[ind])relais[ind].watch(pumpsHandler[ind]);// attach same handler watchparam(pump) to all gpio pump  buttons.   << todo : da debuggare il passaggio parametri !!!
 			 	
-			 	- onRelais(pumpnumber,on_);   to set relais (assieme anche a ... )
+			 	- onRelais(relaisEv[pumpnumber],on_,'server',fn);   to set relais (assieme anche a ... )
 			 	
 					 	 //  nb onRelais can be called  from :
 				                  //     - this server using   setPump() che chiamera onRelais sia direttamente che via browser (feedback )
@@ -64,7 +67,7 @@ sequenza che precede server emit('pump)
 				                  //                 by  setPump() 
 				                  // 
 				                  //          nb setPump() chiama onRelais sia direttamente che via browser ( come feedback )
-				                  //              setPump è chiamato da startfv, attuators
+				                  //              setPump è chiamato da startfv, attuators e altri metodi che si azionano all'uscita di vari execute
 				
 		 
 	 - causata da user buttons relais :
@@ -197,7 +200,7 @@ sequenza di init al press del button: load a plant
 			  					
 				  						in onrelais se il valore da impostare e diverso la rele current value si updata la gpio con : 
 				  					relais_[pump_].writeSync(lightvalue);
-				  						quindi se lo stato non  state.relays[pump] non corrisponde lo aggiorno chiamando il promise 
+				  						quindi se lo stato   state.relays[pump] non corrisponde lo aggiorno chiamando il promise 
 				  					
 				  					return api.writeScriptsToFile(fn)
 				  					che da lo stesso promise  come return di onRelais()
@@ -659,7 +662,7 @@ chiarimenti sullo state dei 'dev/relay/pumps
 
 i  device ctl sono mappati via indice in eM/fn.iodev.relais_
 i nomi assegnati (calcolato from  models.js) sono eM.state.app.plantconfig.relaisEv;(mappa indice/nome)
-lo stato dei device sono torati nell'oggetto : eM.state.ralays secondo key/nome relaysEv
+lo stato dei device sono storati nell'oggetto : eM.state.ralays secondo key/nome relaysEv
 
  eM/fn.iodev.relais_ e eM/fn.iodev.probes_ hanno i dev/prob che sono ottenuti dagli id/port in model.js  secondo i :
     "devMap" : [11, 16, 20, 21, 26, 19, 13, 6],
@@ -719,4 +722,388 @@ nuovo algo : the base pdc algo : in funzione di temp ext e orario setta pdc e sp
  		quindi si potrebbe per semplificare raggruppare i probe facendogli fare anche funzione di var e lasciandogli uno spazio di state var sotto i state rele 
 __________________________________________________
 
+premessa al start del plant si caricano i device (pumps/'out' o prob/'in-var') in state.iodev :
+
+		builddev(devices,eM.iodev.relais_,state.devMap,0);// transform devices={devmap,ctls} >>  state.devMap eM.iodev.relais_  : the action relays listed in browser
+		builddev(probes,eM.iodev.probs_,state.probMap,1);
+
+nb relaisEv sono i nomi dei custom/real pump rele (inorout='out') dei relais_ che uso su un customized plant(real device plant).
+  gli algo lavorano su virtual pump/rele e poi vengono mappati in real : 
+  	- es: il virtual index 3 e mappato sul real index 2, il nome reale e' relaisEv[2] come appare nella lista dei rele del browser
+  	
+  	
+  	
+  gli algo lavorano anche su prob/var device e anche loro vengono mappati :
+  	quando  si triggera un program algo :
+  		socket.on('startprogrammer',repeatHandler1);// start anticipating 
+  		
+  		  - si recuperano (come per tutti gli algo) i map per i rele e i prob/var  devices:
+  		 	sched.probMapping=toeval(eM.state,triggers2.probMapping);// mapping algo vars to plant devices !, input used when call last event genZoneRele of related exec created with prog_parmFact(sched)
+                                                            // // preferred use :  ('==&&state.mapping=[0,1,3,2,4];')   will fill the state.mapping var ! and returs the array 
+  			sched.mapping=toeval(eM.state,triggers2.mapping);
+		  - che vengono passati ai builder degli execute proc :
+		  	prog_parmFact(sched)
+		  	
+	 	  - quando in un event degli execute event list devo usare un probe allora 
+		  	o genero al volo il dev se e' un modbus (real index <1000) , see   parseFloat(await shellcmd('modbusRead',
+		  	o lo recupero un dev index se è un mqtt probe (real index>1000) (nbnb index=0,1,2 not its id=110):
+		  			cerco il id nel cfg  mqttprob:{110:{topic:'gas-pdc ....
+		  					nb  non nei cfg dei rele/pump ; mqttnumb:[11,null,null,null,null,null,null,null]     !!!!!!!!!!!
+		  					>>> quindi il id e' solo un tag di controllo, i dev in-var si usano con i real index che e' l'indice di mqttprob!!
+		  	
+ 			se invece uso un var posso fare lo stesso ma qualora volessi gestire il value (read write) del var state dovrei
+ 			 fare come per i pumps/relais :
+ 			  > creare lista sotto i relais in browser 
+ 			    con nomi description in un array like relaisEv_prob
+ 			    creare una immagine degli mqtt persistant var in state (like did for pump/relais state.relays) usando i nomi di relaisEv_prob come key :   state.in-var: {}
+ 			    	cosi come fatto per i pump/relay device :
+ 			    		state.relays={
+					    "heat": false,
+					    "pdc": true,
+					    "g": true,
+					    "n": false,
+					    "s": false,
+					    "split": true
+					  },
+ 			    e un meccanismo di ( eventi lettura/scrittura impostati da setpump() che poi vengono corretti nel browser e girati come eventi on... che poi write sul device ( persistance) e registrano nell'immagine state. ) 
+ 			    
+ 			    
+ 	>>>>>>>><   idea
+ 		- invece di rifare per i var lo stesso meccanismo di settaggio dei pumps/relays con update anche via browser lasciamolo solo via execute event ctl readSync/writeSync 
+ 			che opera sui in-var reali caricati da mqttprob e facciamo update solo da node red ( a questo punto facciamo anche update dei real pump via node red (agganciando un var ai real pump device) ??
+ 		- oppure 	carichiamo i var dev che si vogliono editare in browser come forreso pump/rele, ovviamente modificando i metodi nel caso di inorout='dev' . 
+ 			quindi 'dev' sono configurati in mqttnumb (come i pump/rele ) e non in mqttprob che rimane solo per i prob !
+ 			il problema e' che va unificato i config dei 'out' secondo lo standard 'var' (obj e non integer)
+ 			
+ 			quindi un event potra scrivere su un var index 1007 che sara il index 1007 -1000 = 7 del mqttprob ( meglio che sara il var 110 che e' il key del real var device of index 0/7)
+ 			
+ ___________________________________________
+ 
+ catena di generazione dei device (mqtt ) in state.iodev :
+ 
+ > model.js 
+ cfgMarsonLuigi={ name:'MarsonLuigi_API',// duplicated FFGG
+        apiPass:'xxxx',// to do
+        // index : the index of a device 
+      gpionumb:[12,16,20,21,26,19,13,6],// (dev id or port) raspberry device info. number is the raspberry gpio , null means no connection to dev available
+      //mqttnumb:[11,null,null,null,null,null,null,null],// mqtt device info/id/port. number is the device id to subscribe
+      mqttnumb:[{portid:11,clas:'out',protocol:'shelly',subtopic:'shelly1-34945475FE06'},null,null,null,null,null,null,null],// mqtt device info/id/port. number is the device id to subscribe
+
+      mqttprob:[{portid:110,subtopic:'ht-cucina',varx:null,isprobe:true,clas:'probe',protocol:'shelly'},//a probe,  the shelly ht probes to register (read only) 
+                                                                                // nbnb clas e isprobe sono correlati !! > semplificare !
+                                                                                // clas='var'/'probe'or 'in'
+
+      {portid:54,subtopic:'var_gas-pdc_',varx:3,isprobe:false,clas:'var',protocol:'mqttstate'}],// a var
+
+                // a var  add also write capabiliy , so can be used as gen state var to modify with mqtt app/node red . as mqtt num will ha a frame below relay state in browser !
+        
+      relaisEv:['heat','pdc','g','n','s','split'],// dev name // >>>>>>>>> todo   add here and in fv3 a new item : heatht !!!!!!!!!!!!!!
+                                                // //  relays : https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001
+      // titles:["HEAT Low Temp","HEAT High Temp"," PdC (vs GAS)","g"," Zona Notte"," Seminterrato"," Splits"],
+      titles:["HEAT Low Temp"," PdC (vs GAS)","g"," Zona Notte"," Seminterrato"," Splits"],// description of device name
+      devid_shellyname:{11:'shelly1-34945475FE06'// mqtt device id-s/n relais and probes !!!!   , details
+                                                // in future we must add cfg data in order to check that the device can be compatible with the type requested (in/out)
+                                                // and other cfg data in order to set a customized topic to send/publish and receive/subscribe messages 
+                                                //              >>> (now we use a def cfg (out:shelly 1 and in:shelly ht) in mqtt ) 
+                                                // 11:{sn:'shelly1-34945475FE06',types:['in,'out'],subscrptiondata:{in:{},out:{},publishcfg:{}}
+                        }
+      };
+ 
+ 
+ 
+ > fv3
+ 
+ 
+   socket.on('startuserplant', function (plant_,feat) { // user press button to connect to some plant, so this event is fired , feat url enc
+
+	   plantcnt=model.ejscontext(plant_),// ejs context=plantcnt={pumps:[{id,title},,,,]}
+	    plantconfig=model.getconfig(plant_),// 
+	    plantcfg=model.getcfg(plant_);// get plant cfg from available pool. : return plants[plant].cfg;
+	    eM = ccbbRef(plantcfg.name);// ** il fsm recupera/crea un siglethon x plant , state to be updated with recoverstatus()
+	 
+	 
+  		recoverstatus.call(eM,plantcfg,plantcnt,plantconfig).then((em_) => startfv_(em_)); // >>
+ 
+ - function startfv_(eM){// entry point when staus is recovered from file   // // why do not use eM invece di passarlo come em_ ?
+  
+    let plant=eM.state.app.plantname;// or app.plantcfg.name
+    let plantconfig=eM.state.app.plantconfig;
+ 	
+     let{gpionumb,mqttnumb,mqttprob,relaisEv,devid_shellyname}=plantconfig;
+    	 abilita(eM.state).then((devices)=>{   abilita2(devices);  startfv(eM);})// 
+ 
+  - abilita(state){
+ 
+    buildPlantDev(
+ 	myctls_= getio.getctls(gpionumb,mqttnumb); 												 (A)
+                                          // {ctls:[ctl1,,,,,],devmap:[{devNumb,devType,portnumb},,,,]}
+                                          // get pump/relais r/w devices from preferred  mqtt or gpio arrays
+	myprobs_= getio.getctls(null,mqttprob,true);//   {ctls,devmap} , true = a probe/var device						(B)
+                                            // get probs  read only devices from  mqtt, true means is a probe type (type='in')
+                                            // + get var, intermediate status / context to be used by other algo , connectable to red note
+
+ 
+ -  getio=require('./nat/io/getio.js').init(Gpio);/
+ 
+ > getio.js
+ - getctls:function(gpionumb,mqttnumb,isProbe=false){// isProb : look cfg in mqttprob , not in mqttnumb ! so in this case mqttnumb=cfg.mqttprob not mqttnumb=cfg.mqttnumb
+ 	
+ 	function fillctls() {
+ 		for(i=0;i<numOfDev;i++){
+ 	 	pr=doSomethingAsync(mqttnumb[i].portid,i,true);//probj={ind:i,prom:pr};// mqttnumb[i] is {portid:110,topic:'gas-pdc',varx:3,isprobe:false,clas:'var'/'out'}
+ 	 						// pr resolves in : {ctl:new fc(gp,ind,inorout,cfg),devNumb:ind,type:'mqtt'}
+ 
+ - function doSomethingAsync(gpio=portid,ind=0,1,2...,ismqtt=false) {// a wrapper to getio()   
+	  let clas;
+	  if(isProbe)clas='in-var';// temp use std shelly ht mqtt protocol  in-var:probe or var device (look cfg in mqttprob!)
+	   else clas='out';// relay device or var dev (without update in browser) (look cfg in mqttnumb!), temp use shelly 1 protocol 
+	return getio(gpio,clas,ind,ismqtt);// =pr !
+ 
+ 
+ async function getio(num=portid, iotype(=clas), ind, ismqtt = false) {
+ 	 retu=mqtt.fact(num,ind,iotype);// iotype=  'out'  or 'in-var'(look cfg in mqttprob!). retu={ctl:new fc(gp,ind,inorout,cfg),devNumb:ind,type:'mqtt'}  (=pr)
+ 
+ 
+ mqtt.js
+ 
+ - fact:function(gp=portid,ind=0,1,2,inorout=iotype=clas='out'/in-var'){// gp=portid,ind=0,1,2 index of 
+ 									//		mqttnumb(if inorout='out') or 
+ 									//		mqttprob (if inorout='in-var') depending on inorout !!
+ 	 cfgf=mqttnumb;if(inorout!='out')cfgf=mqttprob;// (***)
+        let cfg=cfgf[gp];// dev cfg from model, can be :
+        							(A) anumber: mqttnumb , being inorout='out'  because of isProbe 		>> now qttnumb can also contains same cfg of mqttprob
+        						      or (B)a map:mqttprob
+        						      
+        						      >>>>>>>>>>><
+        						      now A e B = {portid:110,clas:'var'/'out',  
+										      	   // if 'out'  +
+											 	protocol:'shelly',subtopic:'shelly1-34945475FE06',
+										      	   // if !'out'  +
+											 	topic:'gas-pdc',varx:3,isprobe:false}
+        						      
+  
+ 	 res({ctl:new fc(gp=portid,ind=0,1,2,...,inorout,cfg),// depend on inorout the model cfg is different (see  mqttnumb,mqttprob in plantconfig)
+                    devNumb:ind,type:'mqtt'}); 
+                    
+ -  fc= function (gp,ind,inorout,cfg){// mqtt gpio constructor new fc will return the io ctl
+                                        // inorout=iotype=clas='out'/'in-var' , nb  clas in doSomethingAsync is not this.clas
+ 
+                                // type = old :  inorout is the dev type or capability requested ,must match the config data got in init()
+                                //        new :  can be 'out' for gpio like relais (cfg in mqttnumb) or 'in-var' for mqtt probes/var (cfg in mqttprob)
+                                //  update : if clas/inorout='out', now we can also  have rele/pump dev ,and also var device with similar  config data  as mqttprob[i]
+                                
+    this.gpio=gp;// gp: the mqttnumb or mqttprob  .portid as number of the device  io ctl
+    this.devNumb=ind; // the associated array  item index  as displayed in browser  and for mqttnumb case the index  in relaisEv/relais_  OR   .... /probes_
+   this.type=inorout;// >>> 'out' for rele configured in mqttnumb, or in-var for probes/vars configured in mqttprob. tells where is the cfg and if is relais or probs/vars
+    this.cfg=cfg;//  >>>> mqttnumb/mqttprob item  depending on inorout
+ 
+	     this.gpio=gp;// the gpio or mqttprob id as number of the device  io ctl
+	    this.devNumb=ind; // the associated rele order as displayed and in relaisEv/relais_  OR   .... /probes_
+	    this.type=inorout;// 'out' for rele or in-var for probes/vars . tells where is the cfg and if is relais or probs/vars
+	    this.cfg=cfg;//  mqttnumb/mqttprob item = 
+	    
+	    if(this.type=='out'){
+		if(cfg.clas='out')this.cl=1;// rele  in mqttnumb (valued updatable in browser !)
+		else this.cl=2;// a var in mqttnumb[i] of name relaisEv[i]
+	    }else if(cfg.clas=='in'||cfg.clas=='probe')this.cl=3;// probe
+	    else this.cl=4;// var in mqttprob (no visibility in browser)
+ 
+ 	fc.prototype.readSync = function (){
+ 	
+ 	    let gp=this.gpio
+
+    		let resolRead=getgpio(gp,this.clas);
+    		
+    		
+    		
+    		
+    		
+    	fc.prototype.writeSync = function (val){// val 0/1, can return false if in error 
+                                        // will send a topic KKUU as registered in init() conf data for the device 
+                                        // todo : in dev config data we can mark a dev if is available for out (a shelly 1 relay) or 'in' a HT device
+    		let gp=this.gpio;
+    		
+    		 if(this.clas==1)  {  
+    		 		  if(val==0)message=messageOff;else message=messageOn;
+    		 		  client.publish(pub_topic, message, pub_options, function (err) {....
+    		}else if(this.clas==3){
+					message=val;
+					let {topic,varx,isprobe,clas}=this.cfg;
+					let topic_='ctl_'+topic+varx;// warning we add ctl_   !!!!
+
+        				client.publish(topic_, message, pub_options, function (err) {
+				    		
+    		
+ - async function getgpio(gp,clas){// gp :portid
+ 
+ 		 async function rread(){
+ 		 	re= status[gp][status[gp].length-1];
+ 		 	        if(clas==1){if (re=='on')return 1;else return 0;}// relays value: 0/1
+				else if(clas==2)return re;
+				else if(clas==3) {// var
+				    if(re=='>ctlpresent')return rread();// discard this or other  ctl presence
+				    else return re;   }
+ 
+ 			nb status[] :		
+ 			in .........
+ 				plantconfig=model.getconfig(plant_),  > 
+ 					recoverstatus(plantcfg,plantcnt,plantconfig){ > 
+ 								plantconfig=eM.state.app.plantconfig;
+ 			
+ 					mqttnumb=plantconfig.mqttnumb,
+      					mqttprob=plantconfig.mqttprob;// prob + var state cfg array
+      					
+      					for(i= ...  in mqttnumb,mqttprob :
+      						  	let dev=mqttnumb/mqttprob.portid;
+						       futurecb[dev]=null;// it will be filled by the request of a dev ctl
+						       status[dev]=null;// not subscribed jet !
+						       statusList[dev]=[];// init list arrays
+      					
+ 				function onconnection () {
+ 				
+ 				  
+    					 mqttnumb.forEach((val) => {// subscribe all relay key/dev, registered in gpio by init(), in order to call readSync()
+    					 
+    					 	  let { portid, varx, isprobe, clas, protocol, subtopic } = val;
+    						 if (clas == 'out') {// rele
+							if (protocol == 'shelly') {
+							    let sub_topic = shelly_stopic + subtopic + shelly_topicp;// shellies/<model>-<deviceid>/relay
+							    client.subscribe(sub_topic, shelly_options, function (err) {// in bash do :
+    						 		 status[key]=[]
+    						 		 ......
+    						} else if (!isprobe && varx != null && clas == 'var') {
+
+
+								if (protocol == 'mqttstate') {
+								 let  topic_ = 'ctl_' + topic_ + varx;// warning we add ctl_   !!!!!
+                    									client.publish(topic_, ">ctlpresent", opt);// send msg with testtopic topic for debug
+										
+
+				      							 client.subscribe(topic_, shelly_options, function (err) 
+			    						 		     					status[portid]=[]
+			    						 		 					......
+    						 		 	  
+ 				
+ 					  mqttprob.forEach((val) => {// subscribe all relay key/dev, registered in gpio by init(), in order to call readSync()
+ 					 
+ 					 
+ 					 	            let { portid, topic, varx, isprobe, clas, protocol } = val,
+								topic;
+
+							    if (!isprobe && varx != null && clas == 'var') {// a var
+								if (protocol == 'mqttstate') {// state persistant in mqtt server, interfaciable with node red 
+
+								    topic = 'ctl_' + subtopic + varx;// warning we add ctl_   !!!!!
+								    client.publish(topic, ">ctlpresent", opt);// send msg with testtopic topic for debug
+								    
+								    client.subscribe(topic, shelly_options, function (err) {// 
+								    			status[portid] = [];
+								    			.....
+						 	 } else if (isprobe && clas == 'probe') { 
+						 	 
+						 	 	 if (protocol == 'shelly') {
+                   							 client.subscribe('ctl_probe_' +subtopic,  shelly_options, function (err) {/
+                   							 
+                   							 	 status[portid] = [];/
+						 	 
+						 	 
+__________________________________
+
+run mosquitto , on any dir :
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t Test -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+
+
+mosquitto_pub -h bot.sermovox.com -t test -m "hello again77" -p 8883 --capath /etc/ssl/certs/ -u sermovox -P sime01
+mosquitto_pub  -h bot.sermovox.com -t test -m "hello again33" -p 1883  -u sermovox -P sime01
+
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 8883 --capath /etc/ssl/certs/ -u sermovox -P sime01
+
+
+run node-red :
+	preferiti : caldaia/mqtt/top (  see MQTT With Node-Red)  e fv/best
+sudo nano /etc/systemd/system/node-red.service			x cfg staff
+sudo systemctl start node-red
+
+____________________________________________________________
+
+todo manage status x var differentemente . quando faccio start non ripristino il valore in status ma lo adeguo  quanto settato via node red .
+ 	inoltre/oppure quando lo status cambia via node red dovrei simulare un manual set via browser per aggiornare lo status secondo quanto sovraimposto via node red 
+ 	
+ // allign relays current status to state.relays :
+  relaisEv.forEach((pump,ind) => {//
+  
+  
+  quindi alla partenza recupero il state o lo setto come initial state con : recoverstatus.call(eM,plantcfg,plantcnt,plantconfig,feature)
+  poi usando il ctl con lo state settato da recoverstatus (init state o lo state recoverato dal persistant file .data/... ) :
+  - startfv_(em_) che :
+	  - abilita : return devices_={myctls,myprobs} 
+
+	  				 il device in fn.iodev.relais_ e eM/fn.iodev.probes_
+	  - abilita2(devices):
+	  	  	   	devices=devices_.myctls,// {ctls:[ctl1,,,],devmap:[{devNumb,devType,portnumb},,,,]}
+	      			probes=devices_.myprobs;// 
+	      			
+	      		usando builddev() si costruiscono usando i ctls :
+	      		eM.iodev.relais_ e 
+	      		eM.iodev.probs_
+	      		
+	      	-  startfv(eM)  : si impone di resettare i valori dei device (writabili: no probs !) secondo lo state recuperato 
+	      		// allign relays current status to state.relays :
+	      		  let relaisEv=eM.state.app.plantconfig.relaisEv;// plantconfig
+			  relaisEv.forEach((pump,ind) => {// ex: ['pdc','g','n','s']// socket event to sync raspberry buttons and web button
+			    setPump(ind,eM.state.relays[pump],eM);
+	      		
+	      		nb quando si vuole leggere i valori dei device si usa syncread . infatti :
+	      			- quando in event usati da exsecute si vuole leggere un probe di eM.iodev.probs_ ( not var). es in these.on("initProg" ,,,,   :
+	      			   si mappano i virtual device delle procedure execute in real device del plant caricato con probMapping
+	      			   quindi :
+	      			   - se il mapping è < 1000 si interroga al volo il modbus senza usare un device probe 
+	      			   - altrimenti curval=await these.iodev.probes_[map[1]].readSync();// 0/1
+	      			   
+	      			-  per quanto riguarda i device che vengono storati nello state ( state.relays) essi sono determinati da i device di eM.iodev.relais_  che sono indicizzati in relaisEv
+	      				sia che siano pump che var 
+	      				>> in questo caso quando i var vengono cambiati fuori da setpump ( quindi ad es esternamente da node-red) lo stato non si aggiorna e si ha un disallineamento che viene sistemato la prossima chiamata di onRelays
+	      				infatti (see **AK78) setpump che innesca 
+	      					- sia il event verso browser pumpsHandler[pumpnumber](0,on_) , che aggiorna il display dei rele persistenti in state.relays e 
+	      							in ogni caso ritorna con un event che chiama onRelais() (per gestire i update da browser)
+	      					- che onRelais(relaisEv[pumpnumber],on_,'server',fn) che setta il device con writesync e anche aggiorna lo state.relays !!!
+	      				
+	      				>>>> TODO :
+	      					1: in realta i button handler dovrebbero chiamare setPump() che eseguono entrambi e non il solo il suo pumpsHandler[pumpnumber]() ( da sistemare anche il passaggio parametri !!!!
+	      					
+	      					2: opzionale se il var relè ha un meccanismo ch permette di ricevere un listener quando viene cambiato (see mqtt subscription e onmessage) allora , controllato che il cambiamento non sia stato provocato
+	      						da un locale writesync che se no si loopa , si lancia un setPump normale per aggiornare sia il display del browser che lo state relativo con onRelais ma senza chiamare writesync che se no si loopa 
+	      					3 : se invece si rinuncia a aggiornare lo status da update esterni , banalmente qundo voglio usare in qualche event del execute faccio 
+	      						un readsync come fosse un probe ( che non è nei state.relays displayati in browser) 
+	      						e poi se voglio anche aggiornare state.ralays e relativo browser lancio un setPump con il solito avvertimento
+	      							di non richiamare writesync che riscriverebbe il valore appena letto con readsync
+	      							
+	      					4: modifico il program execute che ha il compito di settare i rele in funzione dei sensori , preso atto del gas/pdc preference var settato da anticipate
+	      						in altre parole ci deve essere un loop su base event o ripetitivo che setta i rele dopo aver consolidato i valori proposti da anticipate (storati in un var relè ) e program
+	      						questo ruolo puo essere spalmato su program , su entrambi o essere a parte . piu semlice e' inserirlo in program che quindi deve essere sempe attivo !!
+	      						forse e meglio rendere in program attivo di default . il lancio di program da browser semplicemente modificail programma di temperature !
+	      						  
+	      		
+	      		
+	      		
+	 -   socket.emit('view', context);   response to browser 
+	  
+  
+  	 
+  - 
+  
+  
+__________________________________________________________
+
+{myctls:ctl1,myprobs:ctl2}= abilita() : regole nel formare la lista dei device myctls_ e myprobs_ ( in getctls(x,y) l'iesimo item di ctls e devmap è scelto tra il iesimo  device  x e y con precedenza di y se  not null
+
+
+
+myctls_= getio.getctls(gpionumb,mqttnumb);
+                                          // {ctls:[ctl1,,,,,],devmap:[{devNumb,devType,portnumb},,,,]}
+                                          // get pump/relais r/w devices from preferred  mqtt or gpio arrays
+myprobs_= getio.getctls(null,mqttprob,true);//   {ctls,devmap} , true = a probe/var device
+                                       
 

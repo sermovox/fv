@@ -1,3 +1,4 @@
+const DEBUG=true;// if false after updating model.js clear the plant state in persistant file .data/ !!
 let fs = require('fs'); //require filesystem module. or add a init:(fs_)=>{fs=fs_;return this;}
 let prettyJSONStringify = require('pretty-json-stringify');
 const toprjdit='/../../'// from this dir to project dir
@@ -5,7 +6,7 @@ const api={// see https://javascript.info/promise-chaining
 
     // this will recover the data to un execute processes ( data/session for navigation among execute chains )
   
-    loadScriptsFromFile : function(plantcfg,plantcnt,plantconfig,ctl) {// src: file name key, ctl : controller 
+    loadScriptsFromFile : function(plantcfg,plantcnt,plantconfig,ctl,feature=[]) {// src: file name key, ctl : controller 
                                               //  >>>  status will be recovered, or defined for a new plant instance,  and assigned to ctl 
                                               // will return an updated ctl.state
   
@@ -42,6 +43,8 @@ const api={// see https://javascript.info/promise-chaining
   }
   
   */
+  const resetstate = feature.indexOf("resetstate")>=0;
+  console.log(' loadScriptsFromFile()  will reset present state: ',resetstate)
       return new Promise(function(resolve, reject) {
           let scripts,// the readed file
           file;
@@ -51,7 +54,7 @@ const api={// see https://javascript.info/promise-chaining
           process.env.PersFold+// location of states/scripts
           plantcfg.name+// // should be = LLII  ='MarsonLuigi_API'
           '.json';
-          if (file&&fs.existsSync(file)) {
+          if (!resetstate&&file&&fs.existsSync(file)) {
               try {
                   scripts = require(file);
               } catch(err) {
@@ -107,6 +110,15 @@ const api={// see https://javascript.info/promise-chaining
   
   
           }
+
+
+          if(DEBUG){// anyway update last model update in state : 
+          ctl.state.app.plantcfg=plantcfg;// add to new std state the plant cfg
+          ctl.state.app.plantname=plantcfg.name;// rindondante , giusto per compatibilita vecchia versione !!!!
+          ctl.state.app.plantcnt=plantcnt;// ex ejs context to generate pump list in browser
+          ctl.state.app.plantconfig=plantconfig;}
+
+
   
           //PATH_TO_SCRIPTS = src;api.mapTriggers();
           console.log('loadScriptsFromFile , resolving scripts: ',scripts);

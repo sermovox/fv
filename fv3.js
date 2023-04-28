@@ -1306,7 +1306,7 @@ function conf() {// config and start fv server instance(the controller)
 function startfv(eM) {// ** start/update singlethon 
   // console.log(' startfv : the ctl instance is :\n',JSON.stringify(eM,null,2));
   let plant=eM.state.app.plantname;
-  console.log(' startfv plant: ',plant,' , following  we allign relay according with current recovered state running setPump()');
+  console.log(' startfv plant: ',plant,' , following  we allign relay value according with current recovered state. so running setPump()');
 
   /*
         // customize the events in plant/client emitter ctl instance for a user , after a connection to a plant is got 
@@ -2300,6 +2300,7 @@ session.save();// save socketid
   socket.on('startuserplant', function (plant_,feat) { // user press button to connect to some plant, so this event is fired , feat url enc
                                                       // inst/fn/ctl/eM :  here we create the ctl of the plant that will be passed to all the service functions 
                                                       // todo : emit login screen x user=data
+    const feature = feat.split(",");// ex:'feature1,feature2'
     console.log('event startuserplant listening handler for plant ',plant_.name,' feature: ',feat);
 
     if(plant_);else return;
@@ -2307,8 +2308,8 @@ session.save();// save socketid
 
     // user login or just the plant name in some html field + button start that will fire event startuserplant
     let user_ = user,// the user is the passport user set in session/req.user when (in closure) the client ask a ws connection to server
-   plantcnt=model.ejscontext(plant_);// ejs context=plantcnt={pumps:[{id,title},,,,]}
-    plantconfig=model.getconfig(plant_);// 
+   plantcnt=model.ejscontext(plant_),// ejs context=plantcnt={pumps:[{id,title},,,,]}
+    plantconfig=model.getconfig(plant_),// 
     plantcfg=model.getcfg(plant_);// get plant cfg from available pool. : return plants[plant].cfg;
     // todo if(plantcfg&&...)
     eM = ccbbRef(plantcfg.name);// ** il fsm recupera/crea un siglethon x plant , state to be updated with recoverstatus()
@@ -2317,7 +2318,7 @@ session.save();// save socketid
     eM.socket=socket;// update/embed the socket to connect the browser client
     if (eM) {
      // startfv_(eM,user);// ** start/update singlethon 
-     recoverstatus.call(eM,plantcfg,plantcnt,plantconfig).then((em_) => startfv_(em_)); // >>>>   recoverstatus() returns a promise resolved. we finished to write status back with promise .writeScriptsToFile
+     recoverstatus.call(eM,plantcfg,plantcnt,plantconfig,feature).then((em_) => startfv_(em_)); // >>>>   recoverstatus() returns a promise resolved. we finished to write status back with promise .writeScriptsToFile
                                                                     // ctl event status: in eM.state 
                                                                     // socket in eM.socket
                                                                     // plant cfg in eM.status.plantcfg, 
@@ -2426,7 +2427,7 @@ async function buildPlantDev(){// build here the plant ctl devices (ctl/eM/fn).i
 // start mqtt connection :
 let isAvail;// old , better or mqtt.avail itself
 // register gpio 11 as mqtt device and try connecting
-if(!(isAvail=mqtt.init(devid_shellyname))){// devid_shellyname={11:'shelly1-34945475FE06',,}
+if(!(isAvail=mqtt.init(plantconfig))){// devid_shellyname={11:'shelly1-34945475FE06',,}
                                             // AAFF :temporaneamente use shelly 1 std, so after start mqtt connection  wait connection and subsribe all gpio , 
                                             // so  as soon cb is called we have status[gp]=[] (the subscription is ok )
   console.log(' fv3():mqtt client not available, exit/continue without the mqtt dev,  or retry connection to mosquitto');
@@ -2436,7 +2437,7 @@ if(!(isAvail=mqtt.init(devid_shellyname))){// devid_shellyname={11:'shelly1-3494
 eM.iodev={relais_:[],// the io dev ctl list , their name are in relaisEv array. if null the ctls func (readSync and writeSync ) wont be called 
 //gpionumb=gpionumb||[12,16,20,21,26,19,13,6];mqttnumb=mqttnumb||[11,null,null,null,null,null,null,null];
 // methods, no attuators ,
-probes_:[]// read only sensor
+probes_:[]// read only sensor or state var in mqtt persistence
 }*/
 eM.iodev={};
 
@@ -2452,14 +2453,16 @@ let myctls,myprobs;
 myctls_= getio.getctls(gpionumb,mqttnumb);
                                           // {ctls:[ctl1,,,,,],devmap:[{devNumb,devType,portnumb},,,,]}
                                           // get pump/relais r/w devices from preferred  mqtt or gpio arrays
-myprobs_= getio.getctls(null,mqttprob,true);//   {ctls,devmap} , get probs  read only devices from  mqtt, true means is a probe type (type='in')
+myprobs_= getio.getctls(null,mqttprob,true);//   {ctls,devmap} , true = a probe/var device
+                                            // get probs  read only devices from  mqtt, true means is a probe type (type='in')
+                                            // + get var, intermediate status / context to be used by other algo , connectable to red note
 
 
 return   new Promise(function(resolve, reject) {
 myctls_.then(
   (ctl1)=>{
-          myprobs_.then((ctl2)=>{
-                                resolve({myctls:ctl1,myprobs:ctl2});
+          myprobs_.then((ctl2)=>{// all resolved
+                                resolve({myctls:ctl1,myprobs:ctl2});// DDQQAA
   });
 }
 )
@@ -2468,14 +2471,16 @@ myctls_.then(
 }// ends buildPlantDev
   }// ends abilita
 
-function abilita2(devices_){// {myctls,myprobs}
+function abilita2(devices_){// {myctls,myprobs} // DDQQAA
   let devices=devices_.myctls,// {ctls:[ctl1,,,],devmap:[{devNumb,devType,portnumb},,,,]}
       probes=devices_.myprobs;// 
 console.log(' buildPlantDev(),got dev ctl');
-eM.iodev.relais_=Array(devices.ctls.length).fill(null);// fill relays/pump  list in browser 
-eM.iodev.probs_=Array(probes.ctls.length).fill(null);// in algo triggers frame we assign the probs to use for each input used by algo , 
+eM.iodev.relais_=Array(devices.ctls.length).fill(null);// fill relays/pump  list in browser , inorout='out'
+eM.iodev.probs_=Array(probes.ctls.length).fill(null);//  inorout='in-var'
+                                                      // in algo triggers frame we assign the probs to use for each input used by algo ,  
                                                       // ex : the number 2 (night)program schedule use the 2nd registered probe models , 
                                                       //    that is the shelly dev number mqttprob[2] or mqttprob[2-1]  
+
 let state=eM.state;
 state.devMap=Array(devices.ctls.length).fill(null);
 state.probMap=Array(probes.ctls.length).fill(null);
@@ -2486,8 +2491,9 @@ state.probMap=Array(probes.ctls.length).fill(null);
   }
 });*/
 builddev(devices,eM.iodev.relais_,state.devMap,0);// transform devices={devmap,ctls} >>  state.devMap eM.iodev.relais_  : the action relays listed in browser
-builddev(probes,eM.iodev.probs_,state.probMap,1); //                                      state.probMap eM.iodev.probs_   : will be used in events like these.on("initProg", and these.on('genZoneRele',
-                                                //                                                                         looking at its input set in the exec  builder prog_parmFact(sched) :
+builddev(probes,eM.iodev.probs_,state.probMap,1); //                                      state.probMap eM.iodev.probs_   : will be used 
+                                                //                                                                        - in events like these.on("initProg", and these.on('genZoneRele',
+                                                //                                                                          looking at its input set in the exec  builder prog_parmFact(sched) :
                                                 //                                                                              let dataArr={
                                                 //                                                                              initProg:{dataArr:sched},// std input dataArr coming from probSched={ mapping:[4,2]}
                                                 //                                                                              genZoneRele:{dataArr:sched}}
@@ -2500,10 +2506,12 @@ builddev(probes,eM.iodev.probs_,state.probMap,1); //                            
                                                 //                                                                                   where sched.probMapping is filled in probemapping input where usually also set state.probmapping 
                                                 //                                                                                   where sched.mapping is filled in devmapping input where usually also set state.devmapping 
                                                 //                                                                            
+                                                //                                                                        - to store/write or get/read intermediate var status connectable to node red
+
 function builddev(devices,ct,map,type){// fill obj map with dev id/port (see models.js) + fill ctl in ct[index of devices],  
 devices.ctls.forEach((mdev,index)=>{
   if(mdev){ct[index]=mdev;
-    map[index]=devices.devmap[index].portnumb;// just to make easy the debug
+    map[index]=devices.devmap[index].portnumb;// just to make easy the debug, for ever index we know the portnumber of the model assocated device
    if(type) console.log(' builddev(), device of type probe , id/port ',map[index],' was added on ctl.iodev.probs_');
    else console.log(' builddev(), device of type relay , id/port ',map[index],' was added on ctl.iodev.relais_');
   }
@@ -2932,7 +2940,7 @@ function gfg_Run() {
 
 
 
-function recoverstatus(plantcfg,plantcnt,plantconfig){// this ctl is the ctl whose state must be updated from file if exist (persistnce)
+function recoverstatus(plantcfg,plantcnt,plantconfig,feature){// this ctl is the ctl whose state must be updated from file if exist (persistnce)
   // this.state is asic state x new ctl. if we have stored , get it 
 
   // old : >>>>   returns a promise resolved we  finish to write status back with promise .writeScriptsToFile
@@ -2943,7 +2951,7 @@ state=that.state,reBuildFromState=that.reBuildFromState;
 
     //console.log(' recoverstatus,  starting  : ',that);
  // api.loadScriptsFromFile(plantname,this).catch(function(err) {
-    api.loadScriptsFromFile(plantcfg,plantcnt,plantconfig,that).catch(function(err) {// will update/recover/new  : (that=ctl).state
+    api.loadScriptsFromFile(plantcfg,plantcnt,plantconfig,that,feature).catch(function(err) {// will update/recover/new  : (that=ctl).state
 
     console.log('Could not load scripts from file:',plantcfg.name, err);
     reject();
@@ -3042,7 +3050,8 @@ state=that.state,reBuildFromState=that.reBuildFromState;
   }
 
 
-  function prog_parmFact(sched){// from browser we got sched
+  function prog_parmFact(sched){ // the execute cfg param  builder
+                                  // from browser we got sched
                                           // , the key are the key generated in initProg that define the probes whose temperature must be controlled
                                           // probSched= probe address={}
     //  let{procName, a,b,ev2run, asyncPoint, processAsync, dataArr}=execParm;

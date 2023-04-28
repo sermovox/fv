@@ -15,22 +15,23 @@ await getio(6, 'out')
 */
 
 async function getio(num, iotype, ind, ismqtt = false) {// returns promise , resolved,  .ctl=, gives:{readSync,writeSync} working on io in  closure clos 
+                                                        // iotype = 'out'   'in-var' dice dove trovare la cfg di model e come costruire il ctl 
     let myio;
     if (ismqtt) {
   
       let retu;
         if(mqtt.avail) 
         // antipattern: retu=await mqtt.fact(num);//
-        retu=mqtt.fact(num,ind),iotype;//a promise resolving to :
-                                        //  a relais or 
-                                        // if (iotype='in', a probes 
-                                        // mqtt dev 
-                                        // iotype is the capability requested and must match the dev registration data done in init()
+        retu=mqtt.fact(num,ind,iotype);//a promise resolving to :
+                                        //  a relais if iotype='out' a pump or var
+                                        //    or if (iotype='in-var', a probe or var
+                                        //  mqtt dev 
+                                        // iotype: is the capability requested and must match the dev registration data done in init()
         else retu= null;
       return retu;//
   
   
-    } else {// embed gpio
+    } else {// embed gpio, presently only 'out' iotype
   
             // aa
                /*
@@ -46,7 +47,7 @@ async function getio(num, iotype, ind, ismqtt = false) {// returns promise , res
         */
   
         // bb
-        console.log(' reating gpio parm: ',num,iotype);
+        console.log(' creating gpio parm: ',num,iotype);
         if(Gpio)return {ctl:new Gpio(num, iotype),devNumb:ind,type:'gpio'}; // as Promise.resolve
         else return {ctl:null,devNumb:ind,type:'gpio'};// in no raspberry return a dummy obj 
   
@@ -79,25 +80,26 @@ item=await getio(6, 'out');relais_.push(item);
                           // (gp)=>{
                             function (gp){
                               Gpio=gp;return this;},
-                  getctls:function(gpionumb,mqttnumb,isProbe=false){// gpionumb,= [number,,,null,,,]  number is the raspberry gpio , null means no connection to dev available
-    // // mqttnumb = [number,,,null,,,]  number is the mqtt device id to subscribe
+                  getctls:function(gpionumb,mqttnumb,isProbe=false){// isProb : look cfg in mqttprob , not in mqttnumb ! so in this case mqttnumb=cfg.mqttprob not mqttnumb=cfg.mqttnumb
+                                                                    // gpionumb,= [number,,,null,,,]  number is the raspberry gpio , null means no connection to dev available
+                                                                    // // mqttnumb = [number,,,null,,,]  number is the mqtt device id to subscribe, see model.js
     //  >>>>> number not 0 !
     /* logic:
      return a promise 
      - fillctls is runned
         - resu,  the returning dev ctl array,  is built
-          - for each gpionumb :
-              -  try first to get the mqtt device  mqttnumb[i]
-                        doSomethingAsync(mqttnumb[i]/gpionumb[i],i,true);
-                        che calcola nuovi parametri per lanciare  getio(gpio, 'out',ind,ismqtt) che ritorna un promise in promises[]
+          - for each gpionumb[i] :
+              -  try first to get the mqtt device  mqttnumb[i] then gpionumb[i]
+                        doSomethingAsync(gpio=mqttnumb[i]/gpionumb[i],i,true);
+                           essa calcola nuovi parametri per lanciare  getio(gpio, 'out',ind,ismqtt) che ritorna un promise  in promises[]
 
-                            getio(gpio, 'out',ind,ismqtt):
+                             getio(gpio, type='out'/'in-var',ind=i,ismqtt):
                              
-                                usa per mqtt : mqtt.fact(num,ind)
-                                o per gpio : new Gpio(num, iotype),devNumb:ind,type:'gpio'}
-                              - e promise che risolta da it , it.ctl riempita resu[i]={readSync,writeSync}
-                        quando promises[x] e risolto (in it) (entro un tempo max ) fatti i controlli su it si filla resu[it.devNumb]=it.ctl
-        - fillctls risolve finalmente il promise con resu
+                                ritorna, nel caso mqttnumb, : mqtt.fact(num,ind,iotype)
+                                o, nel caso gpionumb,  : a promise resolving in: it={ctl:new Gpio(num, iotype),devNumb:ind,type:'gpio'}
+                              > promises[] viene risolto in it con cui si riempie resu[it.devNumb]=it.ctl={readSync,writeSync}
+                                                                            e resolved[it.devNumb]={devNumb:it.devNumb,devType:it.type,portnumb=gpionumb[it.devNumb]}
+        - fillctls risolve finalmente tutti i  promises[] risolvendo anche il returned promise  in : {ctls:resu,devmap:resolved}
     */
    let numOfDev;
         if(gpionumb)numOfDev=gpionumb.length;else if(mqttnumb) numOfDev=mqttnumb.length; else numOfDev=0;
@@ -105,10 +107,12 @@ return new Promise((resolve) => {// the returning SSSDD promise
 
 
 function doSomethingAsync(gpio,ind,ismqtt=false) {// a wrapper to getio()
-  let type;
-  if(isProbe)type='in';// temp use std shelly ht mqtt protocol
-  else type='out';// temp use shelly 1 protocol 
-return getio(gpio,type,ind,ismqtt);// return a promise
+  let clas;
+  if(isProbe){clas='in-var';// temp use std shelly ht mqtt protocol  in-var:probe or var device (look cfg in mqttprob!)
+}else {clas='out';// relay device or var dev (without update in browser) (look cfg in mqttnumb!), temp use shelly 1 protocol 
+
+}
+return getio(gpio,clas,ind,ismqtt);// return a promise
 }
 
 function fillctls() {
@@ -123,9 +127,9 @@ if(mqtt&&mqtt.avail&&mqttnumb[i]){// try first to get the mqtt device
 // attach the mqtt io ctl in some relais index, here 0
 
 // mqtt ctl registered at key/index 11 in AAFF
-pr=doSomethingAsync(mqttnumb[i],i,true);//probj={ind:i,prom:pr};
+pr=doSomethingAsync(mqttnumb[i].portid,i,true);//probj={ind:i,prom:pr};// mqttnumb[i] is {portid:110,topic:'gas-pdc',varx:3,isprobe:false,clas:'var'/'out'}
 }else{// if there is a spare in local gpio 12
-pr=doSomethingAsync(gpionumb[i],i);
+pr=doSomethingAsync(gpionumb[i],i);// gpionumb[i] is an integer the device port/id 
 }
 
 
