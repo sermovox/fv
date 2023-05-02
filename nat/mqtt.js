@@ -138,7 +138,7 @@ mqttprob,// { portid, subtopic, varx, isprobe, clas, protocol }  config of devic
         // devices have/map a calculated topics according to protocol and interface (readsync/writesync) versus mqtt topics pub/subscrtipt 
 mqttprobTop={},// //  calculated topic
 invTopic={};// topic > dev portid  inv map x both mqttnumb and mqttprob
-let status={},// queue ** su topic shellies/<model>-<deviceid>/relay if dev array is null (status[dev]=null) means no connected .
+let status={},// plant devid/portid dev queues ** su topic shellies/<model>-<deviceid>/relay if dev array is null (status[dev]=null) means no connected .
                 //  both for gpio and probe/var topic/dev
     statusList={};// array od listeners: the listener list  x last status {dev:[],dev2:[]}
                 //  both for gpio and probe/var topic/dev
@@ -314,7 +314,7 @@ if(!client.connected)client.on("connect",onconnection);else if(client.connected)
 
             } else return false;// end clas checks
 
-            if(topic){mqttnumbTop[portid]=topic;invTopic[topic]=portid;}// complete cfg to better management !
+            if(topic){mqttnumbTop[portid]=topic;invTopic[topic]=portid;}// complete cfg to easier/better dev management !
             return true;// ??
 
 
@@ -371,7 +371,7 @@ if(!client.connected)client.on("connect",onconnection);else if(client.connected)
 
                 }
             }
-            if(topic){mqttnumbTop[portid]=topic;invTopic[topic]=portid;}// complete cfg to better management !
+            if(topic){mqttnumbTop[portid]=topic;invTopic[topic]=portid;}// complete cfg to easier/better dev management !
         });
 
 
@@ -433,7 +433,7 @@ risponde : su topic shellies/<model>-<deviceid>/relay  **
 
 let fc= function (gp,ind,inorout,cfg){// mqtt gpio constructor new fc will return the io ctl
                                         // inorout=iotype=clas='out'/'in-var' , nb  clas in doSomethingAsync is not this.clas
-
+                                        // PIRLA   returns {gpio,devNumb=portid,type=inout,cfg,cl=1(clas='out')/2(a var)/3(clas='in'OR'prob'),ison,readsync,writesync}
                                 // type = old :  inorout is the dev type or capability requested ,must match the config data got in init()
                                 //        new :  can be 'out' for gpio like relais (cfg in mqttnumb) or 'in-var' for mqtt probes/var (cfg in mqttprob)
                                 //  update : if clas/inorout='out', now we can also  have rele/pump dev ,and also var device with similar  config data  as mqttprob[i]
@@ -484,7 +484,7 @@ fc.prototype.writeSync = function (val) {// val 0/1, can return false if in erro
 
         let message;
 
-        if (this.clas == 1) { // a rele/pump inorout='out'   see mqttnumb set
+        if (this.cl == 1) { // a rele/pump inorout='out'   see mqttnumb set
 
             if(this.cfg.protocol=='shelly')
             if (val == 0) message = messageOff; else message = messageOn;
@@ -510,7 +510,7 @@ fc.prototype.writeSync = function (val) {// val 0/1, can return false if in erro
                 }
             });
 
-        } else if (this.clas == 2) {// a var in mqttnumb[i] 
+        } else if (this.cl == 2) {// a var in mqttnumb[i] 
 
 
             message = val;
@@ -529,7 +529,7 @@ fc.prototype.writeSync = function (val) {// val 0/1, can return false if in erro
                 }
             });
 
-        }else if (this.clas == 4) {// a var in mqttprob[i] 
+        }else if (this.cl == 4) {// a var in mqttprob[i] 
 
 
             message = val;
@@ -562,7 +562,7 @@ module.exports ={// returns ...
     avail:null,// null, true,false th connection to broker is ok
     // use : await read()
 
-    init:function(plantconfig){// wait connection and subsribe all gpio , 
+    init:function(plantconfig){// wait connection and subsribe all gpio x plantconfig, 
                                                     // so  as soon cb is called we have status[gp]=[] (the subscription is ok )
 
                                                     //  old :  'gpio_11':[[id,topic],,,,,,]}){//console.log('rest init : load http: ',http_);
@@ -570,7 +570,6 @@ module.exports ={// returns ...
         let gpio=null;// not used // deleted : gpio=plantconfig.devid_shellyname||{11:'shelly1-34945475FE06'}; 
         mqttnumb=plantconfig.mqttnumb,
         mqttprob=plantconfig.mqttprob;// prob + var state cfg array
-
        // for(dev in gpio){
         for(let i=0;i< mqttnumb.length;i++){
        // status[dev]=null;// queue ** su topic shellies/<model>-<deviceid>/relay if array is null means no connected 
@@ -588,7 +587,6 @@ module.exports ={// returns ...
         statusList[dev]=[];// init list arrays
         }
        //if(client.connected)return true; else return false;
-       
        if(start()){
         this.avail=true;// connected to broker, wating for all dev subscription cb
         return this;
@@ -597,9 +595,13 @@ module.exports ={// returns ...
         return null;
        }
     },
-
     fact:function(gp,ind,inorout='out'){// // gp=portid,ind=0,1,2 index of mqttnumb or mqttprob depending on inorout !! (***)
-                                        // return promise resolving in  {devctl,devnumber,type} when we got the subscription (status[gp]!=null) on dev topic using dev info loaded in 
+                                        // PIRLA: >>  return promise resolving in  {ctl:new fc(gp,ind,inorout,cfg)={gpio=portid/devid,devNumb=index,type=inout,cfg,cl=1(clas='out')/2(a var)/3(clas='in'OR'prob'),ison,readsync,writesync},
+                                        //                                      ex: ctl={cfg={portid,clas protocol,subtopic},cl:1,devNumb:0,gpio:11,isOn:true}
+                                        //                                   devNumb:ind,
+                                        //                                   type:'mqtt'}  (=pr)  
+
+                                        //              when we got the subscription (status[gp]!=null) on dev topic using dev info loaded in 
                                         //    inorout definisce/punta alla cfg del dev che puo essere tipo  rele/out o var-in (cfg in mqttprob )       
                                         // a factory, usually returns a obj, but as our obj is the resolve of a promise the caller of the fact  must await or thenable that promise return 
                                         // inorout is the dev type or capability requested ,must match the config data got in init()

@@ -83,7 +83,8 @@ item=await getio(6, 'out');relais_.push(item);
                   getctls:function(gpionumb,mqttnumb,isProbe=false){// isProb : look cfg in mqttprob , not in mqttnumb ! so in this case mqttnumb=cfg.mqttprob not mqttnumb=cfg.mqttnumb
                                                                     // gpionumb,= [number,,,null,,,]  number is the raspberry gpio , null means no connection to dev available
                                                                     // // mqttnumb = [number,,,null,,,]  number is the mqtt device id to subscribe, see model.js
-    //  >>>>> number not 0 !
+                                                                    //  >>>>> number not 0 !
+                                                                    // resolves in BGT
     /* logic:
      return a promise 
      - fillctls is runned
@@ -161,7 +162,9 @@ const myto=setTimeout(() => {
 
 console.log("Resolving max time , the active ctl are: ",resolved,',in ',to,'ms,  nb false position  cant be operated !');
 console.timeEnd('mqtt connection');
-resolve({ctls:resu,// ctls=[ctl1,,,,,]
+
+resolve(// BGT
+  {ctls:resu,// ctls=[ctl1,,,,,] ctlx: see PIRLA in mqtt
   devmap:resolved});// devmap=[{devNumb,devType,portnumb},,,,],release the ctl array , max time to resolve the ctl has got, some item can be null
 }, to);
 // >>>  or wait x all before max time to resolve the SSSDD promise 

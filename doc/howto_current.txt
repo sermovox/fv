@@ -847,28 +847,43 @@ nb relaisEv sono i nomi dei custom/real pump rele (inorout='out') dei relais_ ch
  
  > getio.js
  - getctls:function(gpionumb,mqttnumb,isProbe=false){// isProb : look cfg in mqttprob , not in mqttnumb ! so in this case mqttnumb=cfg.mqttprob not mqttnumb=cfg.mqttnumb
+ 		resolves in :
+		 		// BGT
+				  {ctls:resu,// ctls=[ctl1,,,,,] ctlx:PRX, see PIRLA in mqtt 
+				  devmap:resolved});// devmap=[{devNumb,devType,portnumb},,,,],release the ctl array , max time to resolve the ctl has got, some item can be null
+				}
+ 
  	
  	function fillctls() {
  		for(i=0;i<numOfDev;i++){
- 	 	pr=doSomethingAsync(mqttnumb[i].portid,i,true);//probj={ind:i,prom:pr};// mqttnumb[i] is {portid:110,topic:'gas-pdc',varx:3,isprobe:false,clas:'var'/'out'}
- 	 						// pr resolves in : {ctl:new fc(gp,ind,inorout,cfg),devNumb:ind,type:'mqtt'}
+ 	 	PRX=doSomethingAsync(mqttnumb[i].portid,i,true);//probj={ind:i,prom:pr};// mqttnumb[i] is {portid:110,topic:'gas-pdc',varx:3,isprobe:false,clas:'var'/'out'} 	a promise
+ 	 						// PRX resolves in : {ctl:new fc(gp,ind,inorout,cfg),devNumb:ind,type:'mqtt'}
  
- - function doSomethingAsync(gpio=portid,ind=0,1,2...,ismqtt=false) {// a wrapper to getio()   
-	  let clas;
-	  if(isProbe)clas='in-var';// temp use std shelly ht mqtt protocol  in-var:probe or var device (look cfg in mqttprob!)
-	   else clas='out';// relay device or var dev (without update in browser) (look cfg in mqttnumb!), temp use shelly 1 protocol 
-	return getio(gpio,clas,ind,ismqtt);// =pr !
+ 	- function doSomethingAsync(gpio=portid,ind=0,1,2...,ismqtt=false) {// a wrapper to getio()   
+		  let clas;
+		  if(isProbe)clas='in-var';// temp use std shelly ht mqtt protocol  in-var:probe or var device (look cfg in mqttprob!)
+		   else clas='out';// relay device or var dev (without update in browser) (look cfg in mqttnumb!), temp use shelly 1 protocol 
+		return getio(gpio,clas,ind,ismqtt);// = PRX !
+	 
  
- 
- async function getio(num=portid, iotype(=clas), ind, ismqtt = false) {
- 	 retu=mqtt.fact(num,ind,iotype);// iotype=  'out'  or 'in-var'(look cfg in mqttprob!). retu={ctl:new fc(gp,ind,inorout,cfg),devNumb:ind,type:'mqtt'}  (=pr)
- 
+		 	async function getio(num=portid, iotype(=clas), ind, ismqtt = false) {
+		 	 retu=mqtt.fact(num,ind,iotype);// iotype=  'out'  or 'in-var'(look cfg in mqttprob!). retu={ctl:new fc(gp,ind,inorout,cfg),devNumb:ind,type:'mqtt'}  (= PRX)
+		 
  
  mqtt.js
  
  - fact:function(gp=portid,ind=0,1,2,inorout=iotype=clas='out'/in-var'){// gp=portid,ind=0,1,2 index of 
  									//		mqttnumb(if inorout='out') or 
  									//		mqttprob (if inorout='in-var') depending on inorout !!
+ 									
+ 									// // >>  return promise resolving in  PRX=	{ctl:new fc(gp,ind,inorout,cfg)= 	{gpio,devNumb=portid,
+ 																		type=inout,
+ 																		cfg,
+ 																		cl=1(clas='out')/2(a var)/3(clas='in'OR'prob'),
+ 																		ison,readsync,writesync},
+ 															devNumb:ind,
+ 															type:'mqtt'} 
+ 									
  	 cfgf=mqttnumb;if(inorout!='out')cfgf=mqttprob;// (***)
         let cfg=cfgf[gp];// dev cfg from model, can be :
         							(A) anumber: mqttnumb , being inorout='out'  because of isProbe 		>> now qttnumb can also contains same cfg of mqttprob
@@ -914,7 +929,7 @@ nb relaisEv sono i nomi dei custom/real pump rele (inorout='out') dei relais_ ch
 
     		let resolRead=getgpio(gp,this.clas);
     		
-    		
+    		.......
     		
     		
     		
@@ -967,21 +982,23 @@ nb relaisEv sono i nomi dei custom/real pump rele (inorout='out') dei relais_ ch
     					 	  let { portid, varx, isprobe, clas, protocol, subtopic } = val;
     						 if (clas == 'out') {// rele
 							if (protocol == 'shelly') {
-							    let sub_topic = shelly_stopic + subtopic + shelly_topicp;// shellies/<model>-<deviceid>/relay
-							    client.subscribe(sub_topic, shelly_options, function (err) {// in bash do :
+							    let topic = shelly_stopic + subtopic + shelly_topicp;// shellies/<model>-<deviceid>/relay		ex : topic=shellies/shelly1-34945475FE06/relay/0 
+							    client.subscribe(topic, shelly_options, function (err) {// in bash do :
     						 		 status[key]=[]
     						 		 ......
     						} else if (!isprobe && varx != null && clas == 'var') {
 
 
 								if (protocol == 'mqttstate') {
-								 let  topic_ = 'ctl_' + topic_ + varx;// warning we add ctl_   !!!!!
+								 let  topic = 'ctl_' + topic + varx;// warning we add ctl_   !!!!!				ex:	topic=ctl_var_gas-pdc_4
                     									client.publish(topic_, ">ctlpresent", opt);// send msg with testtopic topic for debug
 										
 
 				      							 client.subscribe(topic_, shelly_options, function (err) 
 			    						 		     					status[portid]=[]
 			    						 		 					......
+			    			if(topic){mqttnumbTop[portid]=topic;invTopic[topic]=portid;}// complete cfg to better management !		 					
+			    			
     						 		 	  
  				
  					  mqttprob.forEach((val) => {// subscribe all relay key/dev, registered in gpio by init(), in order to call readSync()
@@ -993,7 +1010,7 @@ nb relaisEv sono i nomi dei custom/real pump rele (inorout='out') dei relais_ ch
 							    if (!isprobe && varx != null && clas == 'var') {// a var
 								if (protocol == 'mqttstate') {// state persistant in mqtt server, interfaciable with node red 
 
-								    topic = 'ctl_' + subtopic + varx;// warning we add ctl_   !!!!!
+								    topic = 'ctl_' + subtopic + varx;// warning we add ctl_   !!!!!				ex:	topic=ctl_var_gas-pdc_4
 								    client.publish(topic, ">ctlpresent", opt);// send msg with testtopic topic for debug
 								    
 								    client.subscribe(topic, shelly_options, function (err) {// 
@@ -1002,11 +1019,11 @@ nb relaisEv sono i nomi dei custom/real pump rele (inorout='out') dei relais_ ch
 						 	 } else if (isprobe && clas == 'probe') { 
 						 	 
 						 	 	 if (protocol == 'shelly') {
-                   							 client.subscribe('ctl_probe_' +subtopic,  shelly_options, function (err) {/
+                   							 client.subscribe('ctl_probe_' +subtopic,  shelly_options, function (err) {/		ex:	topic=ctl_probe_ht-cucina
                    							 
                    							 	 status[portid] = [];/
 						 	 
-						 	 
+						  if(topic){mqttnumbTop[portid]=topic;invTopic[topic]=portid;}// complete cfg to better management !
 __________________________________
 
 run mosquitto , on any dir :
@@ -1106,4 +1123,5 @@ myctls_= getio.getctls(gpionumb,mqttnumb);
                                           // get pump/relais r/w devices from preferred  mqtt or gpio arrays
 myprobs_= getio.getctls(null,mqttprob,true);//   {ctls,devmap} , true = a probe/var device
                                        
+____________________________________________________________
 
