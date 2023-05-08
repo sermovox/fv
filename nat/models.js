@@ -27,6 +27,7 @@ cfgMarsonLuigi={ name:'MarsonLuigi_API',// duplicated FFGG
         */ 
 
       mqttnumb:[{portid:11,clas:'out',protocol:'shelly',subtopic:'shelly1-34945475FE06'},// clas 'out' or 'var' , same dim than gpionumb
+                                                                                        // subtopic: other protocol, different from shelly, can have different feature ex subscriptTopic and PubTopic !
       null,null,null,null,null,
       // {portid:10,clas:'var',topic:'gas-pdc',varx:3,protocol:'mqttstate'} ex of 'out' var
       {portid:55,subtopic:'var_gas-pdc_',varx:4,isprobe:false,clas:'var',protocol:'mqttstate'},// a var
@@ -71,13 +72,14 @@ function getplant(plant){
             let usr={user:plants[plant].name,password:plants[plant].password,email:plants[plant].email};
                 usr.cfg=plants[plant].cfg;
         }
-function getconfig(plant='MarsonLuigi_API'){// general obj to customize the  app functions 
+function getconfig(plant='MarsonLuigi_API'){// =plantconfig, general obj to customize the  app functions 
                                 // or let{gpionumb,mqttnumb,relaisEv,devid_shellyname}=models.getconfig(plant)=.state.plantconfig;
-                                //     after set state.app we can :  let{gpionumb,mqttnumb,relaisEv,devid_shellyname}=plantconfig (=.state.app.plantconfig=
+                                //     after set state.app we can :  let{gpionumb,mqttnumb,mttprob,relaisEv,plantName}=plantconfig (=.state.app.plantconfig=
                 return {gpionumb:plants[plant].cfg.gpionumb,
                         mqttnumb:plants[plant].cfg.mqttnumb,
                         mqttprob:plants[plant].cfg.mqttprob,
-                        relaisEv:plants[plant].cfg.relaisEv
+                        relaisEv:plants[plant].cfg.relaisEv,
+                        plantName:plant
                         // devid_shellyname:plants[plant].cfg.devid_shellyname,
                        // error :  relaisEv:plants[plant].cfg.mqttprob
                 }

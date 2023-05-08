@@ -1522,6 +1522,7 @@ function customOn(these) {// set .on custom handler (event called by execute())
       let map;
       if(inp.mapping)map=inp.mapping;// sched.mapping
       else map=[0,1,2,3,-1,5];// // HHGG so virtual devices of anticipate algo are heat,pdc,g,split. stessa cosa che settare identity=[0,1,2,3,4,5]
+                                  // better : attuators works on virtual device 0,1,2,3,4,5 ,  
       
     //attuators(these,aTT[0],aTT[1],aTT[2],aTT[3],aTT[4],aTT[5])// [heat,pdc,g,n,s,split] val=true/false/null   set relais x level 1, then after 1 hour (1,1,1,0), if noeco (1,1,1,1)
     attuators(these,map,aTT)
@@ -2144,7 +2145,7 @@ for(i=0;i<mmax;i++){
 map[i]>=0 &&//  iesimo virtual is mapped to index= map[i] of name: relaisEv[i], con state:relays[relaisEv[i]])  ,i=-1 means do not map, virtual not used here 
 aTT[i]!=relays[relaisEv[i]]){//
 incong(relaisEv[i],state);// segnala se c'e' differenza tra il current state relay value e il reale hw relay value , se c'e quando lo sistemo ??????
-console.log(' attuators() : as current heat pump state : ',relays[relaisEv[i]],' is different from newval call setPump(0,',relaisEv[i],')');
+console.log(' attuators() : as current  pump state : ',relays[relaisEv[i]],' is different from newval call setPump(0,',relaisEv[i],')');
 //relays.pdc=
 promises.push(setPump(i,relaisEv[i],fn));}else;// anyway se richiedo un set diverso dal corrente cambio il suo valore 
 
@@ -2425,9 +2426,10 @@ async function buildPlantDev(){// build here the plant ctl devices (ctl/eM/fn).i
 
 // start building relais_ the dev io ctl  
 // start mqtt connection :
-let isAvail;// old , better or mqtt.avail itself
+let mqttInst;//
 // register gpio 11 as mqtt device and try connecting
-if(!(isAvail=mqtt.init(plantconfig))){// devid_shellyname={11:'shelly1-34945475FE06',,}
+if(!(mqttInst=mqtt.init(plantconfig))){// 02052023: now work with instance not the class , must be passed to getio.js , and  something else ? ....
+                                            // devid_shellyname={11:'shelly1-34945475FE06',,}
                                             // AAFF :temporaneamente use shelly 1 std, so after start mqtt connection  wait connection and subsribe all gpio , 
                                             // so  as soon cb is called we have status[gp]=[] (the subscription is ok )
   console.log(' fv3():mqtt client not available, exit/continue without the mqtt dev,  or retry connection to mosquitto');
@@ -2450,10 +2452,10 @@ eM.iodev={};
 // eM.iodev.relais_= await getio.getctls(gpionumb,mqttnumb).ctls;
 // let devices= await 
 let myctls,myprobs;
-myctls_= getio.getctls(gpionumb,mqttnumb);
+myctls_= getio.getctls(mqttInst,gpionumb,mqttnumb);
                                           // {ctls:[ctl1,,,,,],devmap:[{devNumb,devType,portnumb},,,,]}
                                           // get pump/relais r/w devices from preferred  mqtt or gpio arrays
-myprobs_= getio.getctls(null,mqttprob,true);//   {ctls,devmap} , true = a probe/var device
+myprobs_= getio.getctls(mqttInst,null,mqttprob,true);//   {ctls,devmap} , true = a probe/var device
                                             // get probs  read only devices from  mqtt, true means is a probe type (type='in')
                                             // + get var, intermediate status / context to be used by other algo , connectable to red note
 
@@ -2473,6 +2475,20 @@ myctls_.then(
 
 function abilita2(devices_){// {myctls,myprobs} // DDQQAA
   let devices=devices_.myctls,// {ctls:[ctl1,,,],devmap:[{devNumb,devType,portnumb},,,,]}
+                                /* 	  	  	   	devices=devices_.myctls,// 	{ctls:[ctl1=new fc(gp,ind,inorout,cfg)= 	
+                                                                  {gpio=11,
+                                                                  devNumb=0,// array index 0,1,2
+                                                                  type=inout,
+                                                                  cfg,
+                                                                  cl=1(clas='out')/2(a var)/3(clas='in'OR'prob'),
+                                                                  isOn,
+                                                                  readsync,
+                                                                  writesync}
+                                                ,,,],
+                                              devmap:[{devNumb,devType,portnumb},,,,]}  
+                                */
+
+
       probes=devices_.myprobs;// 
 console.log(' buildPlantDev(),got dev ctl');
 eM.iodev.relais_=Array(devices.ctls.length).fill(null);// fill relays/pump  list in browser , inorout='out'
@@ -2671,7 +2687,7 @@ let ejscont=state.app.plantcnt;// ejs context=ejscontext(plant).pumps=[{id,title
 
 // socket.on('pump',onRelaisClos());// 
  socket.on('pump',(a,b,c) => {
-  if(!eM)console.log('pump socket event called ,param: ',a,b,c);
+  if(!eM)console.log('error: pump socket event called ,param: ',a,b,c);// to log too
   if(!eM)console.error('pump socket event, eM is null ',a,b,c);
 
   onRelaisClos()(a,b,c)
@@ -2830,21 +2846,25 @@ async function onRelais  (pump,data,coming,fn) { //pumps unique handlerget pumps
  
                                   // this is ....  global ?
                                   
-  console.log('OnRelais started x pump: ',pump, ' coming from ',coming);
+  console.log('OnRelais started x mqttnumb dev , pump/devName: ',pump, ', plantname ',fn.state.app.plantname,', coming from ',coming);
   if(!fn)console.error('onRelais(), eM is null ');
   let state=fn.state,relaisEv=state.app.plantconfig.relaisEv;
   let value=state.relays[pump];// true/false, pump value as recorded on status
   let lightvalue = data,// 0/1 value to set
   pump_=relaisEv.lastIndexOf(pump);// the index in relais_
   if(pump_>=0){// found
-  if(fn.iodev.relais_[pump_])
-    {curval=await fn.iodev.relais_[pump_].readSync();// 0/1 present value of gpio register
+    let ctl=fn.iodev.relais_[pump_];// pump_= ctl.devNumb
+  if(ctl){
+   
+  console.log('OnRelais  pump/devName: ',pump, ', found with index ',ctl.devNumb,', devid/portid ',ctl.gpio,', is a mqttdev?: ',!!ctl.cfg);
+  if(!!ctl.cfg)console.log('.......  mqtt dev feature from model mqttnumb : cl_class (mqttnumb:1rele/2var mqttprob:3probe/4var) ',ctl.cl,', plant ',ctl.mqttInst.plantName,' class ',ctl.cfg.clas,', protocol ',ctl.cfg.protocol);
+    curval=await ctl.readSync();// 0/1 present value of gpio register
     if(curval==null)curval=0;// std out 
   }
   else // if the device is not available read a dummy 0
     curval=0;
-  console.log(' onRelais, coming from: ',coming,', current rele position x ',pump,' is ',curval,' asking to set : ',data); 
-  console.log('              onRelais, state: ',state); 
+  console.log(' onRelais, coming from: ',coming,', current rele position x dev name ',pump,', is ',curval,' asking to set : ',data); 
+  // console.log('              onRelais, state: ',state); 
     let lchange=false; //  >>>>>>>  TODO : gestire le incongruenze tra state.relays  e current relay value : curval
   if(value&&curval==0||((!value&&curval==1))){// state != cur value . a problem if not just starting!
     console.warn(' onRelais, find current pump ',pump,' state different from current hw pump position thats: ',curval); 
@@ -2887,14 +2907,14 @@ async function onRelais  (pump,data,coming,fn) { //pumps unique handlerget pumps
     }
 
   }else {console.log(' onRelais(), browser/algo ask ',pump,' rele to change value but was alredy set : ',lightvalue); // ex 0
-          if(lchange){state.relays[pump]=!state.relays[pump];
+          if(lchange){state.relays[pump]=!state.relays[pump];// to do 05052023 ??
           console.warn(' onRelais() status ricociliato con current value : ',data);
           }
 }
 
 
 
-} else;// error
+} else console.error(' onRelays() cant find a device from name: ',pump);// error
 }
 
 
@@ -3025,7 +3045,7 @@ state=that.state,reBuildFromState=that.reBuildFromState;
 
 
 }
-  function antic_parmFact(noparms){
+  function antic_parmFact(noparms){// se param x anticipating exec
   
       //  let{procName, a,b,ev2run, asyncPoint, processAsync, dataArr}=execParm;
   let  pdate=new Date();pdate.setHours(pdate.getHours()+dOraLegale);

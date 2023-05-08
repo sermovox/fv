@@ -14,15 +14,15 @@ await getio(6, 'out')
 ];
 */
 
-async function getio(num, iotype, ind, ismqtt = false) {// returns promise , resolved,  .ctl=, gives:{readSync,writeSync} working on io in  closure clos 
-                                                        // iotype = 'out'   'in-var' dice dove trovare la cfg di model e come costruire il ctl 
+async function getio(num, iotype, ind, ismqtt = false,mqttInst) {// returns promise , resolved,  .ctl=, gives:{readSync,writeSync} working on io in  closure clos 
+                                                        // iotype = 'out'   'in-var' dice dove trovare la cfg di model (mqttnumb o mqttprob)e come costruire il ctl 
     let myio;
     if (ismqtt) {
   
       let retu;
-        if(mqtt.avail) 
+        if(mqttInst.avail) 
         // antipattern: retu=await mqtt.fact(num);//
-        retu=mqtt.fact(num,ind,iotype);//a promise resolving to :
+        retu=mqttInst.fact(num,ind,iotype);//a promise resolving to :
                                         //  a relais if iotype='out' a pump or var
                                         //    or if (iotype='in-var', a probe or var
                                         //  mqtt dev 
@@ -80,7 +80,7 @@ item=await getio(6, 'out');relais_.push(item);
                           // (gp)=>{
                             function (gp){
                               Gpio=gp;return this;},
-                  getctls:function(gpionumb,mqttnumb,isProbe=false){// isProb : look cfg in mqttprob , not in mqttnumb ! so in this case mqttnumb=cfg.mqttprob not mqttnumb=cfg.mqttnumb
+                  getctls:function(mqttInst,gpionumb,mqttnumb,isProbe=false){// isProb : look cfg in mqttprob , not in mqttnumb ! so in this case mqttnumb=cfg.mqttprob not mqttnumb=cfg.mqttnumb
                                                                     // gpionumb,= [number,,,null,,,]  number is the raspberry gpio , null means no connection to dev available
                                                                     // // mqttnumb = [number,,,null,,,]  number is the mqtt device id to subscribe, see model.js
                                                                     //  >>>>> number not 0 !
@@ -113,7 +113,7 @@ function doSomethingAsync(gpio,ind,ismqtt=false) {// a wrapper to getio()
 }else {clas='out';// relay device or var dev (without update in browser) (look cfg in mqttnumb!), temp use shelly 1 protocol 
 
 }
-return getio(gpio,clas,ind,ismqtt);// return a promise
+return getio(gpio,clas,ind,ismqtt,mqttInst);// return a promise
 }
 
 function fillctls() {
@@ -123,7 +123,7 @@ let pr,resolved= [],probj;//Array(8).fill(false);
 
 for(i=0;i<numOfDev;i++){
 // first ctl :
-if(mqtt&&mqtt.avail&&mqttnumb[i]){// try first to get the mqtt device 
+if(mqttInst&&mqttInst.avail&&mqttnumb[i]){// try first to get the mqtt device 
 // use a mqtt device topic as gpio as registered in BBVV
 // attach the mqtt io ctl in some relais index, here 0
 
@@ -140,8 +140,30 @@ pr.then((it)=>{// when resolved fill items of resolved[devNumb]={devNumb,devtype
 // it={ctl:new fc(gp,ind)/null,devNumb:ind,type:'mqtt'};
 // it={ctl:new Gpio(num, iotype)/null,devNumb:ind,type:'gpio'}
 
-console.log(' fillctls() , now available dev ctl (devtype: ',it.type,')  dev number : ',it.devNumb);//,' promise resolved in def time in :',JSON.stringify(it.ctl,null,2));
-if(it.ctl)console.log(' it has .readSync: ',it.ctl.readSync);
+/* 05052023 got  : it={ctl:{cfg:mqttnumb/mqttprob[dev],
+                           cl:1,
+                            devnumb:0,
+                            gpio:11,
+                            isOn:false,
+                            mqttInst,
+                            //  +  ctl proto func readsync and writesync should be present ! :
+                            readsync(),
+                            writesync()
+
+                            // + from  from :  subscred(resu) after subscribe cb in probSubscr/numbSubscr
+                            topic,
+                            cl_class
+                            },
+                      devNumb:0,
+                      type:'out'
+                    }
+    
+*/
+
+console.log(' getio.js, fillctls() , got it a new  ctl dev resolved.  devInfo Origin (mqttnumb/mqttprob): ',it.type,' , dev number/index : ',it.devNumb,' is ctl null? : ',it.ctl==null);//,' promise resolved in def time in :',JSON.stringify(it.ctl,null,2));
+if(it.ctl)console.log(' ..... , not null ctl : devid/portid/gpio ',it.ctl.gpio,', on plant ',mqttInst.plantName,' , FEATURES : ctl.cl (rele var/probe var used in readsync ) ',it.ctl.cl,',  class ',it.cl_class,', protocol ',it.protocol,' ,mqtt egistered topic ',it.topic);//,' promise resolved in def time in :',JSON.stringify(it.ctl,null,2));
+
+if(it.ctl)console.log(' ..... it has .readSync: ',!!it.ctl.readSync);
 
 resu[it.devNumb]=it.ctl;// the available ctl array, usefull?
 resolved[it.devNumb]={devNumb:it.devNumb,devType:it.type};
@@ -163,7 +185,7 @@ const myto=setTimeout(() => {
 console.log("Resolving max time , the active ctl are: ",resolved,',in ',to,'ms,  nb false position  cant be operated !');
 console.timeEnd('mqtt connection');
 
-resolve(// BGT
+resolve(// BGT returns the devices subscribed in untill to. some dev can still subscribing later ?or we have to stop subscription waiting
   {ctls:resu,// ctls=[ctl1,,,,,] ctlx: see PIRLA in mqtt
   devmap:resolved});// devmap=[{devNumb,devType,portnumb},,,,],release the ctl array , max time to resolve the ctl has got, some item can be null
 }, to);

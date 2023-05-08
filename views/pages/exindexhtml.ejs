@@ -352,7 +352,7 @@ sessionStorage.setItem('__lock', '1');
 
 
     let lastState;// filled in .on('status',)
-    const al = false;
+    const al = false;//true;// false; // debug
     // see https://www.w3schools.com/jsref/prop_style_right.asp  https://www.w3schools.com/howto/howto_css_split_screen.asp
     //        https://www.w3schools.com/jsref/tryit.asp?filename=tryjsref_style_background
     // https://www.w3schools.com/css/tryit.asp?filename=trycss_form_textarea
@@ -373,14 +373,16 @@ sessionStorage.setItem('__lock', '1');
   // todo move after socket=   io()                      
     window.addEventListener("load", function () { //when page loads
       var lightbox = document.getElementById("light");
-      lightbox.addEventListener("change", function () { //add event listener for when checkbox changes
+      if(lightbox)lightbox.addEventListener("change", function () { //add event listener for when checkbox changes
         socket.emit("light", Number(this.checked)); //send button status to server (as 1 or 0)
       });
     });
 
     socket.on('light', function (data) { //get button status from client  data=0/1 ?
-      document.getElementById("light").checked = data; //change checkbox according to push button on Raspberry Pi  
+      let lightbox=document.getElementById("light");
+      if(lightbox){lightbox.checked = data; //change checkbox according to push button on Raspberry Pi  
       socket.emit("light", data); //send push button status to back to server
+      }
     });
 
 socket.on('view', function (data) { // data = context={ejscont{pumps:[{id:'pdc',title:'pompa calore'},{id:'g',title:'zona giorno'}]},scope:{relaisEv}};
@@ -470,7 +472,7 @@ div.append( p);
       // let section=document.getElementById("VDM001"); //change checkbox according to push button on Raspberry Pi
       // set prop style="display:block">  NNHH
       // set new field wih content >data   ?
-      if (al) alert(' changing status : ', data, ' x  pump ', pump);
+      if (al) alert(' changing status : ', data, ' x  pump ', pump,'socket id ',socket.id);
       console.log(' event pump called to set pump: ', pump, ' value: ', data);
       let myck = document.getElementById(pump);
       if (myck) {

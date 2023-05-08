@@ -876,11 +876,15 @@ nb relaisEv sono i nomi dei custom/real pump rele (inorout='out') dei relais_ ch
  									//		mqttnumb(if inorout='out') or 
  									//		mqttprob (if inorout='in-var') depending on inorout !!
  									
- 									// // >>  return promise resolving in  PRX=	{ctl:new fc(gp,ind,inorout,cfg)= 	{gpio,devNumb=portid,
+ 									// // >>  return promise resolving in  PRX=	{ctl:new fc(gp,ind,inorout,cfg)= 	
+ 																		{gpio=11,
+ 																		devNumb=0,// array index 0,1,2
  																		type=inout,
  																		cfg,
  																		cl=1(clas='out')/2(a var)/3(clas='in'OR'prob'),
- 																		ison,readsync,writesync},
+ 																		isOn,
+ 																		readsync,
+ 																		writesync},
  															devNumb:ind,
  															type:'mqtt'} 
  									
@@ -974,7 +978,7 @@ nb relaisEv sono i nomi dei custom/real pump rele (inorout='out') dei relais_ ch
 						       status[dev]=null;// not subscribed jet !
 						       statusList[dev]=[];// init list arrays
       					
- 				function onconnection () {
+ 				function onconnection () {// gestisce i subscribe dal model.js  e USA la mappa inversa GENERATA precedentemente da .....   che in ricezione messaggi uso per trovare i devid e l'instance mqtt del plant 
  				
  				  
     					 mqttnumb.forEach((val) => {// subscribe all relay key/dev, registered in gpio by init(), in order to call readSync()
@@ -1057,9 +1061,22 @@ todo manage status x var differentemente . quando faccio start non ripristino il
   - startfv_(em_) che :
 	  - abilita : return devices_={myctls,myprobs} 
 
-	  				 il device in fn.iodev.relais_ e eM/fn.iodev.probes_
-	  - abilita2(devices):
-	  	  	   	devices=devices_.myctls,// {ctls:[ctl1,,,],devmap:[{devNumb,devType,portnumb},,,,]}
+	  				 il device in eM/fn.iodev.relais_ e eM/fn.iodev.probes_
+	  				 
+	  				 
+	  - abilita2(devices_):	************
+	  	  	   	devices=devices_.myctls,// 	{ctls:[ctl1=new fc(gp,ind,inorout,cfg)= 	
+ 																		{gpio=11,
+ 																		devNumb=0,// array index 0,1,2
+ 																		type=inout,
+ 																		cfg,
+ 																		cl=1(clas='out')/2(a var)/3(clas='in'OR'prob'),
+ 																		isOn,
+ 																		readsync,
+ 																		writesync}
+ 									,,,],
+ 								devmap:[{devNumb,devType,portnumb},,,,]}  										
+ 																		
 	      			probes=devices_.myprobs;// 
 	      			
 	      		usando builddev() si costruiscono usando i ctls :
@@ -1124,4 +1141,114 @@ myctls_= getio.getctls(gpionumb,mqttnumb);
 myprobs_= getio.getctls(null,mqttprob,true);//   {ctls,devmap} , true = a probe/var device
                                        
 ____________________________________________________________
+
+todo 02052023
+1: usare i topics registrati in mqttnumbTop ,,,
+2: correggere clas > cl in readsync          } else if (this.clas == 2) {// a var in mqttnumb[i] 
+3: tornare un new da mqtt.init()
+
+________________________________
+read queue logic 
+
+dopo subscribed riempio una queue perche qualche device puo voler leggere valori vecchi ,
+		comunque al giungere di un msg la queue length aumenta fino a un max , poi si riduce la length a 2 (non posso lascirla a length max ? forse e troppo oneroso come calc ? )
+		 es se un device var pub un evento di presence e poi si mette in ascolto scartando dal queue i suoi presence ?!?
+	ma in genere quando vogliio leggere se c'e queue leggo l'ultimo valore  ma non riduco la queue (perche ?)
+						se non c'è registro un listener e attendo che giunga un msg che passo ai listerers e poi inserisco in queue settando length=1 
+	question : ma qualche readsync() una volta raccolto il dato , e' in grado di ridurre a 1 la length ? , puo o deve ?
+	intanto , per i soli rele, ora prima di srivere con writesync()  si annulla il queue length !  , guisto ????????????
+	
+________________________________________________
+
+
+todo  la parte cge gira sotto  mqttClass.prototype.start = function    ....
+
+ e' sbagliato chiamare onconnection e sul cb fare i subscribe dei dev del plant perche il plant si  connette dopo l'avvio di mqtt. quindi bastera chiamare client,subscribe () ....  !!!
+
+
+ new subscription policy , SubAfterPlantReq=true, :
+ 
+ - mqttInst.fact(gp,ind,inorout='out') resoving in ctlpack= {ctl:new fc(gp,ind,inorout,cfg,that),devNumb:ind,type:'mqtt'};/
+	 after a dev pack ctlpack was created by in mqttInst.fact we call the subscription func : 
+	 	probSubscr(val,that,ctlpack,subscred) and numbSubscr(val,that,ctlpack,subscred)
+	 depending from the info dev source mqttnumb and mqttprob decided by inorout!='out' :
+	  inorout!='out'  is set in getio/doSomethingAsync :
+	 	inorout=clas='in-var'/'out'
+	  looking at isProbe
+	  
+___________________________________________
+	  
+	  console.log('  getgpio wants read buffer for dev: ',gp,', , its  dim is: ',mqttInst.status[gp].length);// todo 05052023  called 2 times ???
+	  next check at gpio() : console.log(' fillctls() , now available dev ctl (devtype: ',it.type,')  dev number : ',it.devNumb);//,' promise resolved in def time in :',JSON
+________________________________
+
+nb the promises pr  in  function getio/fillctls()  resolves (for mqtt dev ) in :
+						/* 05052023 got  : it={ctl:{cfg:mqttnumb/mqttprob[dev],
+									   cl:1, // 1:rele ,2: var in mqttpnumb, 3: probe in mqttprob 4: var in mqttprob   .......    
+									   		used WITH protocol in readsync() and writesync() 
+									   			ex, in readsync() at :  
+										   			resolRead=getgpio(this.cl)/ rread() ......
+										   			for ex forcl=2/4 discard the itself presence published :
+										   					if (re == '>ctlpresent') return rread(false);// discard this or other  ctl presence
+									    devnumb:0,
+									    gpio:11, // is really  devid/portid
+									    isOn:false,
+									    mqttInst,
+									    type:'out'  //  can be out   or in-var  (?)  , check it
+									    		
+									    		
+									    		 // iotype = 'out'   'in-var' dice dove trovare la cfg di model (mqttnumb o mqttprob)
+									    		 sequence :
+									    		 in   function doSomethingAsync(gpio,ind,ismqtt=false) {// a wrapper to getio()
+ 										1			 if(isProbe){clas='in-var';}else {clas='out';// relay device or var dev (without update in browser) (look cfg in mqttnumb!), temp use shelly 1 
+r													return getio(gpio,clas,ind,ismqtt,mqttInst);
+									    		 
+									    		 in : getio(num, iotype, ind, ismqtt = false,mqttInst)// iotype=clas !
+									    		 			
+									    	2	 		retu=mqttInst.fact(num,ind,iotype);
+									    		 		
+									    		 in :  mqttClass.prototype.fact = function(gp,ind,inorout='out')// inorout=iotype !!
+									    		 
+									    	3	 		let ctlpack= {ctl:new fc(gp,ind,inorout,cfg,that),devNumb:ind,type:'mqtt',,,};//
+									    		 
+									    		 in:  fc= function (gp,ind,inorout,cfg,mqttInst)   // the ctl constructor 
+									    	4	 		this.type=inorout;	
+									    		 		
+									    		 	quindi la folle catena è :
+									    		 		1 clas='out'/'in-var'  >  2 iotype	> 3 iorout	> 4  ctl.type		
+									    
+									    
+									    //  +  ctl proto func readsync and writesync should be present ! :
+									    readsync(),
+									    writesync()
+									    
+									    // add topic ???
+
+
+									    },
+								      devNumb:0,
+								      type:'mqtt'  // 		<<<<<<<  DIFFERENT than previous ctl.type !!!!!!!!!!! because .used in ....  for .....
+								      				see        // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx 
+       														 let ctlpack= {ctl:new fc(gp,ind,inorout,cfg,that),devNumb:ind,type:'mqtt'};
+       														 // depend on inorout the model cfg is different (see  mqttnumb,mqttprob in plantconfig)
+                    
+								      
+								      topic,
+								      cl_class // from :  subscred(resu) after subscribe cb in probSubscr/numbSubscr
+								      
+								    }
+						    
+						*/
+that should be the resolve of mqtt.fact() : ctlpack= {ctl:new fc(gp,ind,inorout,cfg,that),devNumb:ind,type:'mqtt',topic,,};
+
+nb in mqtt  probSubscr and numbSubscr  :
+	 invTopic[
+  maps  topic  >   {portid,mqttInst:that,topic,cl_class,protocol};  
+  cl class is the class discovered in used in subscribing 
+_______________________________________
+warning : gpio dev has not many property in ctl devio.relais_[index] so many console.log can give errors !
+_______________________________________________
+console.log('  getgpio wants read buffer for dev: ',gp,', , its  dim is: ',mqttInst.status[gp].length);// todo 05052023  called 2 times ???
+______________________________________________________
+
 
