@@ -294,7 +294,7 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
       console.log('ev2run event', key,'  assign dataArr input to current building input array dataCon: ',dataCon);
     });
 
-    function OuterFunction(par, ev) {// will fill inArr with afunc return
+    function OuterFunction(par, ev) {// will fill inArr with afunc return    >> called with that as context !!!
       // alternativa : basta  InnerFunction(newin)  con zz , 
       // non serve la closure (OuterFunction) che non configura niente !!
       console.log('ciao');
@@ -317,7 +317,8 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
 
       }
 
-      function InnerFunction(newin) {// InnerFunction rename in :runevent, newin can force the new input instead of std input ev2run[ev]
+      function InnerFunction(newin) {// >>>>  <InnerFunction rename in :runevent, 
+                                      // newin can force the new input instead of std input ev2run[ev]
         let inp = newin || 
           dataCon[ev];// no :ev2run[ev];
         //function updateData_(err,data){   // zz
@@ -326,7 +327,7 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
         console.log('pilo, innerfunction(), event: ', ev,' , inp: ', inp,' dataCon: ',dataCon);
         //console.log('pi',);
         this.emit(ev, inp, updateData_);// so the template for .on call will be SEDR  !!!!!!!!!!!!!!!!!!!
-                                        // QUESTION .on ha il this lo stesso di questo ??? (instanza corrente di )
+                                        // QUESTION .on ha il this lo stesso di questo ??? (che e' callato con that, instanza corrente di questo app )
                                         // se si allora posso ottenere state = this.state
                                         // the handler starts async threads ! so we returns using cb updateData
 
@@ -367,7 +368,7 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
     
 
     // moove to IIUU           ??
-    function goonstep(lastRes){// the for loop isgoon by a asinc return  in Outerfunction!(
+    function goonstep(lastRes){// the for loop è triggerato  by a asinc return  in Outerfunction!(
 
     //  if (ev2run.hasOwnProperty(step)) {
 
@@ -378,7 +379,7 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
 
 
       //if(this.state.stepInd>=0)stepnum=state.stepInd;
-      if(that.state.stepInd>=0){stepNum=that.state.stepInd;// reset event loop if someone chage std increse of stepNum and set the new navigated stepnumber
+      if(that.state.stepInd>=0){stepNum=that.state.stepInd;// reset event loop if someone change the std increse of stepNum and set the new navigated stepnumber
       that.state.stepInd=-1;// std
     }
         else stepNum++; // std action
@@ -390,7 +391,7 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
 
 
         let step=prolist[stepNum],// event at current step
-        asyncNam = asyncPoint[stepNum];
+        asyncNam = asyncPoint[stepNum];// ex : asyncPoint={1:'login',,,,,}at step 1 run :   processAsync['login']={login:function(){},,,,,}.login with input  input_ = dataArr[asynckey];
         let outpu='goonstep called , exec procedure: '+procName+', step: '+stepNum+', event: '+step+'\n state: '+JSON.stringify(that.state,null,2)+'\n  async to run: '+asyncNam+'\n\n';
         //console.log('\n *****   goonstep called , exec procedure: ',procName,', step: ',stepNum,'\n state: ',that.state,'\n event: ',step,', async to run: ',asyncNam,'\n');
         console.log('\n ***** ## ',outpu);
@@ -409,7 +410,7 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
         if ((asyncNam )) {
           if (processAsync[asyncNam]) {// run here the (login) async before fire the event
             noasync=false;
-            runAsync(asyncNam)
+            runAsync(asyncNam)// a promise
                               .then(() => runEvent(step));
 
 
@@ -466,10 +467,10 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
       let par1 = 0;
       console.log(' ## app2.runEvent(): firing handler of event : ',myev);
       var emmitMyev = OuterFunction(par1, myev).call(that,null);//,_mycb);// prepare senza usare zzzz
-      console.log(' runEvent(): promise was started ( probably terminated)  , event ', myev, ', ev2run is:', ev2run,' dataCon is: ', dataCon, ', dataInv(quali eventi sono alimentati): ', dataInv);
+      console.log(' runEvent(): promise was started ( probably terminated)  , event ', myev, ', ev2run is:', ev2run,' con input dataCon: ', dataCon, ', dataInv(quali eventi sono alimentati): ', dataInv);
     }
 
-    async function runAsync(asynckey) {// run async associated to event with input=dataArr[asynckey].processAsync
+    async function runAsync(asynckey) {// run async associated to event with input=dataArr[asynckey].processAsync  dataArr={login:{processAsync:input}}
       // to call here or in some place , ex :in specific event listener :
       let asyncFunc = evAsyn[asynckey],
         input_ = null;
@@ -479,7 +480,9 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
       if (asyncFunc)
         //if (args[0]==1)
         console.time(asynckey);
-        await asyncFunc(
+
+        dataCon[asynckey] =// HHGGJJ
+        await asyncFunc(// a promise 
 
           input_,
           // ...args chained from excute args
@@ -487,6 +490,8 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
 
           // usually the calc data will be put in key in dataCon={asynckey};
 
+
+          /* HHGGJJ asyncFunc is a promise so return from await normally ==
           , (err, data) => {// asyncFunc is the async runnin in execute. the client func 
             // will calc in the middle of execute some param needed to goon with the process
             // to be used in some ev2run , it is stored in  dataArr
@@ -498,15 +503,16 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
             if (err) {
               return this.emit('error', err);
             }
-            /*
-            this.emit('data', data);
-            console.timeEnd('execute');
-            this.emit('end');
-            */
+            
+            // this.emit('data', data);
+            // console.timeEnd('execute');
+            //this.emit('end');
+            
             console.log(asynckey,' async func ends with time: ');console.timeEnd(asynckey);
             if (data) dataCon[asynckey] = data;
 
-          });
+          }*/
+          );
     }
 
     /*
@@ -566,7 +572,7 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
   }// ends execute
 
 
-} // ends class WithTime
+} // ends class execute , was old WithTime
 
 
 

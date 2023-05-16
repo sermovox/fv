@@ -47,14 +47,14 @@ sequenza che precede server emit('pump)
 			  	nb setPump is aslso used in startfv to deploy the initial state relays to pumps 
 			  	
 			  	
-			setPump(pumpnumber,on)  calls :		  **AK78
+			setPump(pumpnumber,on)  calls :		  **AK78     
 			
-			 	- pumpsHandler[pumpnumber](0,on_)  to set relais , 
+			 	- pumpsHandler[pumpnumber](0,on_)  to set   handler di relais (button io) che lancia il update dei rele visibili nel browser , 
 			 						nb esso è settato in startfv_/abilita2/builddev():
 			 							pumpsHandler[ind]=watchparam(pump);// handler for actuators, each handler emit the socket.emit('pump' to browser.
 										if(relais&&relais[ind])relais[ind].watch(pumpsHandler[ind]);// attach same handler watchparam(pump) to all gpio pump  buttons.   << todo : da debuggare il passaggio parametri !!!
 			 	
-			 	- onRelais(relaisEv[pumpnumber],on_,'server',fn);   to set relais (assieme anche a ... )
+			 	- onRelais(relaisEv[pumpnumber],on_,'server',fn);   to command the dev ctl e updatare il loro state.relais (assieme anche a ... )
 			 	
 					 	 //  nb onRelais can be called  from :
 				                  //     - this server using   setPump() che chiamera onRelais sia direttamente che via browser (feedback )
@@ -491,6 +491,8 @@ ssh luigi@192.168.1.79
 
 mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
 
+setting var from external mqtt client : 
+
 ________________________________________________
 relevant logs start with : to print with log module .......
 anticipate algo calc new relays values....     or 	anticipate() find cloudily low so start pdc....
@@ -577,7 +579,7 @@ ____________________________________
 at start, after login, we built+ customize (customOn(this);)  fn/eM using app2 basic ctl obj in :
 	run() 
 		torna/setta la func : ccbbRef=function ccbb(plantname) 
-		per creare recuperare il plant ctl dopo socket.on('startuserplant',
+		per creare o recuperare il plant ctl dopo socket.on('startuserplant',
 		
  socket.on('startuserplant', function (plant_,feat) {// inst/fn/ctl/eM :  here we create the ctl of the plant that will be passed to all the service functions 
    - get model parm (principalmente fa il config dei devices )
@@ -625,7 +627,7 @@ at start, after login, we built+ customize (customOn(this);)  fn/eM using app2 b
                              - al resolve si prosegue con :
                              
 			 
-			 - abilita2(devices);
+			 - abilita2(devices);					HGGB
 			 	>>>  carica i devices come status di fn:
 
 						devices.ctls.forEach((mdev,index)=>{
@@ -650,7 +652,7 @@ at start, after login, we built+ customize (customOn(this);)  fn/eM using app2 b
 					  relaisEv.forEach((pump,ind) => {// ['pdc','g','n','s']
 					    setPump(ind,eM.state.relays[pump],eM);//
 _____________________________________________
-fare merge tra consolidate() e optimize() :
+fare merge tra consolidate() e optimize() MMJJ :
 
   function consolidate(state,lastalgo,date){// [false, false, false, false,false,false]= [heat,pdc,g,n,s,split], lastalgo = anticipate,program,user
 // puo essere chiamato sia da anticipate che da program. ma ultimamente program chiama optimize() !!!  >>> todo  sistemare un unico optimize !?!
@@ -1058,7 +1060,7 @@ todo manage status x var differentemente . quando faccio start non ripristino il
   
   quindi alla partenza recupero il state o lo setto come initial state con : recoverstatus.call(eM,plantcfg,plantcnt,plantconfig,feature)
   poi usando il ctl con lo state settato da recoverstatus (init state o lo state recoverato dal persistant file .data/... ) :
-  - startfv_(em_) che :
+  - startfv_(em_) che :								LUUIO
 	  - abilita : return devices_={myctls,myprobs} 
 
 	  				 il device in eM/fn.iodev.relais_ e eM/fn.iodev.probes_
@@ -1079,9 +1081,17 @@ todo manage status x var differentemente . quando faccio start non ripristino il
  																		
 	      			probes=devices_.myprobs;// 
 	      			
-	      		usando builddev() si costruiscono usando i ctls :
+	      		usando builddev()// transform devices={devmap,ctls} >>  state.devMap eM.iodev.relais_  
+	      		 si costruiscono (usando i ctls buildati in abilita())  :
 	      		eM.iodev.relais_ e 
 	      		eM.iodev.probs_
+	      		che verranno usati da setPump e specificatamente da onRelais per fare io sui device e anche da altre funzioni per vedere come gestire gli i/o: ......
+	      		
+	      		SDDWW 
+	      		
+	      		
+	      		
+	      		
 	      		
 	      	-  startfv(eM)  : si impone di resettare i valori dei device (writabili: no probs !) secondo lo state recuperato 
 	      		// allign relays current status to state.relays :
@@ -1096,7 +1106,7 @@ todo manage status x var differentemente . quando faccio start non ripristino il
 	      			   - se il mapping è < 1000 si interroga al volo il modbus senza usare un device probe 
 	      			   - altrimenti curval=await these.iodev.probes_[map[1]].readSync();// 0/1
 	      			   
-	      			-  per quanto riguarda i device che vengono storati nello state ( state.relays) essi sono determinati da i device di eM.iodev.relais_  che sono indicizzati in relaisEv
+	      			-  per quanto riguarda i device visibili nel browser e che vengono storati nello state ( state.relays) essi sono determinati da i device di eM.iodev.relais_  che sono indicizzati in relaisEv
 	      				sia che siano pump che var 
 	      				>> in questo caso quando i var vengono cambiati fuori da setpump ( quindi ad es esternamente da node-red) lo stato non si aggiorna e si ha un disallineamento che viene sistemato la prossima chiamata di onRelays
 	      				infatti (see **AK78) setpump che innesca 
@@ -1133,7 +1143,7 @@ __________________________________________________________
 
 {myctls:ctl1,myprobs:ctl2}= abilita() : regole nel formare la lista dei device myctls_ e myprobs_ ( in getctls(x,y) l'iesimo item di ctls e devmap è scelto tra il iesimo  device  x e y con precedenza di y se  not null
 
-
+WWEERR
 
 myctls_= getio.getctls(gpionumb,mqttnumb);
                                           // {ctls:[ctl1,,,,,],devmap:[{devNumb,devType,portnumb},,,,]}
@@ -1239,11 +1249,11 @@ r													return getio(gpio,clas,ind,ismqtt,mqttInst);
 								    }
 						    
 						*/
-that should be the resolve of mqtt.fact() : ctlpack= {ctl:new fc(gp,ind,inorout,cfg,that),devNumb:ind,type:'mqtt',topic,,};
+that it should be the resolve of mqtt.fact() : ctlpack= {ctl:new fc(gp,ind,inorout,cfg,that),devNumb:ind,type:'mqtt',topic,,};  SDDWW  >>>>>>>> todo : add also a interrupt cb to dev button press ?  
 
 nb in mqtt  probSubscr and numbSubscr  :
 	 invTopic[
-  maps  topic  >   {portid,mqttInst:that,topic,cl_class,protocol};  
+  maps  topic  >   {portid,mqttInst:that,topic,cl_class,protocol};  SDDWW  >>>>>> todo add also clpack so in message receiving we can do a dev button press interrupt if the message is not coming from this mqtt client !!!!!!
   cl class is the class discovered in used in subscribing 
 _______________________________________
 warning : gpio dev has not many property in ctl devio.relais_[index] so many console.log can give errors !
@@ -1251,4 +1261,389 @@ _______________________________________________
 console.log('  getgpio wants read buffer for dev: ',gp,', , its  dim is: ',mqttInst.status[gp].length);// todo 05052023  called 2 times ???
 ______________________________________________________
 
+06052023 : restructuring anticipate and program merge .
+
+now anticipate()/program() : 
+ * set aTT: 
+	- var/ intermediate result gaspcdPrefer(virtual index 6) var and the 
+	- preferred real action (in state.anticipate.suggest) on  mapped rele  :
+	index of virtual rele	significato	mapped on real index 	real name suggested			mandatory 		nb in map is <0 or value=Att[i] is null , ignore it 
+	
+	0			termostato bt		map[0]		relaisEv[map[i]]		si
+	1			attivazione pdc		map[1]			"			si
+ 	2			preferred zone		map[1]			"			no	
+ 	3			second zone								no
+ 	5			split valve								si
+ 	
+ * add its suggestion to state.lastProgramAlgo/ state.lastAnticAlgo	CFDD
+ 
+ * call consolidate or optimize to get the return 
+ * return the suggestion : aTT
+ *ask attuators(these,map,aTT) to apply the suggestion calling setPump (the visible relays (the mqttnumb rele/vars) procedure) : update rele info in browser ask onRelais() to write visible relays , update state.
+ 
+ 
+ todo: 
+ -  1 merge optimize with consolidate  dopo verifica che ci sono benefits used in consolidate che non sono ancora stati applicati in optimize ,
+    then 2 start a def system execute to run a main loop execute that just run a event/injected func   that call updated optimize (that sees CFDD) then attuators
+ 	in questo modo togliamo l'onere di chiamare attuators da anticipate e program 
+ - in attesa di 1 togliere da anticipate la chiamata ad attuators se si vede che e attivo program algo perche tanto sara lui a far girare atuators dopo optimize !!!
+ 		
+ 	 
+ 
+ _______________________________________________
+ 
+ review di execute , dovè ?
+ intanto riprendiamo la logica di withtime :
+ 
+ //    typescripy :import { EventEmitter } from 'events';const eventEmitter = new EventEmitter();
+
+// js   run : node --experimental-fetch withtime.js 
+
+let { EventEmitter }=require('events');
+// import fetch from 'node-fetch';// esm module
+
+
+
+// Example 2->Adapted and thanks to Sameer Buna
+
+class WithTime extends EventEmitter {
+    execute(asyncFunc, ...args) {
+      this.emit('begin');
+      console.time('execute');
+     // this.on('data', (data)=> console.log('got data ', data));// AA
+      asyncFunc(...args, (err, data) => {
+        if (err) {
+          return this.emit('error', err);
+        }
+        this.emit('data', data);
+        console.timeEnd('execute');
+        this.emit('end');
+      });
+    }
+  }
+
+
+  // try  to set proto func
+  WithTime.prototype.cfg=function(){this.on('data', (data)=> console.log('got data with prototyping ', data));return this;}// AA
+
+
+  const withTime = (new WithTime())
+  .cfg();// AA
+
+withTime.on('begin', () => console.log('About to execute'));
+withTime.on('end', () => console.log('Done with execute'));
+
+const readFile = (url, cb) => {
+  fetch(url)
+    .then((resp) => resp.json()) // Transform the data into json
+    .then(function(data) {
+      cb(null, data);
+    });
+}
+
+withTime.execute(readFile, 'https://jsonplaceholder.typicode.com/posts/1');
+
+>>> logica :
+withtime costruisce un event stile procedure basandosi su un event manager (event emitter)
+- combina event emitter chain 
+	> begin  >  asyncfunc(injected)  > data  >  end
+ - dove gli handler degli event  begin e end sono customizzati
+ 	> begin lancia dei log 
+ 	> asincfunction  applica a param passati la asyncfunc injected 
+ 	> data processa il return di asyncfunc  
+ 		data handler è settato definendo un prototype func che lavora con this , oggetto istanziato dal class constructor 
+ __________________________________________
+
+plant :
+{
+    "data": [
+        {
+            "aidType": 2147483647,
+            "buildState": null,
+            "capacity": 0.005,
+            "combineType": null,
+            "linkmanPho": "",
+            "stationAddr": "Via Damiano Chiesa, 33170 Pordenone PN, Italia",
+            "stationCode": "NE=36026831",
+            "stationLinkman": "",
+            "stationName": "MarsonLuigi Via D. Chiesa"
+        },
+        {
+            "aidType": 1,
+            "buildState": null,
+            "capacity": 0.007,
+            "combineType": null,
+            "linkmanPho": "",
+            "stationAddr": "Via Bunis, 27 33084 Cordenons PN, Italia",
+            "stationCode": "NE=35350463",
+            "stationLinkman": "",
+            "stationName": "MarsonLuigi"
+        }
+    ],
+    "failCode": 0,
+    "message": null,
+    "params": {
+        "currentTime": 1683701642796
+    },
+    "success": true
+}
+
+example site : https://forum.huawei.com/enterprise/en/communicate-with-fusionsolar-through-an-openapi-account/thread/591478-100027?page=2#comments-area
+_______________________________________
+
+
+logic of  execute(procName, evcontingencyparam, evAsyn, ev2run, processAsync,asyncPoint, dataArr_,cb)
+
+	ev2run : event name list
+		sono la catena di eventi da lanciare (sono definiti in fv3 !) su input dataArr
+		es :  ev2run = {initProg:null,genZoneRele:"initProg"};
+                                      :the event genZoneRele  will receive input from event initProg output
+
+
+    	- asyncPoint=// asyncPoint={1:'login',,,,,}at step 1 run :   processAsync['login']={login:function(){},,,,,}.login with input  input_ = dataArr[asynckey];
+
+	   nb  stepx : // current step index : can be reset in event handler setting this.state.stepInd!! (default is ++)
+			ev2run events will be fired sequentially (step=0,1,,,) in ...
+		    	with .emit(event,inputdata=dataCon[event],,)
+	- dataArr= {initProg:{dataArr:sched}, genZoneRele:{dataArr:sched},login:'sometext'}
+			> std input x genZoneRele is sched , but initprog add its result : dataArr.genZoneRele={dataArr:sched,initProg:{}} 
+	
+	-     evAsyn={evname:asynctorun,,,} : asynctorun  is the async to run before fire its associated  event, input x asynctorun is : dataArr[evname].processAsync
+                                      the asynctorun cb(data)  will set dataCon[asynckey]=date if data not null     ....... still valid ???
+
+
+>>  goonstep  : // called by Outerfunction:  will wait cb then call this goonstep() togoon a step.   nb :  in pratica e' un iteratore !!!
+
+  - allo stepNum (index of the ex2run and ... ) se ho registrato un async in processAsync e se ho previsto (in asyncPoint) che allo stepNum devo lanciare un async
+  	lancio il async asyncNam
+  		che ha come input
+  		 e output 
+  	
+	let step=prolist[stepNum],// event ev2run[stepNum] at current step
+        asyncNam = asyncPoint[stepNum]; // ex  asyncPoint={1:'login',  quindi asyncNam='login'
+
+        if ((asyncNam )) {
+          if (processAsync[asyncNam]) {// run here the (login) async before fire the event    >>>>>>>>>> ???????????????????
+          				// ++++   no qui verifica se login e' in processAsync !!!!!!!!!!!
+            noasync=false;
+            runAsync(asyncNam)
+                              .then(() => runEvent(step));
+		.....
+		
+     - run runEvent(step);
+        runEvent(step);// can return after a client defined event chain
+         // Outerfunction will wait cb then call this goonstep() togoon a step
+      };// ends goonstep_
+ 
+ 
+ 
+>>  async function runAsync(asynckey) // run async associated to event with input=dataArr[asynckey].processAsync
+ 
+	run 	asyncFunc = evAsyn[asynckey] : // +++   ma qui considera evAsync[login] come async func !!!!!	 ex in step 1  asynckey='login' , asyncFunc = evAsyn.login
+		dataCon[asynckey] =asyncFunc( input_,
+		  // was ...args chained from excute args
+		  procName, evcontingencyparam,
+		   evAsyn,   // 
+		    ev2run, evAsync,
+		     processAsync, // ++ so processAsync are just made avalable in event async func !!!!!!!!!!!!!!!!!!!!
+		      dataArr,
+		   	// no mere used :  cb=() // get data feedback and fill input for associated event : 
+			//	....  if (data) dataCon[asynckey] = data;		  ....... still valid ???
+		  	//)
+						>>> so in fv3 posso dare il async come ad es :   evAsync={login:fx,,,}
+									fx=async function( input_, // calcolato come :  =dataArr.login.processAsync,	>>>>>>>>>>><  ????  non coerente con POLK
+											// + same param as execute call
+											procName, evcontingencyparam, evAsyn, ev2run, processAsync,asyncPoint, dataArr_,cb))
+											{
+											
+											.....
+											// we can call other general Async like withtime.js
+											dataCon['login'] =await processAsync.agenAsinc(
+													any obj in dataArr/dataCon can be used as input
+													
+													);
+											......
+												console.log(dataArr.genZoneRele.initProg,dataArr.login,dataArr.whayeveryouwant);
+											.....
+											
+											// no more returning calling cb : cb(err, data) ,//  so output data is put in :dataCon['login'] = data;// nb dataCon is dataArr updated !   POLK 
+											return data
+											},
+		
+			nb in fv3 we put processAsync.agenAsinc=async function (x){
+									return itsoutput
+									}  
+									
+ 
+ 
+      
+>> function runEvent(myev) 
+	lancia il event chiamando : var emmitMyev = OuterFunction(par1, myev).call(that,null) 
+	      console.log(' runEvent(): promise was started ( probably terminated)  , event ', myev, ', ev2run is:', ev2run,' con input: dataCon : ', dataCon, ', dataInv(quali eventi sono alimentati): ', dataInv);
+	      
+	     
+>> function OuterFunction(par, ev) : setta il context del returned innerfunction : cb del inner  , updateData_(err, data), che:
+								-  setta il output del event sul uno dei event da processare successivamente 
+								- chiama  goonstep(data); per processare il next step 
+							
+>>   function InnerFunction(newin)  : setta input e lancia il event ev che chiamera il cb updateData_   
+	function InnerFunction(newin) {// >>>>  <InnerFunction rename in :runevent, 
+                                      // newin can force the new input instead of std input ev2run[ev]
+        let inp = newin || 
+          dataCon[ev];// no :ev2run[ev];
+        console.log('pilo, innerfunction(), event: ', ev,' , inp: ', inp,' dataCon: ',dataCon);
+        this.emit(ev, inp, updateData_);	
+        
+        
+question : can async be used inside customized event handler (ex: initProg)  ??		
+
+async structuration 
+
+in execute e un main non async che realizza un for/loop costruito con goonstep 
+ usando call to innerfunc che chiamo .emit(event,cb) che sono sync e che con il cb loppano/iterano su goonstep e poi vanno a far morire il thread al ritorno dalla call .emit()
+ e usano il primo livello di async func (posso usare il comodo await) come promise.then() quindi facendo uscire il thread 					 	     
+ quindi se voglio usare nei customized handler degli async (non sere recuperarli dai param di execute essendo disponibili in fv3 (?)))
+    non posso far tornare l'andler che altimenti esco da .emit() senza prima eseguire il suo cb . ma andrebbe bene lo stesso tanto dopo l'emit esco dal loop !
+    quindi si potrebbe nel handler .on(fn,cb)  fare in fn() :
+    ...
+      promisex.then(cb)
+      
+      oppure dichiararlo addirittura come async !!! tanto cosi che esco subito dal .emit()  !!!
+      		>>>> infatti è cosi fatto in these.on('openapi',...  !!!!!!!
+______________________________________________
+
+  todo   quando si ferma debug point il socket viene perso
+  	sistemare l'errato input del plant 
+_______________________________
+
+    >>>> tieni presente che i commenti di sopra non sono aggiornati . la modifica principale e' che ora :
+     
+      - resolve of mqtt.fact() : ctlpack= {ctl:new fc(gp,ind,inorout,cfg,that),devNumb:ind,type:'mqtt',topic,,};  SDDWW  >>>>>>>> todo : add also a interrupt cb to dev button press ? 
+      - resolve of getio = mqtt.fact
+      - resolve of pr=doSomethingAsync is mqtt.fact 
+      - resolve of pr è it=mqtt.fact 
+      	>    05052023 got  : it={ctl:{	cfg:mqttnumb/mqttprob[dev],
+                           		cl:1,
+                            		devnumb:0,
+                            		gpio:11,
+                            		isOn:false,
+                            		mqttInst,
+                            		//  +  ctl proto func readsync and writesync should be present ! :
+                            		readsync(),
+                            		writesync()
+
+                            		// + from  from :  subscred(resu) after subscribe cb in probSubscr/numbSubscr
+                            		topic,
+                            		cl_class
+                            	},
+                      		devNumb:0,
+                      		type:'out'
+                    }
+    
+    	- resolve of getio.getctls is resolve({ctls:resu,devmap:resolved})   see WWEERR
+    	
+    	- quindi   abilita()  return devices_={myctls,myprobs}   sarà : 
+    		myctls_= getio.getctls(gpionumb,mqttnumb);
+                                          // {ctls:[ctl1,,,,,],devmap:[{devNumb,devType,portnumb},,,,]}
+                                          // get pump/relais r/w devices from preferred  mqtt or gpio arrays
+		myprobs_= getio.getctls(null,mqttprob,true);//   {ctls,devmap} , true = a probe/var device
+
+  	- in abilita2() settiamo finalmente usando builddev():
+  	eM.iodev.relais_=[ctl1,ctl2,,,,]
+__________________________________
+
+  button press interupt management VVCC
+  
+  in abilita, see HGGB e (see **AK78 e LUUIO) :
+  -  buildPlantDev(){// build here the plant ctl devices (ctl/eM/fn).iodev.relais_ dev/pumps (+ /button switch) and their handlers  
+  
+  		>>> attenzione gli handler erano def come handler dei button di raspberry che lavorano con un solo plant 
+  		ora i button vanno mappati sul ctl del plant , ogni plant ha ctl eM e dentro esso i suoi handler che interfacciano il browser via socket emit .
+  		 quindi il handler va messo come eM.
+  
+     si costruiscono i ctl che vengono poi inseriti da abilita2 in state.devio  che sono usati da on e altri per lavorare con i dev .
+     in particolare stePump e' l'handler che updata sia il browser che il state e i devices via onRelais()
+  	
+  	>> quindi nella creazione dei dev in abilita devo portare un cb che aggancia setPump come interrupt di message var settati dal esterno (come se fosse chiamato un setPump)
+  	
+  ora altermine della recuero/creazione/update di stato dal persistant del plant ctl (eM/fn) esso reagira agli input ( button press o device interrupt  + event handler del websocket firate dal browser) 
+   quindi applico i interrupt da device come ho applicato il handler dei button !!!!
+   
+   nota che il plant ctl eM e' creato in un closure che e' il cb di una connessione socket. in un handler di evento socket lo faccio gestire chiamando funzioni di eM
+    es in socket.on('pump'  handler chiamo un metodo onRelais(pump,val,coming,eM) che lavora con i dati func del ctl eM
+    
+    modifiche da fare :
+    see SDDWW per le modifiche da fare sul interrupt  
+    
+    done : sunto 
+    
+    in  client.on('message',    handler :
+    
+    	- dal topic si recuperano i oggetti registrati :
+    	  if (adev=regTopic(topic) ) {//just returns invTopic[topic], useless !
+
+            let dev=adev.portid,mqttInst=adev.mqttInst,
+            ctlpack=adev.ctlpack;// ctl=ctlpack.ctl
+         - se e' dev tipo var allora chiamo il interrupt registrato sul ctl.int, al ritorno butto via il thread
+            
+               
+___________________________________________________________________________
+
+testare e verificare come al primo richiesta di un plant da un browser venga creato e messo in pool (started[name]) il eM plant controller che viene completato con la configurazione dei device eM.devio.
+quandoo il browser si scollega il eM continua a lavorare e quando un nuovo browser richiede il plant si va a recuperare il eM da pool  poi ricostruito il .state e il .devio :
+	>>>  see in abilita(): 
+		// GGTTFF
+		eM.pumpsHandler={}; // not the super . the app can have many browser connected each one with its handler to manage the update of the browser
+		   //  only one plant will have the button handler set  as its pumpHandler !!! so set a flag the first plant get the button association end the other nothing !
+		eM.iodev={};
+
+	question : e' necessario riapplicare tali 2 ricostruzioni se il recupero avviene da pool? come e' possibile che nel pool tali 2 ricostruzioni siano diverse da una nuova ricostruzione (abilita e abilita2)  
+
+_______________________________________________
+
+ricorda :
+function stList(){//(dev,token){// return a promise that is resolved when a listener , added to a dev listener list, is called with the next  msg
+    // todo : add a reject to fire after a max time is reached
+____________________________________________
+
+        /* now when a  var subscribe, are sent 2 message :
+        1: '>ctlpresent'
+        2: no more :the def var , it will be set at first write !
+
+        se vogliamo inviare (con .subscribe() ) il presence sullo stesso template, dobbiamo lavorare su message handler( client.on('message', ...) e readsync() x evitare 
+            che venga letto quando si vuole leggere un valore con readsync.  2 strategie:
+        a) inserirla nel queue (client.on('message',,)) quando arriva il >ctlpresent ,  e quindi impedire di leggerlo dal readsync, lanciando un listener stList() anche piu volte (se il >ctlpresent viene mandato 2 volte dal brocker),
+        b) non inserire >ctlpresent nel queue  da parte del  (client.on('message',,)) .
+        b) e' da implementare ancora  
+
+
+        */
+_________________________________
+
+    mqttinst.statuslist
+    
+      ricordarsi che siccome con setPump firo sia onPump che il browser che chiama onPump avro 2 richieste di lettura e quindi di listener in readsync    !!!
+      
+      inoltre se ricevo 2 >ctlpresent in un dev var  al secondo ricezione farogirare i pool corrente dei listener e il primo aggiunge un altro listener alla coda per un futuro msg
+      	 quindi alla fine del girare il pool avro un listener in piu' che va mantenuto . quindi il pool finale saranno i listener aggiunti da pool corrente !!!!
+      	 
+      inoltre da aggiungere un timelimit al listener per agire. per ora settare 0 cosi readsync() ritorna la lettura (''    , would be better reject !) anche se non ho dati in coda
+      	 
+______________________________________
+
+usual reading  in some fv3 event:
+   curval=await these.iodev.probes_[map[0]].readSync();// 0/1 or also '' that could mean N/A   .... todo manage that case !
+   
+   nb in readsync according with dev info in mqttnumb/mqttprob (protocol,,,,) we adapt the device response to get values we expect. can be 0/1  or 'on'/'off' or 0/1/''  or 'on'/'off'/''=(N/A)
+   its good abit have also N/A expecially in var device (protocol=....)
+____________________________________________
+ricordaesi che incoming message process alimenta i pending listeners e la coda con i messaggi mqtt generalmente raw (mqtt msg) o estratti da un imbustamento stabilito per il tipo di dev ( dipende da .cl in genere )
+ quando si processa 'linput (readsync e relative func) allora si analizza il msg , vedendo se e' un valore 'on'/'off' o un signal ('>ctlpresence') e secondo il dev protocol si decide cosa restituire a readsync()
+
+ inoltre si ricorda che per ora il browser usa i dev da displaiare come on/off o 0/1 quindi in setPump() i readSync sono null/''/'N/A' o 0 o intt != da 0 (cioe 1/'on')) se N/A si procedera in ogni caso alla riscrittura del valore proposto da setPump()
+ 
+ todo  in rread gestire il fatto che in ogni caso registro in ingresso anche valori autoprovevienti  quindi :
+ 	- se msg è un  signal (>ctlpresence)  loopare rread per processare il next msg,
+ 	- se e valore anche autoprodotto leggerlo , 
+ 	- se timeout return null/''  
 

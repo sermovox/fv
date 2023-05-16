@@ -334,7 +334,7 @@ const getio=require('./nat/io/getio.js').init(Gpio);// *************************
                                           // NOW goon with handler definition then run the run() section ( start the server !)
 
 
-let pumpsHandler=[];//  relais handler , also used by anticipating algo too (actuators)
+let pumpsHandler_=[];//  relais handler , also used by anticipating algo too (actuators)
                     // both button and algo actuacor can call this bank of handler(err,newvalue) 
                     // state.relays names are mapped to pumpsheader index in attuators() : pdc>0, g>1,n>2,s>3
 
@@ -344,7 +344,7 @@ let pumpsHandler=[];//  relais handler , also used by anticipating algo too (act
 var pushButton ;
 if(Gpio)pushButton= new Gpio(17, 'in', 'both'); //use GPIO pin 17 as input, and 'both' button presses, and releases should be handled
 let relais;
-if(Gpio)relais= // arrays of io ctl
+if(Gpio)relais= // arrays of io ctl button
 [new Gpio(18, 'in', 'both'),// gpio relay button to set gpio phisical relays : see :YUIO
 new Gpio(23, 'in', 'both'),
 new Gpio(24, 'in', 'both'),
@@ -996,7 +996,7 @@ console.log(' optimize() used case: ', debcase);
   return res;//ret;//res;// better clone
 }
 
-function anticipate(state,algo){// the algo : returns the new pumps state, store algo result on state.lastAnticAlgo
+function anticipate(state,algo){// the algo :  store algo result on state.lastAnticAlgo, eventually consolidate with program algo 
 /*
     "battLevel": 0,
     "inverter": 3,
@@ -1029,7 +1029,9 @@ if(triggers.PdCTrig1){a=2; console.log(' anticipate algo find required policy : 
   else if (a == 2) {// basic model save battery
     if (triggers)
     { if (cloudly <= (100- triggers.FVPower)) {
-      ret = [true, true, true,null, null,true];// [heat,pdc,g,n,s,split] 
+      // ret = [true, true, true,null, null,true];// [heat,pdc,g,n,s,split] 
+      ret = [true, true, true,null, null,true,true];// added gaspdcPref : [heat,pdc,g,n,s,split,gaspdcPref] : according to todo now will be necessary set only  the intermediate var gaspdcPref  if use optimize loop :
+                                                    // ret = [null, null, null,null, null,null,true];
       console.log('anticipate() find cloudily low so start pdc');
     }else{// no anticipating, so no requirements
       ret = [null, null, null,null, null,null];// [heat,pdc,g,n,s,split] 
@@ -1037,14 +1039,16 @@ if(triggers.PdCTrig1){a=2; console.log(' anticipate algo find required policy : 
   }
   }
   else ret = null;// algo not producing any advise requirements
-  console.log('anticipate algo calc new relays values : ',ret);
+  console.log('anticipate algo calculated new relays values : ',ret);
    
 }else {
   console.log('anticipate algo cant find triggers, so retuns null ');
   console.error('anticipate algo cant find triggers ');
 ret= null;//[false, false, false, false,false,false];  
 }
-if(ret){
+
+
+if(ret){// store suggestion lastAnticAlgo, consolidate with program algo  and user manual
 let  pdate=new Date();pdate.setHours(pdate.getHours()+dOraLegale);
 //state.lastAnticAlgo={updatedate:new Date().toLocaleString(),level:1,policy:0,algo,pumps:aTT,model};// level is the temp level 0, then 1 after 1 hour. policy is the param of algo that will comand relays to perform a objective; eco,lt,ht,timetable
 state.lastAnticAlgo={updatedate:pdate.toLocaleString(),time:pdate.getTime(),level:1,policy:0,algo,pumps:ret,model};// level is the temp level 0, then 1 after 1 hour. policy is the param of algo that will comand relays to perform a objective; eco,lt,ht,timetable
@@ -1519,7 +1523,8 @@ function customOn(these) {// set .on custom handler (event called by execute())
 
 
       // tuti i real dev non mappati andranno settati null, il che vuoldire che non vengono modificati !!! 
-      let map;
+      let map,prel='';
+      if(!state.lastProgramAlgo){// program algo is active !, degegate to progrm the optimized attuators // temporarely !!!
       if(inp.mapping)map=inp.mapping;// sched.mapping
       else map=[0,1,2,3,-1,5];// // HHGG so virtual devices of anticipate algo are heat,pdc,g,split. stessa cosa che settare identity=[0,1,2,3,4,5]
                                   // better : attuators works on virtual device 0,1,2,3,4,5 ,  
@@ -1537,8 +1542,8 @@ function customOn(these) {// set .on custom handler (event called by execute())
             // Handle errors here
             console.error("attuators error: ",e);
         });
-
-      res.execute=aTT.toString();// pass aTT on ev2run input, seems useless
+      }
+      res.execute=prel+aTT.toString();// pass aTT on ev2run input, seems useless
 
     // register result of the exec procedure!
     //state.lastAnticipating={updatedate:new Date().toLocaleString(),level:1,policy:0,procedure:proc,pumps:aTT};// level is the temp level 0, then 1 after 1 hour. policy is the param of algo that will comand reays to perform a objective; eco,lt,ht,timetable
@@ -1671,7 +1676,7 @@ if(inp_&&inp_.dataArr){inp=inp_.dataArr;//  inp=sched
     // map[0]>=1000
     let curval
     if(these.iodev.probes_[map[0]])// curval=await this.relais_[pump_].readSync();// 0/1
-    curval=await these.iodev.probes_[map[0]].readSync();// 0/1
+    curval=await these.iodev.probes_[map[0]].readSync();// 0/1 or also ''/null that could mean N/A   .... todo manage that case !
     probes.notte=curval;
 
   }
@@ -1784,7 +1789,7 @@ function concludi(){
   cb(0, res);// false : nothing to do 
   }
 
-}else console.log(' handler fired by event genZoneRele , cant process actions because probs are not evailable!');
+}else console.log(' handler fired by event genZoneRele , cant process actions because probs are not available!');
 
 
 
@@ -2113,7 +2118,7 @@ console.log('sendstatus() pretty is: ',prettyjson);
 
 function attuators(fn,map,aTT){// aTT: the program() algo resuts (after consolidating with anticipate algo and manual set)
                                   //  in attuators(these,map,aTT), we set (calling setPump(i,relaisEv[i],fn)) real devices (i) mapping virtual (if its map>=0) into real dev (of index i=map) 
-                                  //                              nb only if the new set/value  of  real device is changed from its status  state.relays[pump=])
+                                  //                              nb only if the new not null set/value aTT(realindex)  of  real device is changed from its status  state.relays[pump=])
                                   // setPump will then call (eventually ) browser then call:
                                   //                          >>  onRelais   (setta i singoli real device/rele ( index= pump_ e nome pump) e registra in state lo status per nome in state.relays[pump])
                                   //                                 only if the new set/value  of real hw device is changed ! 
@@ -2129,25 +2134,32 @@ function attuators(fn,map,aTT){// aTT: the program() algo resuts (after consolid
   // >> in un customized plant avremo dei cust device con indici 0,1,,max 
   // e noi mapperemo ordinatamente i virtual device sui customized index !!!
 // we action simulating to push gpio button events
-let state=fn.state,relays=state.relays,relaisEv=state.app.plantconfig.relaisEv;
+let state=fn.state,relays=state.relays,// the state of device displayed on browser (true/false)
+relaisEv=state.app.plantconfig.relaisEv;
 console.log(' attuators() : current real custom relays pump state is : ',relays,' VIRTUAL target values : ',aTT,' to map into: ',map);
 if(!map||!aTT)return Promise.reject('cant compute');
 // todo use relaisEv.forEach( ...  and pump_=relaisEv.lastIndexOf(pump);// the index in relais_
 
 // debug:
-console.warn('  ?? attention that order in state.relays ',state.relays,' same as fn.state.relays ',fn.state.relays,' can be different from fn.relaisEv ',fn.relaisEv);
+console.warn('  ?? attention that order in state.relays ',state.relays,' same as fn.state.relays ',fn.state.relays,' can be different from fn.relaisEv ',relaisEv);
 // so correct mapping state.relays > fn.relaisEv are done here !
 let promises=[];
-let i,mmax=aTT.length;
-if(map.length<mmax)mmax=map.length;
-for(i=0;i<mmax;i++){
-  if(aTT[i]!= null &&// both null or undefined
-map[i]>=0 &&//  iesimo virtual is mapped to index= map[i] of name: relaisEv[i], con state:relays[relaisEv[i]])  ,i=-1 means do not map, virtual not used here 
-aTT[i]!=relays[relaisEv[i]]){//
-incong(relaisEv[i],state);// segnala se c'e' differenza tra il current state relay value e il reale hw relay value , se c'e quando lo sistemo ??????
-console.log(' attuators() : as current  pump state : ',relays[relaisEv[i]],' is different from newval call setPump(0,',relaisEv[i],')');
+let i,mmax=aTT.length,mapmax=map.length;
+// if(mapmax<mmax)mmax=mapmax;
+for(i=0;i<mmax;i++){// scan virtual rele iesimo  and apply changes to real rele if index map[i] named  relaisEv[map[i]],  with current state relays[relaisEv[map[i]]]
+let realind;
+if(i<mapmax)realind=map[i];// apply map 
+else realind=i;// identity 
+  if(aTT[i]!= null &&// both null or undefined, the iesimo virtual dev to set on real dev of index map[i]
+  realind>=0 && realind<relaisEv.length &&//  iesimo virtual is mapped to index= map[i] of name: relaisEv[i], con state:relays[relaisEv[i]])  ,i=-1 means do not map, virtual not used here 
+aTT[i]!=relays[relaisEv[realind]]){//
+const db=false;if(db){
+  incong(relaisEv[realind],state);// segnala solo se c'e' differenza tra il current state relay value e il reale hw relay value , se c'e quando lo sistemo ??????
+  console.log(' attuators() : as current  pump state : ',relays[relaisEv[i]],' is different from newval call setPump(0,',relaisEv[i],')');
 //relays.pdc=
-promises.push(setPump(i,relaisEv[i],fn));}else;// anyway se richiedo un set diverso dal corrente cambio il suo valore 
+}
+promises.push(setPump(i,relaisEv[realind],fn));}
+else;// anyway se richiedo un set diverso dal corrente cambio il suo valore 
 
 }
 
@@ -2158,15 +2170,18 @@ return Promise.all(promises);/// returns also when promises=[]
 
 
 
-async function incong(pump,state){// segnala solo se il current state pump value is different from the hw relais value !
+async function incong(pump,state){// segnala solo se il current state (real) pump value is different from the hw relais value !
+                                  // attenzione he fa una lettura ulteriore (perdita di performance !)
 let value=state.relays[pump];// true/false, pump as recorded on status
-let   pump_=state.app.plantcfg.relaisEv.lastIndexOf(pump);// the index in relais_
+let   pump_=state.app.plantcfg.relaisEv.lastIndexOf(pump);// the index in relais_ of real pump
 if(pump_>=0){// found
 if(fn.iodev.relais_[pump_])// curval=await this.relais_[pump_].readSync();// 0/1
-curval=await fn.iodev.relais_[pump_].readSync();// 0/1
-else curval=0;
-if(value&&curval==0||((!value&&curval==1))){// state value != cur rele value 
-console.warn(' bug to fix : attuators(), find pump ',pump,' state different from current pump position thats: ',curval); 
+curval=await fn.iodev.relais_[pump_].readSync();// 0/anynumber
+else curval=null;//curval=0;
+if(!curval||(value&&curval==0)
+// ||((!value&&curval==1))
+  ){// state value != cur rele value 
+console.warn(' bug to fix : attuators(), find pump name ',pump,' state different from current pump position thats: ',curval); 
 console.log(' bug to fix : attuators(), find pump ',pump,' state different from current pump position thats: ',curval); 
 }
 }}
@@ -2250,7 +2265,7 @@ function setPump(pumpnumber,on,fn){// 0,1,2,3    on : changing value (true/1 or 
   let on_,state=fn.state;
   let relaisEv=state.app.plantconfig.relaisEv;
   if(on)on_=1;else on_=0;// conver true > 1
-  pumpsHandler[pumpnumber](0,on_);// called by anticipating algo in attuators
+  fn.pumpsHandler[pumpnumber](0,on_);// called by anticipating algo in attuators
                                 // its a copy of gpio button relays handler (so we are simulating a gpio button press) that launch socket events
                                  // after set the browser pump flag will return with a socket handler that will call
                                  // onRelais(pumpnumber,on,'browser...',) : the gpio phisicalrelay
@@ -2317,6 +2332,11 @@ session.save();// save socketid
     if(eM)console.error('startuserplant , eM is built/recovered from pool ');
     if(eM)console.log('startuserplant , eM is built/recovered from pool ');
     eM.socket=socket;// update/embed the socket to connect the browser client
+
+    // UUYY add here (or in instance constructor ???)
+
+    
+
     if (eM) {
      // startfv_(eM,user);// ** start/update singlethon 
      recoverstatus.call(eM,plantcfg,plantcnt,plantconfig,feature).then((em_) => startfv_(em_)); // >>>>   recoverstatus() returns a promise resolved. we finished to write status back with promise .writeScriptsToFile
@@ -2367,7 +2387,8 @@ session.save();// save socketid
   });// ends on('startuserplant'
 // });
 
-  function startfv_(eM){// entry point when staus is recovered from file   // // why do not use eM invece di passarlo come em_ ?
+  function startfv_(eM){// entry point when status is recovered from file   // // why do not use eM invece di passarlo come em_ ?
+                        // and applied to update eM.state
   
     let plant=eM.state.app.plantname;// or app.plantcfg.name
 
@@ -2441,6 +2462,10 @@ eM.iodev={relais_:[],// the io dev ctl list , their name are in relaisEv array. 
 // methods, no attuators ,
 probes_:[]// read only sensor or state var in mqtt persistence
 }*/
+
+// GGTTFF
+eM.pumpsHandler={}; // not the super . the app can have many browser connected each one with its handler to manage the update of the browser
+   //  only one plant will have the button handler set  as its pumpHandler !!! so set a flag the first plant get the button association end the other nothing !
 eM.iodev={};
 
 // using getio,  call old getctls(gpionumb,mqttnumb);
@@ -2452,10 +2477,10 @@ eM.iodev={};
 // eM.iodev.relais_= await getio.getctls(gpionumb,mqttnumb).ctls;
 // let devices= await 
 let myctls,myprobs;
-myctls_= getio.getctls(mqttInst,gpionumb,mqttnumb);
+myctls_= getio.getctls(mqttInst,gpionumb,mqttnumb);// get devices choosing from describing gpio and mqtt info array : these are the visible rele/var in browser
                                           // {ctls:[ctl1,,,,,],devmap:[{devNumb,devType,portnumb},,,,]}
                                           // get pump/relais r/w devices from preferred  mqtt or gpio arrays
-myprobs_= getio.getctls(mqttInst,null,mqttprob,true);//   {ctls,devmap} , true = a probe/var device
+myprobs_= getio.getctls(mqttInst,null,mqttprob,true);//   {ctls,devmap} , true = a probe/var device. invisible in browser
                                             // get probs  read only devices from  mqtt, true means is a probe type (type='in')
                                             // + get var, intermediate status / context to be used by other algo , connectable to red note
 
@@ -2542,14 +2567,37 @@ console.log(' buildPlantDev(),got dev ctl list: ',state.devMap);
 
 if(relaisEv.length>eM.iodev.relais_.length)console.error('buildPlantDev() : managed dev relaisEv are more then avalable devices .iodev.relais_ ! plesa abort ')
   // implements also a button/algo handler array for actuators / pumps
+
+  // GGTTFF
+let pumpsHandler=eM.pumpsHandler; 
+
   relaisEv.forEach((pump,ind) => {// ['pdc',// socket event to sync raspberry buttons and web button
     // 'g','n','s']
     
 if(!eM)console.error('event connection setting hw button , eM is still null ');
 if(!eM)console.log('event connection setting hw button, eM is still null ');
-pumpsHandler[ind]=watchparam(pump);// handler for actuators, each handler emit the socket.emit('pump' to browser.
+
+// to do check the relais are not alredy set to other plant/eM
+pumpsHandler[ind]=watchparam(pump);// handler for actuators, each (button )handler emit the socket.emit('pump' to browser to update the visibile relay flags 
 if(relais&&relais[ind])relais[ind].watch(pumpsHandler[ind]);// attach same handler watchparam(pump) to all gpio pump  buttons 
                           // that handler works also x algo handler called in attuators/setpump   ex pumpsHandler[0](err,value) 0 means pdc pump
+
+
+// now do the same for mqtt interrupts for var updating 
+
+if(eM.iodev.relais_[ind]&&eM.iodev.relais_[ind].cl&&(eM.iodev.relais_[ind].cl==2||eM.iodev.relais_[ind].cl==4)){// the dev is a mqtt var , see VVCC in howto
+
+  eM.iodev.relais_[ind].int= (val=0,queue,lastwrite)=>{
+    let isOn=val==1;
+    console.log(' abilita2 interrupt : receiving   var ',pump,', msg val (0/1) : ',val,' , actual status is :',state.relays[pump],' , queue is :',queue,', lastwrite (true/false) was ',lastwrite);
+    // idea just interrupt if is different then state.ralays[dev]!
+    if(state.relays[pump]!=isOn){
+  console.log(' abilita2 interrupt : fire interrupt to change value ! ');
+  //  setPump(ind,isOn,eM);// return a promise , ok ??
+    }
+}
+}
+
 
 });
 
@@ -2575,7 +2623,7 @@ let ejscont=state.app.plantcnt;// ejs context=ejscontext(plant).pumps=[{id,title
   // set local gpio relay to some button on web page, web page will emit a socket event 'light' that will in this server activate
   // the gpio port
 
-  if(pushButton)pushButton.watch(function (err, value) { //Watch for io hardware interrupts on pushButton  
+  if(pushButton)pushButton.watch(function (err, value) { // detail : Watch for io hardware interrupts on specific pushButton  
                                             // to review , see also staff/webserver07112022.txt
 
     if (err) { //if an error
@@ -2858,20 +2906,20 @@ async function onRelais  (pump,data,coming,fn) { //pumps unique handlerget pumps
    
   console.log('OnRelais  pump/devName: ',pump, ', found with index ',ctl.devNumb,', devid/portid ',ctl.gpio,', is a mqttdev?: ',!!ctl.cfg);
   if(!!ctl.cfg)console.log('.......  mqtt dev feature from model mqttnumb : cl_class (mqttnumb:1rele/2var mqttprob:3probe/4var) ',ctl.cl,', plant ',ctl.mqttInst.plantName,' class ',ctl.cfg.clas,', protocol ',ctl.cfg.protocol);
-    curval=await ctl.readSync();// 0/1 present value of gpio register
-    if(curval==null)curval=0;// std out 
+    curval=await ctl.readSync();// 0/anynumber or null  present value of gpio register
+   //  if(curval==null)curval=0;// std out 
   }
   else // if the device is not available read a dummy 0
-    curval=0;
+    curval=null;// 0;
   console.log(' onRelais, coming from: ',coming,', current rele position x dev name ',pump,', is ',curval,' asking to set : ',data); 
   // console.log('              onRelais, state: ',state); 
     let lchange=false; //  >>>>>>>  TODO : gestire le incongruenze tra state.relays  e current relay value : curval
-  if(value&&curval==0||((!value&&curval==1))){// state != cur value . a problem if not just starting!
+  if(!curval||value&&curval==0||((!value&&curval==1))){// state != cur value . a problem if not just starting!
     console.warn(' onRelais, find current pump ',pump,' state different from current hw pump position thats: ',curval); 
     console.log(' warn: onRelais, find current pump ',pump,' state different from current hw pump position thats: ',curval); // ????  >>>>>>>  TODO ??: gestire le incongruenze tra state.relays  e current relay value : curval
     lchange=true;// state and present value are different !
   }
-  if (lightvalue != curval) { // 0/1 != 0/1 gpio comanding relays is called,>>>>> only change gpio if current position/value is different from present hw relay value !!
+  if (!curval||lightvalue != curval) { // 0/1 != 0/1 gpio comanding relays is called,>>>>> only change gpio if current position/value is different from present hw relay value !!
     console.log(' onRelais,  changing current rele hw position/value x ',pump,' to new value: ',lightvalue); 
     if(fn.iodev.relais_[pump_])fn.iodev.relais_[pump_].writeSync(lightvalue); //turn LED on or off
     console.log(' onRelais,  todo : verifying current rele  position/value changing  x ',pump,' now is: ',lightvalue); 
