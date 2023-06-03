@@ -10,6 +10,11 @@
 require('dotenv').config();// load .env
 const model=require("./nat/models.js");
 const dOraLegale=parseInt(process.env.dOraLegale)||0;
+const  pdate=new Date();pdate.setHours(pdate.getHours()+dOraLegale);
+
+// debug staff normally is false
+const DEBUG_probe=true;// assign a std 20 degrees if no read on device  
+
 
 // let getcfg=model.getcfg;//can  be used for plant cfg
 // app custom config staff:
@@ -237,10 +242,84 @@ passport.deserializeUser((id, cb) => {
 }
 // end express set up
 
-var io = require('socket.io')(http) //require socket.io module and pass the http object (server on wich socket will be built)
+// var io = require('socket.io')(http) //require socket.io module and pass the http object (server on wich socket will be built)
+// cors enabled :
+const { Server } =require("socket.io");//import { Server } from "socket.io";
+
+const io = new Server(http, {
+  cors: {
+    origin:  '*',//"https://example.com",//
+   //  allowedHeaders: ["my-custom-header"],
+   //  credentials: true
+  }});
+
+/* to do here in server side and also in client (node red ) side :  from : https://socket.io/docs/v4/handling-cors/
+
+
+
+        Example with cookies (withCredentials) and additional headers:
+
+        // server-side
+        const io = new Server(httpServer, {
+          cors: {
+            origin: "https://example.com",//  origin: '*',
+           //  allowedHeaders: ["my-custom-header"],
+           //  credentials: true
+          }
+        });
+
+  // client-side
+        import { io } from "socket.io-client";
+        const socket = io("https://api.example.com", {
+          // withCredentials: true,
+          // extraHeaders: {"my-custom-header": "abcd" }
+
+        // + see comment in adminNamespace.use()
+        auth: {token: "abc" }
+
+      })
+
+      // from https://dev.to/admirnisic/real-time-communication-with-socketio-and-nodejs-3ok2 :
+
+                        socketIo.on('connect', function () {
+                    console.log('Made socket connection', socketIo.id);
+                  });
+
+                  socketIo.on('message_from_server', function (data) {
+                    console.log('message_from_server data: ', data);
+                  });
+
+                  socketIo.on('disconnect', function () {
+                    console.log('disconnect');
+                  });
+
+                  // Send a message to the server 3 seconds after initial connection.
+                  setTimeout(function () {
+                    socketIo.emit('message_from_node-red', 'Sent an event from the client!');
+                  }, 3000);
+
+                    socketIo.on('connect_error', function (err) {
+                    console.log('connection errror', err);
+                  });
+
+
+
+
+
+
+      ....  nb in https://socket.io/get-started/private-messaging-part-1/, sembra auth si possa settare dopo con 
+        const socket = io("https://api.example.com"); soket.auth='pincopalla';
+
+
+
+
+*/
+
+
+
 
 // session setup :
-// convert a connect middleware to a Socket.IO middleware
+// convert a connect middleware to a Socket.IO middleware , https://socket.io/docs/v3/middlewares/ , 
 const wrap = middleware => (socket, next) => middleware(socket.request, {}, next);
 
 if(sessionMiddleware)io.use(wrap(sessionMiddleware));
@@ -260,6 +339,11 @@ io.use((socket, next) => {
 //console.log('after createserver , http_.request:',http.request);
 let mqtt=require('./nat/mqtt');
 var fs = require('fs'); //require filesystem module
+
+
+// node-red ws/mqtt channel
+let nRsocket=require('./nat/nRsocket');
+
 
 var Gpio ;
 if(IsRaspberry)Gpio= require('onoff').Gpio; //include onoff to interact with the GPIO
@@ -742,21 +826,32 @@ let body=
 
 
 
-  function program(state,inp,probes){// /  probes={giorno:19.2,notte:,,,,}   // will set real relays from program and anticipate virtual devices set!!
-                                      // inp={'giorno':{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}, 
+  function program(state,inp__,probes){// /  probes={giorno:19.2,notte:,,,,}   // will set real relays from program and anticipate virtual devices set!!
+                                      // inp__.program={'giorno':{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}, 
                                       //  'notte':....}
-                                    // the program algo : returns the new pumps state, store algo result on state.lastProgramAlgo
+                                    // the program algo : returns the new proposal pumps state, store algo result on state.lastProgramAlgo
 
-console.log('program() called with programming/scheduling data inp: ',inp,' and current probs: ',probes);
+                                    /*
+                                    inp__:  {
+                                            programs: { giorno: { sched: [{"8:30": 15,"17:00": 19,}] } },
+                                            probMapping: [ 2, 4, 0, 3, 1, 5 ],
+                                            mapping: [ 0, 1, 2, 3, -1, 5 ],
+                                            ei: 'S'
+                                          }
+
+                                    */
+
+let inp=inp__.programs,isSummer=inp__.ei=='S';
+console.log('program() called with programming/scheduling data inp: ',inp__,' and current probs: ',probes);
 console.log('program() NB before call consolidate ret=optimize(ret) can have any null value!');
 
 let ret=null,h,m,optimRet=null;
-let  date=new Date();date.setHours(date.getHours()+dOraLegale);
+let  date=pdate;//new Date();date.setHours(date.getHours()+dOraLegale);
 
 // register into the last read probes
 state.program.triggers2.lastT=[date.toLocaleString(),probes];//JSON.stringify(probes)]; anomalus array with different types
 // find zone to activate
-    if(probes&&inp){// inp=sched={giorno:{'16:10':-3,,,,},notte:{},probMapping:[],mapping:[]} 
+    if(probes&&inp){// inp=sched={giorno:{'16:10':-3,,,,},notte:{},probMapping:[],mapping:[],ei} 
 
       let zonelist=  Object.keys(inp),toactivate=[],activation=false;;
      
@@ -767,7 +862,7 @@ state.program.triggers2.lastT=[date.toLocaleString(),probes];//JSON.stringify(pr
       for(let i=0;i<zonelist.length;i++){// scan inp keys : the zones to find the current index in inp
         // todo improvement: if probes[i]= null allora non modificare il relativo pump !!!!  ( set null ! )
 
-        if(toact(zonelist[i],probes[zonelist[i]],inp[zonelist[i]])){// zona,valore sonda, programma orario x la zona
+        if(toact(zonelist[i],probes[zonelist[i]],inp[zonelist[i]],isSummer)){// zona,valore sonda, programma orario x la zona
           activation=true;
           toactivate.push(zonelist[i]);// inserisce il programma che necesita una attivazione in toactivate
         }
@@ -803,12 +898,10 @@ state.program.triggers2.lastT=[date.toLocaleString(),probes];//JSON.stringify(pr
 
 */
         
-      state.lastProgramAlgo={updatedate:date.toLocaleString(),time:date.getTime(),probes,pumps:ret,model:'programbase'};//  set this last program algo  virtual values in state, rewrite , just to set update date
-      optimRet=optimize(ret,state.lastAnticAlgo,state.lastProgramAlgo);// consolidation taking care of anticipating algo and user manual set
-      console.log('programming() found low temp in house, and suggests this virtual ([heat,pdc,g,n,s,split]) actions: ',ret);//,', \n so consolidation/optimizing with anticipating and manual set we got : ',optimRet);
+      state.lastProgramAlgo={updatedate:date.toLocaleString(),time:date.getTime(),probes,program:inp,pumps:ret,model:'programbase',setby:'(last) event handler called by some execute/algo step, procname unknown'};//,', \n so consolidation/optimizing with anticipating and manual set we got : ',optimRet);
+      console.log('programming() found desidered  not satisfied temp so suggests this virtual ([heat,pdc,g,n,s,split]) actions: ',ret);
       if(state.lastAnticAlgo)console.log(' \n so consolidation/optimizing with last manual  and anticipating action : ', state.lastAnticAlgo.pumps);
       console.log('\n at last got: : ',optimRet);
-
 
 
 
@@ -828,7 +921,8 @@ state.program.triggers2.lastT=[date.toLocaleString(),probes];//JSON.stringify(pr
     }
     */
     state.lastProgramAlgo={updatedate:date.toLocaleString(),time:date.getTime(),probes,pumps:ret,model:'programbase'};//  set this last program algo  virtual values in state, rewrite , just to set update date
-    optimRet=optimize(ret,state.lastAnticAlgo,state.lastProgramAlgo);// consolidation taking care of anticipating algo and user manual set
+    // optimRet=optimize(ret,state);// consolidation taking care of anticipating algo and user manual set
+    optimRet=consolidate(state,'program');// consolidation taking care of anticipating algo and user manual set
     console.log('programming() found no low temp in house, and suggests this virtual ([heat,pdc,g,n,s,split]) actions: ',ret);
     if(state.lastAnticAlgo)console.log(' \n so consolidation/optimizing with last manual  and anticipating action : ', state.lastAnticAlgo.pumps);
     console.log('\n at last got: : ',optimRet);
@@ -869,16 +963,16 @@ if(ret){// program wants to set some relays, ret can have nul val that must be r
 return optimRet;
 
 
-    function toact(zona, sonda, sc_) {// zona,valore sonda, sc=programma orario x la zona. verifica se una zone ha temperatora sonda <  alla programmata nello slot dove cade l'ora corrente
+    function toact(zona, sonda, sc_,isSummer) {// zona,valore sonda, sc=programma orario x la zona. verifica se una zone ha temperatora sonda <  alla programmata nello slot dove cade l'ora corrente
                                       // se  torna true
 
-      // sc={sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}
+      // sc_={sc=sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}
       if (!sonda) return;
       let sc = sc_.sched;
       // nb toll future use : query lastAnticAlgo to see if a fv production is expected in short time
       // if(lastAnticAlgo.short)dt=true;
       let keylist = Object.keys(sc);// orari del programma
-
+      // cerca dove cade la cur temp : slot
       let slot = -1, // time interval dove l'ora corrente cade, quindi   temp = sc[keylist[slot]] è la temperatura programmata !
       last = keylist.length - 1, temp = sc[keylist[last]], resu = 'none', tempx = '';
       // resu='slot x : '+ last +' temp ' + sc[keylist[keylist.length-1]; 
@@ -923,9 +1017,10 @@ return optimRet;
 
 
       //resu=tempx+' - slot '+ slot +'/'+(slot+1)+', temp ' + sc[keylist[slot]]; 
-      console.log(' toact() slot: ', slot, ' temp: ', temp);
+      console.log(' toact() slot: ', slot, ' desidered temp: ', temp);
       // 
-      if (temp > sonda) {
+      let act=temp > sonda;if(isSummer)act=!act;
+      if (act) {
         return true;
       }// else leave ret undefined !
       else;
@@ -940,7 +1035,10 @@ return optimRet;
 }
 
 
-function optimize(res_,lastAnticAlgo,lastProgramAlgo){//res=[heat,pdc,g,n,s,split] . here we see last anticipated algo proposal relays values and merge them into a summary 
+function optimize(res_,state){// now imagine optimize run only on program algo 
+  
+  let lastAnticAlgo=state.lastAnticAlgo,lastProgramAlgo=state.lastProgramAlgo;
+  //res=[heat,pdc,g,n,s,split] . here we see last anticipated algo proposal relays values and merge them into a summary 
   // set pdc + split according to text + hour + fv power  .>>    what is text ???
 // here calc pdc + split according to text and hour , 
 // can also call anticipate algo on behalf (al posto di usare) of anticipate exec job that just fill state.aiax and state.anticipate but we must be shure program algo should be active !
@@ -953,9 +1051,14 @@ function optimize(res_,lastAnticAlgo,lastProgramAlgo){//res=[heat,pdc,g,n,s,spli
 let debcase=0;
 // let ret=[];for (i = 0; i < res.length; i++) {  ret[i] = res[i];}     or:
 let res=[...res_];
+if(lastAnticAlgo)
 if (lastProgramAlgo.time > lastAnticAlgo.time) {// program is last
     if (lastProgramAlgo.time - lastAnticAlgo.time < 1000000) {// 18 min  so set pdc as antic algo did , both working
+
+      console.log(' optimize(), found anticipate algo older then program algo less then 100/6 min with virtual pumps suggestion: ', lastAnticAlgo.pumps);
+
       if (lastAnticAlgo.pumps[1]) {//     is pdc anticipate virtual relay on
+        console.log(' optimize(), found anticipate algo pdc on, so set pdc and gaspdcPref');
         res[1] = true; res[5] = true; // confirm pdc , + split 
         debcase=1;
       } else {// if(// to write manual algo with time expiration for each pump: lastManualAlgo.pumps[1]){}// dont set (we could have been set it manually )
@@ -982,16 +1085,54 @@ if (lastProgramAlgo.time > lastAnticAlgo.time) {// program is last
       res[3] = null;// dont set 
       debcase=6;
     }
+  }else{// not valid anticipate 
+    ;// just take res
+
   }
 
-// >> todo   add manual set part !!!
 
 
+let user;// browser user algo manual set update required 
 
+if(state.lastUserAlgo&&checkval(state.lastUserAlgo)){
+user=state.lastUserAlgo.pumps;
+ console.log(' optimize() found manualuser  relays set: ',user);
+ 
+
+
+  }else state.lastUserAlgo=false;// expired 
 
 //res[1]=false;// pdc
 // res[5]=false; //split
 console.log(' optimize() used case: ', debcase);
+
+
+    // b: apply user wants , initially user will have day validity res will bet set by antic and/or program if active or can be null
+    // apply default if no assign and program :
+    res=res||(new Array(state.app.plantconfig.relaisEv.length)).fill(null);
+
+   
+  res.forEach((val, ind) => {
+    if (user) {
+      if (user[ind] == null) {
+        ;//if(res[ind]==null)res[ind]=false;// should not be any null val in res !!!
+      } else {
+        res[ind] = user[ind];
+        console.log(' consolidate() merging  found a valid manual set for pump index ', ind, ', that overwrite anticipate and program indication in ', res[ind]);
+      }
+
+    }
+    if (res[ind] == null) res[ind] = false;// final check :should not be any null val in res !!!
+    /*
+    // only for lastalgo=='user'
+    state.user=true;
+    */
+  });
+
+
+
+
+
 
   return res;//ret;//res;// better clone
 }
@@ -1049,7 +1190,7 @@ ret= null;//[false, false, false, false,false,false];
 
 
 if(ret){// store suggestion lastAnticAlgo, consolidate with program algo  and user manual
-let  pdate=new Date();pdate.setHours(pdate.getHours()+dOraLegale);
+// let  pdate=new Date();pdate.setHours(pdate.getHours()+dOraLegale);
 //state.lastAnticAlgo={updatedate:new Date().toLocaleString(),level:1,policy:0,algo,pumps:aTT,model};// level is the temp level 0, then 1 after 1 hour. policy is the param of algo that will comand relays to perform a objective; eco,lt,ht,timetable
 state.lastAnticAlgo={updatedate:pdate.toLocaleString(),time:pdate.getTime(),level:1,policy:0,algo,pumps:ret,model};// level is the temp level 0, then 1 after 1 hour. policy is the param of algo that will comand relays to perform a objective; eco,lt,ht,timetable
 
@@ -1058,7 +1199,7 @@ state.lastAnticAlgo={updatedate:pdate.toLocaleString(),time:pdate.getTime(),leve
   state.lastAnticAlgo=false;
 }
 // consolidate with program algo  and user manual, also if lastAnticAlgo=false : program <> anticipate
-if(state.lastProgramAlgo&&ret) return consolidate(state,'anticipate');
+if(state.lastProgramAlgo&&ret) return consolidate(state,'anticipate');//,pdate);
 else return ret;
 
 }
@@ -1259,7 +1400,7 @@ resu;
       { cloudly:  {body: null,// to be transf into url enc
                     extract:(data)=> {
                       console.log(' getWeath aiax extracting weather info from aiax data got: ',JSON.stringify(data,null,2));
-                      let  d=new Date();d.setHours(d.getHours()+dOraLegale);
+                      let  d=pdate;//new Date();d.setHours(d.getHours()+dOraLegale);
                       let hour = d.getHours();// rome time , <24
                       console.log(' getWeath , date: ',d,' hour: ',hour);
                       let ret1= data.hourly.cloudcover[hour],// better do a mean of next 2 hour
@@ -1510,7 +1651,7 @@ function customOn(these) {// set .on custom handler (event called by execute())
       // ............
       return true;
     };*/
-    let aTT,res={};
+    let aTT,res={};// aTT the algo proposal for virtual dev
 
     if((aTT=anticipate(state,'anticipate0'))&&aTT.length>0){// can be [true, true, true,null, null,true];// [heat,pdc,g,n,s,split] 
                                                             // HHGG so virtual devices of anticipate algo are heat,pdc,g,split
@@ -1543,7 +1684,7 @@ function customOn(these) {// set .on custom handler (event called by execute())
             console.error("attuators error: ",e);
         });
       }
-      res.execute=prel+aTT.toString();// pass aTT on ev2run input, seems useless
+      res.execute=prel+aTT.toString();// pass aTT come result of the event  ( ev2run input ?, seems useless)
 
     // register result of the exec procedure!
     //state.lastAnticipating={updatedate:new Date().toLocaleString(),level:1,policy:0,procedure:proc,pumps:aTT};// level is the temp level 0, then 1 after 1 hour. policy is the param of algo that will comand reays to perform a objective; eco,lt,ht,timetable
@@ -1684,7 +1825,9 @@ if(inp_&&inp_.dataArr){inp=inp_.dataArr;//  inp=sched
 
     console.log('  genZoneRele , reading temp , sonda gave:  ',probes);
 
-if(reads<1){probes=null;// todo retry if fails some read
+if(reads<1){
+  if(DEBUG_probe){probes.notte=20;probes.giorno=20;} 
+  else probes=null;// todo retry if fails some read
     //todo exit execute without call next event !!
   }
 
@@ -1706,12 +1849,30 @@ async function ( inp_, cb) {// the fsm ask state updates (we use openapi) : will
                             //  dataArr(=sched)
   
   console.log(' handler fired by event genZoneRele , with input data: ',JSON.stringify(inp_,null,2));
+
+                                        /*
+                                           inp_={
+                                              dataArr: {
+                                                programs: { giorno: [Object], ei: 'W' },
+                                                probMapping: [ 2, 4, 0, 3, 1, 5 ],
+                                                mapping: [ 0, 1, 2, 3, -1, 5 ]
+                                              },
+                                              initProg: { notte: 20, giorno: 20 }
+                                            } 
+
+
+                                        */
   
   let inp,probes=null;
-  if(inp_&&inp_.dataArr){inp=inp_.dataArr;//  inp=sched={programs:{giorno:{'16:10':-3,,,,},notte:{}},probMapping:[],mapping:[]} 
+  if(inp_&&inp_.dataArr){inp=inp_.dataArr;//  inp=sched={programs:{giorno:{'16:10':-3,,,,},notte:{}},probMapping:[],mapping:[],ei:'W'/'S'} 
                                           // giorno'/1:{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}, 
 
+                                          // updateed : 
+
+
   }
+
+  let res={},resex=null;
 if(inp_&&inp_.initProg){probes=inp_.initProg;// probes={giorno/119.2,notte/2:,,,,}
 
   let state=these.state;//this.state;
@@ -1722,14 +1883,15 @@ if(inp_&&inp_.initProg){probes=inp_.initProg;// probes={giorno/119.2,notte/2:,,,
     // ............
     return true;
   };*/
-  let res={},
-  aTT,// virtual devices. each algo will set virtual device. after , in attuators(these,map,aTT), we set real devices mapping virtual into real dev
-  resex=null;
+  let //res={},
+  aTT;// virtual devices. each algo will set virtual device. after , in attuators(these,map,aTT), we set real devices mapping virtual into real dev
+  
 
-    if((aTT=program(state,inp.programs,probes))&&aTT&&aTT.length>0){// virtual devices to map are index: 0,2,3,( in future 4)
+    if((aTT=program(state,inp,probes))&&aTT&&aTT.length>0){// virtual devices to map are index: 0,2,3,( in future 4)
                                           //  probes={giorno:19.2,notte:,,,,}  
-                                          // inp={'giorno':{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}, 
-                                          //  'notte':....,
+                                          // inp={program:{'giorno':{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}, 
+                                          //  'notte':....},
+                                          //  ei;// W/S
                                         //    'mapping':[]}// opzionale
       // mappings:
       // algo program has virtual relais [heat,pdc,g,n,s,split]  di cui si agisce solo su heat,g,n e poi s .
@@ -1747,7 +1909,7 @@ if(inp_&&inp_.initProg){probes=inp_.initProg;// probes={giorno/119.2,notte/2:,,,
     attuators(these,map,aTT)
 
 
-    .then((results) => { // could also await in this async func !
+    .then((results) => { // could also await in this async func !, results are  not used
          
       console.log("All setPump resolved");
 
@@ -1777,21 +1939,24 @@ if(inp_&&inp_.initProg){probes=inp_.initProg;// probes={giorno/119.2,notte/2:,,,
      // endexec='genZoneRele: no action';// just exit  executing ev2run
 
      resex='noprogramming';
-
+     concludi();// 21052023
       // trim some valves, ex base timetable
     }
 
-// concludi();
+/* concludi();
 function concludi(){
-
   res.execute=resex;// the program algo suggestion : aTT.tostring()
-  
-  cb(0, res);// false : nothing to do 
+  cb(0, res);// false : nothing to do .  res={execute: aTT.tostring()} // the program algo suggestion : aTT.tostring()}
+  }*/
+
+}else {console.log(' handler fired by event genZoneRele , cant process actions because probs are not available!');
+resex='probs are not available';
+concludi();
+}
+function concludi(){
+  res.execute=resex;// the program algo suggestion : aTT.tostring()
+  cb(0, res);// false : nothing to do .  res={execute: aTT.tostring()} // the program algo suggestion : aTT.tostring()}
   }
-
-}else console.log(' handler fired by event genZoneRele , cant process actions because probs are not available!');
-
-
 
 
 // end event to process programming algo 
@@ -1886,10 +2051,10 @@ function gfg_Run() {
 
     function callFn() {// n-- , se positivo lancia fn.execute e dopo ulteriore ora itera callFn
       if (n--<=0) {
-        console.log(' callFn start priodically ',procName, ' procedure is ending, cur time:',new Date(),' n is: ',n);  
+        console.log(' callFn start priodically ',procName, ' procedure is ending, cur time:',pdate.toLocaleString(),' n is: ',n);  
         return;}
 
-      console.log(' callFn start priodically exec procedure ',procName, '.  cur time:',new Date(),' n is: ',n);
+      console.log(' callFn start priodically exec procedure ',procName, '.  cur time:',pdate.toLocaleString(),' n is: ',n);
 //      n--;
 //      console.log(' callFn start priodically procname procedure now, time:',new Date(),' n is: ',n);
       // fn(asyncFunc,asyMajorEv,asyProcess, evname=startchec)k,evtype,evcontingencyparam,evfunc,evdata);
@@ -1919,7 +2084,7 @@ function gfg_Run() {
 
 
 
-    console.log(' callFn start priodically , time:',new Date());
+    console.log(' callFn start priodically , time:',pdate.toLocaleString());
 
     
     //fn.execute(procName, null              , null,  ev2run, asyncPoint, processAsync, dataArr);
@@ -1961,7 +2126,7 @@ function checkFactory(fn){// fn=ctl, sostituisce repdayly()
 
       // {procName, null              , null,  ev2run, asyncPoint, processAsync, dataArr}=execParm
         let{procName, a,b,ev2run, asyncPoint, processAsync, dataArr}=execParm;
-        let  pdate=new Date();pdate.setHours(pdate.getHours()+dOraLegale);
+       // let  pdate=new Date();pdate.setHours(pdate.getHours()+dOraLegale);
       console.log(' callFn start priodically exec procedure ',procName, ' for plant: ',fn.state.app.plantname,'.  cur time:',pdate);//,' this day, after this exec, we run other ',n,' times');
   //      n--;
   //      console.log(' callFn start priodically procname procedure now, time:',new Date(),' n is: ',n);
@@ -2032,7 +2197,7 @@ function checkFactory(fn){// fn=ctl, sostituisce repdayly()
       repeatcheckxSun: function (hourin, hourout, period, execParm, cb2) {// register the procedure to repeat, period in minutes
         if (interv) clearInterval(interv);
         if (timer) clearInterval(timer);
-        const pdate = new Date();  pdate.setHours(pdate.getHours()+dOraLegale);  //closure with inner callF, the closure state n will be updated till hourout is got !
+        //const pdate = new Date();  pdate.setHours(pdate.getHours()+dOraLegale);  //closure with inner callF, the closure state n will be updated till hourout is got !
        
         // console.log(' repeatcheckxSun : start hour ',hourin,' stop hour: ',hourout);                                                 
         let hourinterval = hourout - hourin;// ex  9-8=1  , the testing to do will be 2, one at 8 , one at 9
@@ -2051,8 +2216,8 @@ function checkFactory(fn){// fn=ctl, sostituisce repdayly()
             minN = min / period;// additional condition iniziale todo
 
           interv = setInterval(function () { // Set interval for checking, never stop till the repetion ends 
-            var date = new Date(); // Create a Date object to find out what time it is   gtm ?
-            date.setHours(date.getHours()+dOraLegale);//dOraLegale);
+            var date =pdate // new Date(); // Create a Date object to find out what time it is   gtm ?
+            //date.setHours(date.getHours()+dOraLegale);//dOraLegale);
             let dm = date.getMinutes(), dh = date.getHours();
             if (dh == 0&&dm==0) onceaday = true;
 
@@ -2283,10 +2448,399 @@ function setPump(pumpnumber,on,fn){// 0,1,2,3    on : changing value (true/1 or 
 
 
 
+
+
+/*
+  from :  https://socket.io/docs/v4/namespaces/
+
+                    Possible use cases:
+
+                        you want to create a special namespace that only authorized users have access to, so the logic related to those users is separated from the rest of the application
+
+                    const adminNamespace = io.of("/admin");
+
+                    adminNamespace.use((socket, next) => {
+                      // ensure the user has sufficient rights
+                      next();
+                    });
+
+                    adminNamespace.on("connection", socket => {
+                      socket.on("delete user", () => {
+                        // ...
+                      });
+                    });
+
+
+
+
+
+                    Client initialization
+
+                    Same-origin version:
+
+                    const socket = io(); // or io("/"), the main namespace
+                    const orderSocket = io("/orders"); // the "orders" namespace
+                    const userSocket = io("/users"); // the "users" namespace
+
+                    Cross-origin/Node.js version:
+
+  
+
+                    const socket = io("https://example.com"); // or io("https://example.com/"), the main namespace
+                    const orderSocket = io("https://example.com/orders"); // the "orders" namespace
+                    const userSocket = io("https://example.com/users"); // the "users" namespace
+
+
+
+
+
+
+
+- use of session : https://socket.io/how-to/use-with-express-session
+
+*/
+
+
+
+
+
+// the node-red namespace :
+const adminNamespace = io.of("/admin"),
+emittedTokenOnRuotingEntryAvailableOnlyToRecognizedUser={abc:true};
+
+adminNamespace.use((socket, next) => {// https://socket.io/docs/v4/server-socket-instance/#sockethandshake
+  // ensure the user has sufficient rights
+  const token = socket.handshake.auth.token;
+
+let userAutorized=false;
+ if(emittedTokenOnRuotingEntryAvailableOnlyToRecognizedUser[token])userAutorized=true;
+
+
+if(userAutorized)
+
+  next();else   next(new Error("thou shall not pass"));
+});
+
+
+/* fonti x fare auth :
+
+- handshake can be set in connection stage, the recovered  :  see https://stackoverflow.com/questions/19106861/authorizing-and-handshaking-with-socket-io
+
+
+
+      example using query :
+
+
+
+            Since Socket.io 1.0 , Although there is backwards compatibility it is recommended to use "io.use()" in order to add your ad-hoc middleware, so in the Node Server side:
+
+            io.use(function(socket, next){
+              var joinServerParameters = JSON.parse(socket.handshake.query.joinServerParameters);
+              if (joinServerParameters.token == "xxx" ){
+                next();          
+              } else {
+                //next(new Error('Authentication error'));                  
+              }
+              return;       
+            });
+
+            And on the client side, to add your own attribute to the handshake, it would look like this:
+
+            var joinServerParameters = { token: "xxx"   };    
+            var socket = io.connect('url' , {query: 'joinServerParameters=' + JSON.stringify(joinServerParameters)  });
+
+
+
+
+        NBNB   io.set is no more used to set socket.auth !!!  , anyway tis is old way : 
+
+
+
+
+
+          io.set('authorization', function (handshake, callback) {
+          handshake.foo = 'bar';
+          callback(null, true);
+        });
+
+        io.sockets.on('connection', function(socket) {
+          console.log(socket.handshake.foo); // bar
+        });
+
+        nb in user , can recover handshake like that :
+
+            io.use(function(socket, next) {
+            var handshake = socket.request;   //// ??????????????????   forse socket.handshake 
+            next();});
+
+
+
+- https://runebook.dev/it/docs/socketio/middlewares :
+
+                Main namespace
+
+                Until now, you interacted with the main namespace, called /. The io instance inherits all of its methods:
+
+                io.on("connection", (socket) => {});
+                io.use((socket, next) => { next() });
+                io.emit("hello");
+                // are actually equivalent to
+                io.of("/").on("connection", (socket) => {});
+                io.of("/").use((socket, next) => { next() });
+                io.of("/").emit("hello");
+
+                Some tutorials may also mention io.sockets, it's simply an alias for io.of("/").
+
+                io.sockets === io.of("/")
+
+                Custom namespaces
+
+                To set up a custom namespace, you can call the of function on the server-side:
+
+                const nsp = io.of("/my-namespace");
+
+                nsp.on("connection", socket => {
+                  console.log("someone connected");
+                });
+
+                nsp.emit("hi", "everyone!");
+
+                Client initialization
+
+                Same-origin version:
+
+                const socket = io(); // or io("/"), the main namespace
+                const orderSocket = io("/orders"); // the "orders" namespace
+                const userSocket = io("/users"); // the "users" namespace
+
+                Cross-origin/Node.js version:
+
+                const socket = io("https://example.com"); // or io("https://example.com/"), the main namespace
+                const orderSocket = io("https://example.com/orders"); // the "orders" namespace
+                const userSocket = io("https://example.com/users"); // the "users" namespace
+
+                In the example above, only one WebSocket connection will be established, and the packets will automatically be routed to the right namespace.
+
+
+
+- https://socket.io/docs/v4/server-socket-instance/#sockethandshake
+
+
+
+
+                      Socket#handshake
+
+                      This object contains some details about the handshake that happens at the beginning of the Socket.IO session.
+
+                      {
+                        headers: // the headers of the initial request //
+                        query: // the query params of the initial request //
+                        auth: // the authentication payload //
+                        time: // the date of creation (as string) //
+                        issued: // the date of creation (unix timestamp) //
+                        url: // the request URL string //
+                        address: // the ip of the client //
+                        xdomain: // whether the connection is cross-domain //
+                        secure:  whether the connection is secure 
+                      }
+
+                      Example:
+
+                      {
+                        "headers": {
+                          "user-agent": "xxxx",
+                          "accept": ...,
+                          "host": "example.com",
+                          "connection": "close"
+                        },
+                        "query": {
+                          "EIO": "4",
+                          "transport": "polling",
+                          "t": "NNjNltH"
+                        },
+                        "auth": {
+                          "token": "123"
+                        },
+                        "time": "Sun Nov 22 2020 01:33:46 GMT+0100 (Central European Standard Time)",
+                        "issued": 1606005226969,
+                        "url": "/socket.io/?EIO=4&transport=polling&t=NNjNltH",
+                        "address": "::ffff:1.2.3.4",
+                        "xdomain": false,
+                        "secure": true
+                      }
+
+
+
+              nb Socket middlewares
+              Those middlewares looks a lot like the usual middlewares, except that they are called for each incoming packet:
+
+
+
+                          socket.use(([event, ...args], next) => {
+                            // do something with the packet (logging, authorization, rate limiting...)
+                            // do not forget to call next() at the end
+                            next();
+                          });
+                          
+                          The next method can also be called with an error object. In that case, the event will not reach the registered event handlers and an error event will be emitted instead:
+                          
+                          io.on("connection", (socket) => {
+                            socket.use(([event, ...args], next) => {
+                              if (isUnauthorized(event)) {
+                                return next(new Error("unauthorized event"));
+                              }
+                              next();
+                            });
+                          
+                            socket.on("error", (err) => {
+                              if (err && err.message === "unauthorized event") {
+                                socket.disconnect();
+                              }
+                            });
+
+
+
+
+              Additional attributes
+              As long as you do not overwrite any existing attribute, you can attach any attribute to the Socket instance and use it later:
+                            io.use(async (socket, next) => {
+                              try {
+                                const user = await fetchUser(socket);
+                                socket.user = user;
+                              } catch (e) {
+                                next(new Error("unknown user"));
+                              }
+                            });
+
+                            // then recover :
+
+                            io.on("connection", (socket) => {
+                              console.log(socket.user);
+
+                              // in a listener
+                              socket.on("set username", (username) => {
+                                socket.username = username;
+                              });
+                            });
+
+
+
+- https://runebook.dev/it/docs/socketio/middlewares
+
+                                      Sending credentials
+
+                                      Il client può inviare le credenziali con l' opzione di auth :
+
+                                      // oggetto semplice
+                                      const socket = io({
+                                        auth: {
+                                          token: "abc"
+                                        }
+                                      });
+
+                                      // o con una funzione
+                                      const socket = io({
+                                        auth: (cb) => {
+                                          cb({
+                                            token: "abc"
+                                          });
+                                        }
+                                      });
+
+
+
+
+
+                                      È possibile accedere a tali credenziali nell'oggetto handshake sul lato server:
+
+                                      io.use((socket, next) => {
+                                        const token = socket.handshake.auth.token;
+                                        // ...
+                                      });
+
+
+
+
+
+
+
+
+
+                              Compatibilità con il middleware Express
+
+                                      La maggior parte dei moduli middleware Express esistenti dovrebbe essere compatibile con Socket.IO, è sufficiente una piccola funzione wrapper per far corrispondere le firme del metodo:
+
+                                      const wrap = middleware => (socket, next) => middleware(socket.request, {}, next);
+
+                                      Tuttavia, le funzioni middleware che terminano il ciclo richiesta-risposta e non chiamano next() non funzioneranno.
+
+                                      Esempio con express-session :
+
+                                      const session = require("express-session");
+
+                                      io.use(wrap(session({ secret: "cats" })));
+
+                                      io.on("connection", (socket) => {
+                                        const session = socket.request.session;
+                                      });
+
+                                      Esempio con passaporto :
+
+                                      const session = require("express-session");
+                                      const passport = require("passport");
+
+                                      io.use(wrap(session({ secret: "cats" })));
+                                      io.use(wrap(passport.initialize()));
+                                      io.use(wrap(passport.session()));
+
+                                      io.use((socket, next) => {
+                                        if (socket.request.user) {
+                                          next();
+                                        } else {
+                                          next(new Error("unauthorized"))
+                                        }
+                                      });
+
+                                      Un esempio completo con Passport può essere trovato qui .
+
+
+
+
+
+- from https://stackoverflow.com/questions/70931636/how-to-pass-auth-token-while-connecting-to-socket-io-using-postman                              
+
+                                    If want to use socketIO postman. instead of saving token in auth, you can send with header.
+
+                                    const token = socket.handshake.headers.access_token;
+
+*/
+
+
+
+
+
+adminNamespace.on("connection", socket => {// register emit handlers
+  console.log(' from node-red  a socket started');
+  socket.on("somesubeventodmainspace", () => {
+    // ...
+  });
+  socket.on("message_from_node-red", (payload) => {
+    console.log(' from node-red ',payload);
+  });
+
+  adminNamespace.emit("message_from_server", "everyone!");
+
+  // adminNamespace.emit();
+});
+
+adminNamespace.emit("", "everyone!");// see from .......
+
+
 // here the body :it wait for a get call connection , then add a gpio button listener to emit event on fv controlle eM   :
 // when connected (can be many user browser session ?) add a button and a socket listener
+// nb  io.sockets, it's simply an alias for io.of("/")
 io.sockets.on('connection', function (socket) {// WebSocket Connection :server is listening a client browser so now we built the socket connection, transmit to server if there are status updates 
-
+                                              // mainspace
 console.log('socket connected to a client');
 
 
@@ -2317,7 +2871,7 @@ session.save();// save socketid
                                                       // inst/fn/ctl/eM :  here we create the ctl of the plant that will be passed to all the service functions 
                                                       // todo : emit login screen x user=data
     const feature = feat.split(",");// ex:'feature1,feature2'
-    console.log('event startuserplant listening handler for plant ',plant_.name,' feature: ',feat);
+    console.log('event startuserplant listening handler for plant ',plant_,' feature: ',feat);
 
     if(plant_);else return;
 
@@ -2587,16 +3141,21 @@ if(relais&&relais[ind])relais[ind].watch(pumpsHandler[ind]);// attach same handl
 
 if(eM.iodev.relais_[ind]&&eM.iodev.relais_[ind].cl&&(eM.iodev.relais_[ind].cl==2||eM.iodev.relais_[ind].cl==4)){// the dev is a mqtt var , see VVCC in howto
 
-  eM.iodev.relais_[ind].int= (val=0,queue,lastwrite)=>{
-    let isOn=val==1;
+  eM.iodev.relais_[ind].int= (val='0',queue,lastwrite)=>{// the int func . 25052023 val is '0' or '1' > error !!!
+    let isOn=val==1,isoff=0;
     console.log(' abilita2 interrupt : receiving   var ',pump,', msg val (0/1) : ',val,' , actual status is :',state.relays[pump],' , queue is :',queue,', lastwrite (true/false) was ',lastwrite);
     // idea just interrupt if is different then state.ralays[dev]!
-    if(state.relays[pump]!=isOn){
-  console.log(' abilita2 interrupt : fire interrupt to change value ! ');
-  //  setPump(ind,isOn,eM);// return a promise , ok ??
-    }
+    let val_;
+    if(!Number.isNaN(val_=Number(val))){// val is conveted to integer
+
+
+      if(val_==0) ;else val_=1;
+  console.log(' abilita2 interrupt : fire interrupt to change value : ',val,' so we change val as ',val_,' , on dev ',pump);
+    setPump(ind,val_!=0,eM);// return a promise , ok ?? val=0,1
+    } else console.log(' abilita2 interrupt : fire interrupt to change value : ',val,' but was not a string number so discard .  , on dev ',pump);
+  }
 }
-}
+
 
 
 });
@@ -2731,15 +3290,67 @@ let ejscont=state.app.plantcnt;// ejs context=ejscontext(plant).pumps=[{id,title
     if(!eM)console.log('onRelaisClos(), eM is null ');else console.log(' onRelaisClos(), eM is found '); 
     if(eM)onRelais(pump,val,coming,eM);}//dont wait! eM is set before in a preceeding  socket.on('startuserplant',,, ( like create a  closure var)
  }
-
+ function onRelaisClos_(pump,val,coming){// return with a void closure ?
+    console.log(' onRelaisClos() called x pump: ',pump,' set value: ',val,' coming from: ',coming,' ctl is null: ',!eM);
+    if(!eM)console.error('onRelaisClos(), eM is null , cant process browser old event call');
+    if(!eM)console.log('onRelaisClos(), eM is null ');else console.log(' onRelaisClos(), eM is found '); 
+    if(eM)onRelais(pump,val,coming,eM);}//dont wait! eM is set before in a preceeding  socket.on('startuserplant',,, ( like create a  closure var)
+ 
 
 // socket.on('pump',onRelaisClos());// 
- socket.on('pump',(a,b,c) => {
+ socket.on('pump',(a,b,c) => {// this will change immediately the pump dev value
   if(!eM)console.log('error: pump socket event called ,param: ',a,b,c);// to log too
   if(!eM)console.error('pump socket event, eM is null ',a,b,c);
 
-  onRelaisClos()(a,b,c)
+  onRelaisClos_(a,b,c);// same result as  : onRelaisClos()(a,b,c)  ??
  });// 
+
+
+ socket.on('manualAlgoProposal',(pump_,val,coming) => {// this will be like the final part of a manual algo: propose a single pump value to be evaluater with all other active algo by optimize
+                                                      // the proposal evaluated by execute is in state.lastUserAlgo.pumps
+                                                      // val =0/1
+  if(!eM)console.log('error: pump socket event called ,param: ',pump_,val,coming);// to log too
+  if(!eM)console.error('pump socket event, eM is null ',pump_,val,coming);
+
+
+    // console.log(' manualAlgoProposal() called x pump: ',pump_,' set value: ',val,' coming from: ',coming,' ctl is null: ',!eM);
+    if(!eM)console.error('manualAlgoProposal(), eM is null , cant process browser old event call');
+    if(!eM)console.log('manualAlgoProposal(), eM is null ');else console.log(' manualAlgoProposal(), eM is found '); 
+    if(eM){
+      let pumps,defTO,// proposal of user for pumps, not expired if not null
+      state=eM.state;lastUserAlgo=eM.state.lastUserAlgo;
+
+      // recover pumps proposal
+      if(lastUserAlgo&&checkval(lastUserAlgo)){pumps=eM.state.lastUserAlgo.pumps;
+        defTO=eM.state.lastUserAlgo.defTO;
+      }else {pumps= new Array(state.app.plantconfig.relaisEv.length).fill(null);// todo  same length as  relaisEv
+      defTO= new Array(state.app.plantconfig.relaisEv.length).fill(null);
+      // ?? eM.state.lastUserAlgo=false;// expired !
+      eM.state.lastUserAlgo={policy:0,algo: "usermanual0"};
+    }
+      let updatedate=pdate.toLocaleString();
+      state.app.plantconfig.relaisEv.forEach((name,ind)=>{// insert new proposal on ind pump
+        if(name==pump_){if(val==0)pumps[ind]=false;else pumps[ind]=true;
+
+          defTO[ind]=pdate.getTime()+3600*12*1000;
+        }
+      })
+
+// similar to:  state.lastAnticAlgo={updatedate:new Date().toLocaleString(),level:1,policy:0,algo,pumps:aTT,model};// level is the temp level 0, then 1 after 1 hour. policy is the param of algo that will comand relays to perform a objective; eco,lt,ht,timetable
+  eM.state.lastUserAlgo.updatedate=updatedate;
+  eM.state.lastUserAlgo.pumps=pumps;
+  eM.state.lastUserAlgo.defTO=defTO;
+ 
+  console.log('manualAlgoProposal(), set the manual proposal on state.lastUserAlgo ',eM.state.lastUserAlgo);
+
+    }
+   
+
+ });// 
+
+
+
+
                             //  >>>>>>>>>>>>>>>>   startfv can alredy fired the event before a user in some browser 
                             /* i also could :
                             socket.on('pump',(pump,val,coming) => {
@@ -2794,6 +3405,17 @@ socket.on('stopRepeat',() => {
 // now the same x programming temperature x many zones
 socket.on('startprogrammer',repeatHandler1);// start anticipating algo with setting and run an execute()
 function repeatHandler1(starthour,stophour,dminutes,triggers2) {// sched triggers2 keys:extract2 = ["Tgiorno","PGMgiorno","Tnotte","PGMnotte"],
+                                                                /* {
+                                                                  Tgiorno: true,
+                                                                  PGMgiorno: {    "8:30": 15, "17:00": 19, },
+                                                                  Tnotte: false,
+                                                                  PGMnotte: { notte: {"8:30": 20,"17:00": 22,},},
+                                                                  lastT: ["5/31/2023, 10:53:20 AM", { notte: 20, giorno: 20,},],
+                                                                  mapping: "==&&state.devmapping=[0,1,2,3,-1,5]",
+                                                                  probMapping: "==&&state.probmapping=[2,4,0,3,1,5]",
+                                                                  ei: "S",
+                                                                }
+                                                                */
   console.log(' startprogrammer socket event handler repeatHandler1() called with triggers2: ',triggers2 )   ;                                                            // sched={'giorno':['8:30':t1,"17:00":t2]} see initProg event x keys definitions
   let sched={programs:{}};// sched={programs:{giorno:{'16:10':-3,,,,},notte:{}},probMapping:[],mapping:[]} 
   if(!triggers2)return;
@@ -2811,12 +3433,24 @@ function repeatHandler1(starthour,stophour,dminutes,triggers2) {// sched trigger
   sched.probMapping=toeval(eM.state,triggers2.probMapping);// mapping algo vars to plant devices !, input used when call last event genZoneRele of related exec created with prog_parmFact(sched)
                                                             // // preferred use :  ('==&&state.mapping=[0,1,3,2,4];')   will fill the state.mapping var ! and returs the array 
   sched.mapping=toeval(eM.state,triggers2.mapping);// mapping algo vars to plant devices !, input used when call last event genZoneRele of related exec created with prog_parmFact(sched)
-
+  if(triggers2.ei&&triggers2.ei=='S')sched.ei='S';else sched.programs.ei='W';
 
   if(!eM)console.error(' repeatHandler1(), eM is null ');
   if(!eM)console.log(' repeatHandler1(), eM is null ');else console.log(' repeatHandler(), eM is found '); 
     repeat1=repeat1||checkFactory(eM);// could be find null ???
     console.log(' startprogrammer socket event handler repeatHandler1() is launching repetition job repeatcheckxSun() with sched: ',sched );
+
+
+                                                                                                                    /*
+                                                                                                                    sched:  {
+                                                                                                                      programs: { giorno: { sched: [Object] } },
+                                                                                                                      probMapping: [ 2, 4, 0, 3, 1, 5 ],
+                                                                                                                      mapping: [ 0, 1, 2, 3, -1, 5 ],
+                                                                                                                      ei: 'S'
+                                                                                                                    }
+                                                                                                                        */
+
+
     if(repeat1.repeatcheckxSun(starthour,stophour,dminutes,prog_parmFact(sched))==0)// exit ok 
     setanticipateflag({running:true,starthour,stophour,dminutes,triggers2},'program');
     else {repeat1=null;
@@ -2893,12 +3527,16 @@ async function onRelais  (pump,data,coming,fn) { //pumps unique handlerget pumps
                                   //              setPump è chiamato da startfv, attuators
  
                                   // this is ....  global ?
-                                  
-  console.log('OnRelais started x mqttnumb dev , pump/devName: ',pump, ', plantname ',fn.state.app.plantname,', coming from ',coming);
+  if(isNaN(data)){
+    console.log('OnRelais started x mqttnumb dev , pump/devName: ',pump, ', plantname ',fn.state.app.plantname,', to set ',data,',  but data is not a number so return'); 
+    return   
+  }  
+  if(data!=0)data=1;// normalize data                            
+  console.log('OnRelais started x mqttnumb dev , pump/devName: ',pump, ', plantname ',fn.state.app.plantname,', to set ',data,',  coming from ',coming);
   if(!fn)console.error('onRelais(), eM is null ');
   let state=fn.state,relaisEv=state.app.plantconfig.relaisEv;
   let value=state.relays[pump];// true/false, pump value as recorded on status
-  let lightvalue = data,// 0/1 value to set
+  //let data = data,// 0/1 value to set
   pump_=relaisEv.lastIndexOf(pump);// the index in relais_
   if(pump_>=0){// found
     let ctl=fn.iodev.relais_[pump_];// pump_= ctl.devNumb
@@ -2906,24 +3544,30 @@ async function onRelais  (pump,data,coming,fn) { //pumps unique handlerget pumps
    
   console.log('OnRelais  pump/devName: ',pump, ', found with index ',ctl.devNumb,', devid/portid ',ctl.gpio,', is a mqttdev?: ',!!ctl.cfg);
   if(!!ctl.cfg)console.log('.......  mqtt dev feature from model mqttnumb : cl_class (mqttnumb:1rele/2var mqttprob:3probe/4var) ',ctl.cl,', plant ',ctl.mqttInst.plantName,' class ',ctl.cfg.clas,', protocol ',ctl.cfg.protocol);
-    curval=await ctl.readSync();// 0/anynumber or null  present value of gpio register
+    curval=await ctl.readSync();// 0/anynumber or null  present value of gpio register   now better 0/1 or null(cant know)
    //  if(curval==null)curval=0;// std out 
+   if(isNaN(curval))curval=null;// must be a number 
   }
   else // if the device is not available read a dummy 0
     curval=null;// 0;
   console.log(' onRelais, coming from: ',coming,', current rele position x dev name ',pump,', is ',curval,' asking to set : ',data); 
   // console.log('              onRelais, state: ',state); 
     let lchange=false; //  >>>>>>>  TODO : gestire le incongruenze tra state.relays  e current relay value : curval
-  if(!curval||value&&curval==0||((!value&&curval==1))){// state != cur value . a problem if not just starting!
+  if(curval==null||value&&curval==0||((!value&&curval!=0))){// state != cur value . a problem if not just starting!
     console.warn(' onRelais, find current pump ',pump,' state different from current hw pump position thats: ',curval); 
     console.log(' warn: onRelais, find current pump ',pump,' state different from current hw pump position thats: ',curval); // ????  >>>>>>>  TODO ??: gestire le incongruenze tra state.relays  e current relay value : curval
     lchange=true;// state and present value are different !
   }
-  if (!curval||lightvalue != curval) { // 0/1 != 0/1 gpio comanding relays is called,>>>>> only change gpio if current position/value is different from present hw relay value !!
-    console.log(' onRelais,  changing current rele hw position/value x ',pump,' to new value: ',lightvalue); 
-    if(fn.iodev.relais_[pump_])fn.iodev.relais_[pump_].writeSync(lightvalue); //turn LED on or off
-    console.log(' onRelais,  todo : verifying current rele  position/value changing  x ',pump,' now is: ',lightvalue); 
-    //console.log(' ****\n browser/algo ask ',pump,' relay to change value into : ',lightvalue); // ex 0
+  // new 
+  else  lchange=true; // anyway rewrite the data (if a mqtt and a external set a data we rewrite x confirmation and to update browser and state )
+ 
+ // now ever write  if (!curval||data != curval) 
+ 
+  { // 0/1 != 0/1 gpio comanding relays is called,>>>>> only change gpio if current position/value is different from present hw relay value !!
+    console.log(' onRelais,  changing/confirm current rele hw position/value x ',pump,' to new value: ',data); 
+    if(fn.iodev.relais_[pump_])fn.iodev.relais_[pump_].writeSync(data); //turn LED on or off
+    console.log(' onRelais,  todo : verifying current rele  position/value changing  x ',pump,' now is: ',data); 
+    //console.log(' ****\n browser/algo ask ',pump,' relay to change value into : ',data); // ex 0
     /*
     if (buttoncaused) {// means that the relay is requested by user raspberry button press (or algo anticipating), not corresponding seb button press
       buttoncaused = false;
@@ -2934,7 +3578,7 @@ async function onRelais  (pump,data,coming,fn) { //pumps unique handlerget pumps
     // update staus in case the new pump data comes from button o from browser   
     // >>>  state and  cur value will be the same 
    
-    if(value&&data==0||((!value&&data==1))){// state != cur value (data=lightvalue)
+    if(value&&data==0||((!value&&data!=0))){// state != cur value (data=lightvalue)
       // update state
       state.relays[pump]=!value;
 
@@ -2954,11 +3598,13 @@ async function onRelais  (pump,data,coming,fn) { //pumps unique handlerget pumps
       });
     }
 
-  }else {console.log(' onRelais(), browser/algo ask ',pump,' rele to change value but was alredy set : ',lightvalue); // ex 0
+  }
+  /* now useless : 
+  else {console.log(' onRelais(), browser/algo ask ',pump,' rele to change value but was alredy set : ',data); // ex 0
           if(lchange){state.relays[pump]=!state.relays[pump];// to do 05052023 ??
           console.warn(' onRelais() status ricociliato con current value : ',data);
           }
-}
+  }*/
 
 
 
@@ -3096,7 +3742,7 @@ state=that.state,reBuildFromState=that.reBuildFromState;
   function antic_parmFact(noparms){// se param x anticipating exec
   
       //  let{procName, a,b,ev2run, asyncPoint, processAsync, dataArr}=execParm;
-  let  pdate=new Date();pdate.setHours(pdate.getHours()+dOraLegale);
+  //let  pdate=new Date();pdate.setHours(pdate.getHours()+dOraLegale);
   let procName='startAntic_'// 'anticipate'
   + pdate.toLocaleString(),algo='anticipate';
   console.log(' checkFactory()  define  procedure ',procName);
@@ -3123,7 +3769,7 @@ state=that.state,reBuildFromState=that.reBuildFromState;
                                           // , the key are the key generated in initProg that define the probes whose temperature must be controlled
                                           // probSched= probe address={}
     //  let{procName, a,b,ev2run, asyncPoint, processAsync, dataArr}=execParm;
-    let  pdate=new Date();pdate.setHours(pdate.getHours()+dOraLegale);
+   // let  pdate=new Date();pdate.setHours(pdate.getHours()+dOraLegale);
 let procName='startProg_'// 'program'
 + pdate.toLocaleString(),algo='program';
 
@@ -3186,34 +3832,36 @@ return {procName, a,b,ev2run, asyncPoint, processAsync, dataArr:dataArr_,algo:'p
     else return null;
   }
 
-  function consolidate(state,lastalgo,date){// [false, false, false, false,false,false]= [heat,pdc,g,n,s,split], lastalgo = anticipate,program,user
+  function consolidate(state,lastalgo){// [false, false, false, false,false,false]= [heat,pdc,g,n,s,split], lastalgo = anticipate,program,user
 // puo essere chiamato sia da anticipate che da program. ma ultimamente program chiama optimize() !!!  >>> todo  sistemare un unico optimize !?!
 // heat : se impostato da program  antic puo solo fare or 
 
 // >>>  torna il valori dei rele , ricalcolati tenuto conto di 3 calcoli degli algo , il piu recente e i due precedenti  set !!! 
 
-
+let date=pdate;
 // user part must still todo
-
 
 // >>>>   program if not null cant have any null val !! ( only true or false)
 
 
  let res=[];
- let curpumps=state.relays,antic,program,user;
+ let curpumps=state.relays,antic,program
+ ,user;// the user manual set proposal , valid (no timeout)
  // see what set are active (lastxxxAlgo not false)
  if(state.lastAnticAlgo
+  &&state.antic&& state.antic.starthour<=date.getHours()&& state.antic.stophour>date.getHours()
   //||lastalgo=='anticipate'
   )antic=state.lastAnticAlgo.pumps;// non vero : state.lastAnticAlgo could not jet assigned
 
  if(state.lastProgramAlgo
+  &&state.program&& state.program.starthour<=date.getHours()&& state.program.stophour>date.getHours()
   // ||lastalgo=='program'
   )program=state.lastProgramAlgo.pumps;
  
  
  // check scadenza
 
- if(state.lastUserAlgo)// is alredy stored in state.user
+ if(state.lastUserAlgo )// is alredy stored in state.user
    if(isscad(date,state.lastUserAlgo.scad)){// state.user=isscad(date,state.lastUserAlgo.scad);
     state.lastUserAlgo=false;
    }
@@ -3222,8 +3870,10 @@ return {procName, a,b,ev2run, asyncPoint, processAsync, dataArr:dataArr_,algo:'p
   )user=state.lastUserAlgo.pumps;
 
     if (antic) {console.log(' consolidate() found anticipate relays set: ',antic);
-    } else if (program) {console.log(' consolidate() found program relays set: ',program);
-    } else if (user) {
+    } 
+     if (program) {console.log(' consolidate() found program relays set: ',program);
+    }
+     if (user) {
       console.log(' consolidate() found manualuser  relays set: ',user);
     }
 
@@ -3266,11 +3916,10 @@ browser !!!! see DEW
       if (program) res = program;// only program + possibly user
     }
 
-    console.log(' consolidate() merging anticipate and program relays merge into: ',res);
 
     // b: apply user wants , initially user will have day validity res will bet set by antic and/or program if active or can be null
     // apply default if no assign and program :
-    res=res||(new Array(6)).fill(false);
+    res=res||(new Array(state.app.plantconfig.relaisEv.length)).fill(false);// todo  same length as  relaisEv
 
    
       res.forEach((val,ind)=>{
@@ -3278,7 +3927,7 @@ browser !!!! see DEW
         if(user[ind]==null){
           ;//if(res[ind]==null)res[ind]=false;// should not be any null val in res !!!
         }else{res[ind]=user[ind];
-
+          console.log(' consolidate() merging  found a valid manual set for pump index ',ind,', that overwrite anticipate and program indication in ',res[ind]);
         }
 
       }
@@ -3288,10 +3937,12 @@ browser !!!! see DEW
       state.user=true;
       */ 
     });
+    console.log(' consolidate() , at hour ',date.getDate(),', merging anticipate (',antic,'), program (',program,') and usermanual (',user,') , relays merge into: ',res);
+
       return res;
   
 
-    function isscad(date,scad){// check scadenza
+    function isscad(date,scad){// check scadenza todo
       return true;
     }
 }
@@ -3321,4 +3972,4 @@ function toeval(state,evstr){// preferred use :  '>>&&state.devmapping=[0,1,3,2,
 return null;
 
 }
-  
+function checkval(lastUserAlgo){return true;}// todo

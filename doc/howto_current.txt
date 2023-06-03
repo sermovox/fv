@@ -331,7 +331,7 @@ alla fine di una exec :
     	state.lastRunnedProcedure={result:lastRunnedProcedure,procName,GMTdate}; ex : state.lastRunnedProcedure={result:{execute:pippo},procName,date}
 _______________
 
-setting results in last event of execute 
+setting results in last event of execute   OOHH
 
  in  these.on('last even', 
   - if(aTT=algo())
@@ -490,8 +490,17 @@ ssh luigi@192.168.1.76   wifi
 ssh luigi@192.168.1.79  
 
 mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t ctl_var_gas-pdc_4 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @MarsonLuigi_API@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+
 
 setting var from external mqtt client : 
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 8883 --capath /etc/ssl/certs/ -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Test -m "hello world" -p 8883 --capath /etc/ssl/certs/ -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @MarsonLuigi_API@ctl_var_gas-pdc_4 -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @MarsonLuigi_API@ctl_var_gas-pdc_4 -m {\"payload\":\">ctlpresent\",\"sender\":{\"plant\":\"MarsonLuigi_API\",\"user\":55}} -p 1883  -u sermovox -P sime01
+
 
 ________________________________________________
 relevant logs start with : to print with log module .......
@@ -1646,4 +1655,414 @@ ricordaesi che incoming message process alimenta i pending listeners e la coda c
  	- se msg è un  signal (>ctlpresence)  loopare rread per processare il next msg,
  	- se e valore anche autoprodotto leggerlo , 
  	- se timeout return null/''  
+ 	
+ 	
+________________________________________________________
+                   return function (lastmsg, test = 0) {// the listener . is sync function , so return to the caller (IIOOPP) after eventually added a new listener 
+                                            // and eventually delete itself ref 
+                                            // 05052023   dev is the devid , test to have the function id to recognize it when delete the listener reference in array
+___________________________________________________________
 
+in readSync/getgpio/rread/stList  waiting x a ext message  the entry point is the listener that will act on all func  getgpio/rread/stList relating on a request id ts 
+	- ora il listener puo tornare un promise che sara soddisfatto se rread risolve o setta un ulteriore listener .
+	- a questo punto il caller , processing a msg coming from mqtt :
+	
+		                if(!debug_int){
+                    let count = 0;
+                    mqttInst.statusList[dev].forEach((el) => { count++; // IIOOPP
+                    
+ potra aspettae che tutti i rread delle richieste dei listener stabiliscano i ulteriori listener per aspettare un next ulteriore msg e si settano i nuovi listener 
+ _________________________________________________
+ 
+ the listener are set by readsync when the dev queue is void or the last msg is a signal , the a new msg is got and the listeren runned, inside stList and the promise returned will resole entro timeout di 0.1 s 
+   - entro tale tempo rread continua e capsce se risolvo readsync o se devo richiamare un ulterire  stList() che avviene risolvendo il promise el(msg) che procede nel ridefinire il    mqttInst.statusList[dev] per il prossimo msg  :
+   
+   - nel frattempo il thred continua il process di ricezione :
+   
+   
+   	e ulteriori sviluppi 
+   	
+   	>>> tuttavia si ha la convinzione che entro il tempo in cui processo un nuovo msg i listener siano  stati ridefiniti in BB 
+   	
+   	per avere la certezza entrando con new msg :
+   	
+   		  client.on('message', function (topic, message,packet) {// message=obj=buffer
+		let msg,// the payload
+		message_;// the js object
+		
+	dovrei checcare che il last 
+        
+   			>> iterListen.push(el(msg));//  el(), sync,  is the listener embedded on resolving func in stList() ! 
+   			
+_________________________________________ 
+overview of listener fundamentals  in between the incoming msg process and the readsync process :
+
+	in rread  stList()  return to rread a promise that resolve when the listener process the next msg.in message income.
+	 rread after receiving the resolve of stlist, will 
+	 - resolve the readsync or 
+	 - require another listener ( because the message don allow to have a value to read)
+ 		to process a next msg and coerentemente risolve la promise retProm ritornata da listener quando chiamato in message income 
+ 		affinche esso predisponga il listener array da chiamare al ricevimento del next message 
+ 		2 way :
+ 		- (first time ) add listener to list array at the end (this wont be deleted ! ) and resolvr with 
+ 		- resolve the promise returnad after the listener is called thiw the msg ,
+ 		    in income msg we will analyze all promise returned to see which listener to mantain to process the next msg 
+ 		    
+ todo sistemare la resolve del promise tornata dal listener :  PPLLKK 
+ 
+ ________________________________________________
+ sistemare :  Inserted current message ( 0 ) , in current msg queue for device: 55  is:  [ 1, '0' ]
+ 
+_________________________________________
+ 	
+finaly considerazioni su mqtt externa set of var dev :
+- creare un subscrition su NRsubscription=+'/NReadUser/cmd' 
+- cosi l'attuale topic subscriptio e usato come il 'on' del shelly solo in uscita 
+- alla ricezione del newsubscription non settare il var ma settare il flag manual : state.lastUserAlgo={scad,pumps}  , anche lui in state,  con la sua durata ricevuta su msg oltre a payload pump
+
+		il state.lastUserAlgo   nb user=state.lastUserAlgo.pumps e' il manual set recuperato dal browser o il set da interrupt se il dev e' un mqtt var  
+					nb i dev puo essere rele o var con la differenza che ......... (vedi meglio in message income : .on('message',....))
+						e' vero ? quindi i rele dev non hanno interrupt ???
+						chiarire .......
+	
+	
+		es in consolidate si usa in code:  JUII
+		      res.forEach((val,ind)=>{
+        		if(user){............
+        		
+        >> todo 1 aggiungere la parte  manual di consolidate nell'ultimo optimize !!
+        	2 ogni volta che si setta un dev(escluso pump type ) con un algo xxx
+        		- se una proposta si mette in lastxxxAlgo  (se un dev non viene proposto si lascia null)
+        			quindi anche il intermedi var dev vengono proposti non settati 
+        		- se un set (di solito in optimize) si verifica sempre JUII
+        		escluso il super set del pump browser che ha una applicazione immediata (ma non durevole come se avesse un time out praticamente null )
+	
+		3 porre il presence su topic =+'/presence  dove in msg dare anche il nome del ctl fv3
+			 cosi in pratica il device chiamato con writeSync() lancia un pub PP appena si setta un state.ralays[i], esso annulla il current queue cosicche un readsync successivo dovra attendere un messaggio che probabilmente sara il pub PP 
+			 	immaginando che nel broker non ci sia una coda di pub vecchi al momento di emissione di PP che giungono quindi prima di PP nel message income.
+			 	in ogni caso ogni volta che c'è il dubbioche un device  legga dati sporchi si trattera readsync come se fosse sempre ballerino 
+			 	e si decidera il vero da farsi ( nel caso di un intermediate var) basandosi sul state.relays[var]
+			 		e quando si puo scrivere (writesync()) si scrive sempre anche se il readsync() mostra che il dev ha già il valore da impostare 
+			 		(si scrive lo stesso proprio perche la lettura con readsync   potrebbe essere ballerina !! )
+			 
+			 
+			 inoltre, escludera anche che :
+			 	nel subscription normale che traccera su NodeRed la statistica dello state del ctl fv3 , il reiterarsi del listener in receiving state :
+			 		un listener sara sempre risolto positivamente dal nex coming msg 
+
+		4 quindi liberati del probema presence 3 :
+			- ora il interrupt dovra essere inserito dopo aver checcato i topic:
+			
+				si cercano i topic con base il topic di registrazione del del (che diventa un master topic )
+				 poi si distingue se e' un topic di var value che verra processato as usual 
+				 o se e un topic base +'/NReadUser/cmd' e in questo caso si processa la parte interrupt 
+____________________________________________________________
+review of OOHH , ricorda OOHH : 
+
+				setting results in last event of execute   OOHH
+
+				 in  these.on('last even', 
+				  - if(aTT=algo())
+				  
+				  
+				  		algo (program or anticipate)   (state,inp,,,)
+				  
+				  			recover input from state and inp 
+				  			ret=[]/null   order according to    relaisEv=['heat','pdc','g','n','s','split'];
+				  			if(ret) 
+				  			
+				  				 if() 	state.lastProgramAlgo={updatedate:date.toLocaleString(),probes,pumps:ret,model:'programbase'};/false
+				  				 	state.lastAnticAlgo={updatedate:pdate.toLocaleString(),level:1,policy:0,algo,pumps:ret,model}/false
+					  			 if() ret=optimize(ret,date,h,m);//
+				  				if(ret){// program wants to set some relays, ret can have nul val that must be resolved  also looking at other proposal user+ anticipate 
+				  					return consolidate(state,'program',date);
+				  				else 	return null   // means no result from algo, no action at all 
+				  
+				  
+				   	attuators(these,aTT[0],aTT[1],aTT[2],aTT[3],aTT[4],aTT[5]);//[heat,pdc,g,n,s,split] val=true/false/null   set relais x level 1, then after 1 hour (1,1,1,0), if noeco (1,1,1,1)
+								                                  // ?? (pdc,g,n,s)  set relais x level 1, then after 1 hour (1,1,1,0), if noeco (1,1,1,1)
+				      	res.execute=aTT.toString();/
+				      	
+				    else   res.noexec='no....';
+				    
+				  - cb(0, res);
+				  
+				  
+				  
+ reviewed : 
+ 
+ 				setting results in last event of execute   OOHH
+
+				 in  these.on('last event of the execute algo', 		es ....
+				  - if(aTT=algofunc(state,inp,,,))			aTT is he algo dev proposal x virtual mqttnumber device ( virtual devices are  virtual index mapped on virtual device : 
+				  																sottointeso virtual name : relaisEv=['heat','pdc','g','null','null','split'];)
+				  							in past set heat, pdc g and split , leave n and s null(not impacted) now just set var dev gaspdcPref , 
+				  							them program algo use it to merge all running algo  into a final setting 
+				  
+				  
+				  ** ora per il algo program :
+				  
+				  	- algofunc=program    (state,inp,,,)  promise will : 
+				  
+				  			recover input from state and inp 
+				  			ret=[]/null   with index/order according to  a predefinite dev , the virtual dev 
+				  			if(ret) 
+				  			
+				  				per ogni zona calcola se e' resa necessaria l'attivazione di virtual devices :  if(toact(zonelist[i],probes[zonelist[i]],inp[zonelist[i]]))
+									e riempie toactivate[]				  			
+				  				se trovo almeno 1 toactivate setto una proposta ret sui index virtuali  :
+				  					 ret = [true, null, toactivate.indexOf('giorno')>=0,toactivate.indexOf('notte')>=0, false,null];/
+				  				e setto il result nello state in particolare la proposta sui virtual pumps (parte dei mqttnumb):
+				  			
+				  				 	state.lastProgramAlgo={updatedate:date.toLocaleString(),time,probes,pumps:ret,model:'programbase'};/false
+				  				 
+				  				 ora recuperando le proposte del algo anticipate
+				  				 	state.lastAnticAlgo={updatedate:pdate.toLocaleString(),level:1,policy:0,algo,pumps:ret,model}/false
+				  				 lancio il optimize che fa merge di tutte gli algo attivi tra quelli definiti/previsti 
+					  			 	optimRet=optimize(ret,state.lastAnticAlgo,state.lastProgramAlgo);
+					  			 	
+				  				return optimRet   > ritorna il valore che va in aTT
+				  				
+				  		 after resolved aTT , call a real mqttnumb dev setter: 
+				  		
+				   	- attuators(these,map,aTT[0],aTT[1],aTT[2],aTT[3],aTT[4],aTT[5]);//[heat,pdc,g,n,s,split] aTT[i]=true/false/null   set relais x level 1, then after 1 hour (1,1,1,0), if noeco (1,1,1,1)
+								                                  // ?? (pdc,g,n,s)  set relais x level 1, then after 1 hour (1,1,1,0), if noeco (1,1,1,1)
+
+				      			attuators will map index of virtual dev used by algo to real virtual dev (mqttnumb part, the visible rele/pump in brower , mqttprob are only used in execute events !)
+				      			then , resolved (without use the resolved value ) call: 
+				    
+				    
+				  - cb(0, res); //  res={execute: aTT.tostring() = the program algo suggestion }   if positive result
+				  			or ..........
+				  				
+
+
+				  ** ora invece per il algo anticipate  :
+				  
+				  	- algofunc=anticipate    (state,inp,,,)  promise will : 
+				  
+				  			recover input from state and inp 
+				  			ret=[]/null   with index/order according to  a predefinite dev , the virtual dev 
+				  			
+				  				dopo aver valutato i result dei precedenti eventi :
+				  					 if (triggers)    { if (cloudly <= (100- triggers.FVPower)) {
+				  					 >> def la proposta sui index virtuali : 
+				  					 ret = [true, true, true,null, null,true,true];//l'ultimo e stato aggiunto gaspdcPref : [heat,pdc,g,n,s,split,gaspdcPref] 
+				  					 
+				  					 >>>>>> nbnb ora con il optimize di program algo  il intermedio var gaspdcPref dira' proprio di considerare i dev non null che sono stati settati da anticipate !!
+				  					 se ndered desidera overwrite il gaspdcPref  lancia un msg con topic topic base +'/NReadUser/cmd'  che intercettato da interrupt 
+				  					 settera il manual attribute proposal del device gaspdcPref che verra intercettato da optimize come risultato del algo manual
+				  				
+				  				setto una proposta ret sui index virtuali  :
+				  					 ret = [true, null, toactivate.indexOf('giorno')>=0,toactivate.indexOf('notte')>=0, false,null];/
+				  				e setto il result nello state in particolare la proposta sui virtual pumps (parte dei mqttnumb):
+				  			
+				  				 	state.lastAnticAlgo={updatedate:pdate.toLocaleString(),time:pdate.getTime(),level:1,policy:0,algo,pumps:ret,model};
+
+				  				 
+				  				 ora ritorno ret o se l'algo program è attivo recupero le proposte del algo program e ritorno il merge delle 2 :
+				  				 	if(state.lastProgramAlgo&&ret) return consolidate(state,'anticipate');  che in effetti e' inutile ora 
+									else return ret;
+				  				
+				  		 after resolved aTT , SOLO SE PROGRAM ALGO is INACTIVE call a real mqttnumb dev setter: 
+				  		
+				   	- attuators(these,map,aTT[0],aTT[1],aTT[2],aTT[3],aTT[4],aTT[5]);//[heat,pdc,g,n,s,split] aTT[i]=true/false/null   set relais x level 1, then after 1 hour (1,1,1,0), if noeco (1,1,1,1)
+								                                  // ?? (pdc,g,n,s)  set relais x level 1, then after 1 hour (1,1,1,0), if noeco (1,1,1,1)
+
+				      			attuators will map index of virtual dev used by algo to real virtual dev (mqttnumb part, the visible rele/pump in brower , mqttprob are only used in execute events !)
+				      			
+				      	- POI CHIUDE SIMILMENTE A  PROGRAM ALGO :
+				      			then , resolved (without use the resolved value ) call: 
+				    
+				    
+				  - cb(0, res); //  res={execute: aTT.tostring() = the program algo suggestion }   if positive result
+				  			or ..........
+				  				
+
+
+________________________________________________________
+
+topic usati  in  probSubscr(cfg,that,ctlpack,subscred);e numbSubscr()
+
+   - cl_class='rele';// rele
+   if (protocol == 'shelly') 
+   
+   		un topic x subscrbe e uno alternativo per pub :
+   		qui è l'opposto che in var, essendo fv3 a comandare  :
+   			- al writesync scrivo su un topic non subscribed , come se fossero scartati in ingresso
+   			- il readsync e' su iniziativa fv3 e legge dal buffer . non ho interrupt
+                
+                > topic =  shelly_stopic + subtopic + shelly_topicp; // x publish used in readsync shellies/<model>-<deviceid>/relay/0  must be unique in all plants
+                  topicPub=shelly_stopic + subtopic + shelly_topicpp;// x publish used in writesync shellies/<model>-<deviceid>/relay/0/command
+                  
+                  								 shelly_stopic = 'shellies/',shelly_topicp = '/relay/0';
+                  								 shelly_topicpp = '/relay/0/command';command
+                  								  subtopic from def in model.js :  { portid, subtopic, varx, isprobe, clas, protocol } = val
+                  								  
+        
+
+
+   - cl_class='var';
+     if (protocol == 'mqttstate') {
+     
+     		situazione opposta a rele:
+     			- il writesync scrive sul topic base, secondo un format predefinito ({payload,source,,}),  e all'ingresso il messaggio viene scartato se proviene da fv3 altrimenti si inserisce in coda il payload
+     					( si perde per ora in souce)
+     				anche se non e' formattato si mette in coda , 
+     				(i msg in coda  potranno essere testato se e' un presence avendo un format specifico , es >ctl..... )
+     				
+     			- ora in message income :
+     				tenendo presente che readsync/rread, sia leggendo dallacoda che aspettando con un listener, nel caso  trovi un format specifico sa che ci deve essere un trattamento specifico (todo)
+     					e considerando il read impossibile chiede un altro listener waiting the next msg nella spperanza di trovare un msg/payload senza format specifico , quindi da considerare ok per il readsync
+     					
+     				>>> quindi un writesync fa trovare al next readsync proprio il valore scritto a meno di ritardi o code in brocker mosquitto 
+     					(da cui il fatto che il readsync non puo essere considerato affidabile, ci si fida dello state.ralays)	
+     					
+     				>> quindi in caso di var dev avviene l'opposto che in rele dev : scrive sul cmd topic e legge sul read sul topic base ( base url)
+     					qui si scrive sul base topic mentre i cmd ( da node-red) si leggono sul cmd topic topicNodeRed 
+     					
+     				una volta che in message income posto che il msg non provenga da fv3 (nel caso il msg sia formattato) si alimenti la coda (+ eventuali listener) con il msg se non formattato o con il msg.payload :
+     					
+     				- se formattato si estrae il topic resolver adev=invTopic[msg_topic]={} dove si cerca il topic base (base url) con cui si registra invTopic
+     						nb il topic base ha formato libero per i rele e probe dev , mentre per i var dev e' sempre senza '/',  mentre il cmd topic registato in invTopic come topicNodeRed, si	
+     							quindi :
+     							msg_topic e' il msg topic escluso i dev dev per cui :
+     							topic arrestato al primo '/'
+     				
+     					ora adev contiene le cose che permettono di interfacciare il dev :
+     						dev = adev.portid, 	// the queue associated dev to readsync
+     						mqttInst = adev.mqttInst, // mqtt instance 
+                    				ctlpack = adev.ctlpack,// ctlpack={ctl:new fc(gp,ind,inorout,cfg,that),devNumb:ind,type:'mqtt'}=info on dev ctl
+                    			+ il cmd topic:
+                    				topicNodeRed=adev.topicNodeRed;
+                    				
+                    		- per i var dev sara proprio la presenza del cmd dev a agganciare il interrupt che richiereda a optimize di considerare nel prossimo check :
+                    			- la proposta 'manuale' per il update del var dev ! ( come avviene da browser)
+                    			
+                    			
+__________________________________________________
+
+richieste comando da parte di node-red sranno gestite su un canale socket in modo analogo a quanto avviene col browser !!!!
+_______________________________________-
+     					
+     					 
+     				
+ 			   	
+ 		>  topic= that.topPlantPrefix+'ctl_' + subtopic + varx;// warning we add ctl_   !!!!!   ex: @MarsonLuigi_API@ + ctl_ + var_gas-pdc_ + 3
+ 		
+ 									topPlantPrefix='@'+this.plantName+'@';// prefix for dev topics for dev type 
+ 									 subtopic from def in model.js :  { portid, subtopic, varx, isprobe, clas, protocol } = val
+ 		
+ 		
+   - cl_class='probe';
+     if (protocol == 'shelly') {
+     
+     
+     		>      topic='ctl_probe_' +subtopic;//  subtopic from def in model.js :  { portid, subtopic, varx, isprobe, clas, protocol } = val
+     		
+     		
+     		
+    registered in mqttInst :
+                
+                   that.mqttTop[portid]=topic;
+                   that.mqttTopPub[portid]=topicPub;
+                   
+    e in inverts topic > ....   :
+               
+               	 invTopic[topic]={portid,mqttInst:that,topic,cl_class,protocol,ctlpack};};   ctlpack=   
+               	 
+               	 
+               	 
+    * quindi in message income per var dev we intercept topic like : @MarsonLuigi_API@ctl_var_gas-pdc_3 
+    									used to:
+    									-  in writesync publish fv3 to node-red and x read itself
+    									-  in readsync read itself , but as delay in broker can make instable the readsync we must look at state.relays and write in any  case when update  
+               	 				and all extension like   @MarsonLuigi_API@ctl_var_gas-pdc_3/NReadUser/cmd 
+               	 							used to 
+               	 							- in readsync read topic subscrbed to node-red : the cmd that send nodered to fv3 
+               	 								will do, as manual set in browser, propose a update temporaneo di un var dev :
+               	 									 eM.state.lastUserAlgo={updatedate:pdate.toLocaleString(),time:pdate.getTime(),policy:0,algo: "usermanual0",
+												  		defTO : 24*3600000,// one day, or shoud be the cur day end ?
+												  		pumps};
+												  
+               	 								see socket.on('manualAlgoProposal',(pump_,val,coming) => 
+               	 										{// this will be like the final part of a manual algo: propose a single pump value () to be evaluater with all other active algo by optimize ....
+ _______________________________________________
+ 
+ update 2505
+ 
+ abbiamo cambiato lo 'interrupt' da browser , il set manual, da 
+ 	- il triggerare l'event 'pump' che via onRelays chiama setPump() , cioe il immediato cambio di valore del rele(device) , e del corrispondente state.relays[],
+ 		( in effetti il socket event 'pump', che il browser usa per forzare il valore dei rele visualizzati nel browser,
+ 		   ha senso in assenza degli algo mediati dalla regola optimize usata per agire sui setPump()  
+  		)                                
+ 	- al triggerare l'event 'manualAlgoProposal' che procede  al settaggio del result obj (lastUserAlgo) del algo 'manual' che appunto concorre al settaggio dei device ma attraverso la regola optimize che coordna tutti gli algo attivi !
+        
+        
+ todo :  ora modificare l'interrupt a ralays[index].int che si fa in message income, in modo tale che emuli quello che si fa nel eventmanualAlgoProposal 
+ 		nb perche non si triggera un =  event su un connection socket in parallelo al socket col browser ???
+ 			il che anche con gli altri event che il browser usa x interfacciarsi col il fv3 !!!!
+ 			
+ 			> forse perche nel caso dei state.relays che rappresentano i rele nel browser che aggiornano i state.relays e poi si chiama il write dello state     .......
+ 				  mentre ...........
+ 				  
+ 			in effetti il mqtt e' un meccanismo simile al event mngment , solo che event management agganciano i handler dei subscription   
+ 		       
+ ________________________________________________________
+attenzione che quansolancio il plant in 
+	socket.on('startuserplant'
+	
+	 si recupera lo stato con :
+	     recoverstatus.call(eM,plantcfg,plantcnt,plantconfig,feature).then((em_) => startfv_(em_)); 
+	     
+	     che legge e scrive di nuvo lo stato.
+	     quando scrive non avendo ancora emesso 'view' ovviamente va in errore non trovando la lista dei rele buildata !!
+__________________________________
+open ws from a ode client : https://socket.io/docs/v4/client-initialization/
+
+il concetto è che che voglio fare il client identify come con il browser devo richiedere, nel client node, il build del socket su un url/namespace che nel corrispondente server gestito da express su cui ho aggiunto una session e passport, e dopo che ,nel node client, mi sono  ho autenticato (non dal browser) copiando quello che fa il browser quando sul server installo il passport    !
+ il che e' difficile trovare tutto cio in un modulo node-red !
+ 
+ >> per ora una al posto di autorized ws connection a topic/event su mqtt  senza auth .
+ 
+
+_______________________________________________________
+nb instead of duplicating topic x device interrupt and nr mqtt socket will be better create a base topic and recognize from basetopic  (the utl of topic ) that meet some basetopic extension 
+	basetopicExt={aUriTopic:handler,,,,dev1topic:devQueue&InterruptHhandlers)}
+ registered in invTopic[basetopic]  !!!!
+see nRsocket x mqtt 
+_________________________________________________
+
+sistemare erraro plant in ingresso
+_____________________________________
+
+store result in state 
+1) in app2 alla fine di ogni execute , in function ends(stepNum,lastRunnedProcedure):
+
+	- si updata that.state.lastRunnedProcedure con il suo algo/execute result :
+		 result:lastRunnedProcedure    ,nb  lastRunnedProcedure.result.execute sono i virtual  set pump proposti nell'ultimo event handler eseguito in execute procedure
+		  è il result del ultimo event handler/step  tornato via cb a updateData_(err, result=data)
+		nb le date correnti (lastRunnedProcedure.GMTdate ) sono generate localmente : GMTdate
+	-  se i lastRunnedProcedure.execute (setpump) non e' null:
+		> si  controlla che that.state.relHistory abbia dimensione limitata e si aggiunge un item ,
+		
+2) nell'ultimo step di execute nel event handler si chiama un function (ex program()) che setta il last algo/execute detailed result ( ex state.lastProgramAlgo),
+	in esso si setta anche i setpump proposti , vedi 1) 
+
+
+store active algo param  : in anticipateFlag(set_,fn,algo,activeAlgoRes=program/anticipate)
+				it store immediately using :
+					return api.writeScriptsToFile(fn)	
+	
+___________________________________
+todo 
+whan calling a event handler :
+these.on('genZoneRele', async function ( inp_, cb) 
+ in inp_ we find dataArr, the execute input param , and some param set by previous step .
+  better add also gen nfo about running execute like procname , so can be available in execute event handler 
+_______________________________________________________
+
+now optimize and consolidate merged into consolidate !
+_______________________________________________
+
+is nRsocket.js used in fv3 ?  so add to stage

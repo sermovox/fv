@@ -110,8 +110,16 @@
           <hr class="solid">
 
           <div style="background-color:rgb(243, 205, 240);">
-          <h3> &nbsp; &ensp; &emsp; HEAT Triggers:</h3>
-          <form id="triggers2">
+            <form id="triggers2">
+          <h3> &nbsp; &ensp; &emsp;
+           
+            <select name="ei" id="ei">
+              <option value="W" selected>Winter</option>
+              <option value="S">Summer</option>
+            </select>
+             
+             Triggers:</h3>
+          
           <p><input type="checkbox" id="Tgiorno" name="Tgiorno"> Termostato 1: HT zona giorno &ensp; delay (hours) <input type="number"
               id="delay1" placeholder=1 size="4" name="Dgiorno">
 
@@ -411,47 +419,114 @@ div.append( p);
 //div.innerHTML += `<br> &nbsp; &ensp; &emsp; ciao <br><h1>${title}</h1>`; // cancella il onchange
 });
 
-div = document.getElementById("manlist");
+div = document.getElementById("manlist");// inputs clicked , in manlist , will fire a 
 
-ejscont.pumps.forEach((el,ind)=>{
+ejscont.pumps.forEach((el,ind)=>{// append to div some paragraphs with input as described in ejscont
 
 
 let p = document.createElement("p");//    <p><input type="checkbox" id="sm< %=i% >" onclick="man(< %=i% >)">Set Manual</p>
   let x = document.createElement("INPUT");
-  x.setAttribute("type", "checkbox");
+ //  x.setAttribute("type", "checkbox");
+ x.setAttribute("type", "button");
+
    x.setAttribute("id","sm"+ind);
  // x.onchange = my2;
-  x.addEventListener('change',man(ind) );
+ //x.addEventListener('change',man(ind) );
+ x.addEventListener('click',man1(ind) );
+ 
+
   //function jsFunc() {document.getElementById("io").style.backgroundColor = "Purple";}
 
  p.append(x,"Set Manual");
 // p.appendChild(x);
 div.append( p);
 //div.innerHTML += `<br> &nbsp; &ensp; &emsp; ciao <br><h1>${title}</h1>`; // cancella il onchange
+
+
+
+
+function man1(id) { 
+      return function(){
+     
+      let elm;
+      if ((elm=document.getElementById('cars'+id))) { // se un elemento con l'identificativo specificato esiste,
+
+
+     let res=this.value;
+
+ let val_;
+    if(!Number.isNaN(val_=Number(res))){// res is conveted to integer
+ socket.emit('manualAlgoProposal', el.id, val_, 'browserchangeflag'); //send browser flag status  to server, similar as HYN
+        }else;
+      
+
+    }
+
+    }}
+
 });
+
+
+
+
+
 div = document.getElementById("mansetlist");
 
 ejscont.pumps.forEach((el,ind)=>{
 
 
 let p = document.createElement("p");//    <p>>&emsp; <input type="checkbox" id="m< %=i% >" style="display:none">set manual for 3 hours</p>
+
+/*
   let x = document.createElement("INPUT");
-  x.setAttribute("type", "checkbox");
-   x.setAttribute("id","m"+ind);
-   x.setAttribute("stile","display:none");
- // x.onchange = my2;
-  x.addEventListener('change',function (){
-      // same as YYUU TODO LASCIARNE SOLO UNO !!!!!!!!
-      socket.emit('pump', el.id, Number(this.checked), 'browserchangeflag'); //send browser flag status  to server, similar as HYN
-        });
+  x.setAttribute("type", "checkbox");*/
   
+  
+//  var myParent = document.getElementById('pcont');
+
+//Create array of options to be added
+var array = ["on","off"];
+var array1 = ["0","1"];
+
+//Create and append select list
+let x = document.createElement("select");
+x.id = "cars"+ind;
+//myParent.appendChild(x);
+
+//Create and append the options
+for (var i = 0; i < array.length; i++) {
+    var option = document.createElement("option");
+    option.value = array[i];
+    option.text = array1[i];
+    x.appendChild(option);
+}
+
+
+
+ // x.onchange = my2;
+// no more used   x.addEventListener('change',setManual);
+      // same as YYUU TODO LASCIARNE SOLO UNO !!!!!!!!
+let ws=p;// not x 
+      ws.setAttribute("id","m"+ind);
+   ws.setAttribute("stile","display:none");
   
   //function jsFunc() {document.getElementById("io").style.backgroundColor = "Purple";}
 
- p.append(x,"set manual for 3 hours");
+ p.append(x,"set manual for this day");// or appendChild  ???
 // p.appendChild(x);
 div.append( p);
 //div.innerHTML += `<br> &nbsp; &ensp; &emsp; ciao <br><h1>${title}</h1>`; // cancella il onchange
+
+function setManual() {
+let res;
+if(this.value){res=this.value;
+ this.value=null;// to reset valut for next change
+ let val_;
+    if(!Number.isNaN(val_=Number(res))){// res is conveted to integer
+ socket.emit('manualAlgoProposal', el.id, val_, 'browserchangeflag'); //send browser flag status  to server, similar as HYN
+        }else;
+      }
+}
 });
 
 
@@ -518,7 +593,7 @@ div.append( p);
 
     // send receive program algo staff 
     let triggers2_ = document.getElementById("triggers2").elements;// form elements
-    let extract2 = ["Tgiorno","PGMgiorno","Tnotte","PGMnotte","lastT","mapping","probMapping"],// name in form triggers2 that are in triggers{} and in lastT
+    let extract2 = ["Tgiorno","PGMgiorno","Tnotte","PGMnotte","lastT","mapping","probMapping","ei"],// name in form triggers2 that are in triggers{} and in lastT
      triggers2 = {};// extract
 
     socket.on('status', function (data,prettyjson) { //get button status from client, see https://www.w3schools.com/tags/tryit.asp?filename=tryhtml_textarea
@@ -902,20 +977,29 @@ div.append( p);
         }
       }
     }
-    function man(id) { // cambia ciclicamente la visibilità dell'elemento indicato status=0/1
+    function man(id) { // triggerato da click change in input in 'manual set '
+                      //  cambia ciclicamente la visibilità dell'elemento indicato (in choose on/off col) id=sm+id (in manset) status=0/1
       // see https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001
+
+      return function(){
       let elm;
       if ((elm=document.getElementById('m'+id))) { // se un elemento con l'identificativo specificato esiste,
 
-        if (document.getElementById('sm'+id).checked)  { // 
-          elm.style.display = 'inline'; // lo visualizza
+        if (document.getElementById('sm'+id).checked)  { // this checkbox calling this handler is clicked or unclicked?
+          elm.style.display = 'inline'; // se è clicked visualizza l'elemento , same row , in choose on/off col
 
         } else {
-          elm.style.display = 'none'; // lo nasconde
+          elm.style.display = 'none'; // altrimenti lo nasconde
 
         }
       }
-    }
+    }}
+
+
+
+
+
+
     /*
     const form = document.getElementById('form');
     const log = document.getElementById('log');

@@ -148,7 +148,7 @@ const api={// see https://javascript.info/promise-chaining
       }
   });
   console.log('sendstatus() pretty is: ',prettyjson);
-    fn.socket.emit('status',fn.state,prettyjson);// send the status to the browser too, also if the related section is not jet visible !
+    fn.socket.emit('status',fn.state,prettyjson);// send the status to the browser too, also if the related plant section is not jet visible !
   
     return new Promise(function(resolve, reject) {
           let bank,file;

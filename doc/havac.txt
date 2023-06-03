@@ -1,0 +1,75 @@
+http://developers.sensetecnic.com/article/a-node-red-dashboard-using-node-red-dashboard/
+http://noderedguide.com/tutorial-advanced-dashboards-for-node-red-and-cryptocurrency/
+https://cookbook.nodered.org/#flow-control
+https://nodered.org/docs/
+Node-red -Using the Control UI Node for Dynamic Dashboards  di Steve Cope
+https://flows.nodered.org/search?term=ui&type=flow&page=4
+https://flows.nodered.org/flow/98fbc581233eb027ade78cd44829b9d1
+
+Node-Red: Dashboard UI Control
+
+
+Access Node-RED Dashboard from Anywhere using Digital Ocean
+https://randomnerdtutorials.com/access-node-red-dashboard-anywhere-digital-ocean/
+
+front-end website :
+https://flows.nodered.org/flow/1bffe6808d37bd96cce283939983e758
+
+https://groups.google.com/g/node-red/c/o0LN30Og6Ag/m/a7K8VI3gAAAJ
+
+https://nodered-dashboards.gitbook.io/node-red-dashboards/workshop/basic-web-page
+https://nodered-dashboards.gitbook.io/node-red-dashboards/workshop/basic-dashboard-example
+
+https://cloud.google.com/blog/products/application-development/using-node-red-with-google-cloud
+
+https://cloud.google.com/blog/products/application-development/using-node-red-with-google-cloud
+https://nodered.org/docs/user-guide/runtime/securing-node-red
+
+https://nodered.org/docs/user-guide/runtime/embedding
+
+https://nodered.org/docs/getting-started/local
+
+https://nodered.org/docs/user-guide/runtime/configuration
+
+https://tech.scargill.net/a-thermostat-weekend/
+
+come ricevere il mqtt con topic Vhavac > banale  questo va poi trattato come testo 2 x statistiche e poi anche per programmare un termostato che banalmente scrive sul topic Vhavac_ctl : msg.set={reason:{cause:'manual',long:'3h',priorityL:'1'},data:{portid:11/relay:'g',value:on}}
+cosi quando il loop gira (un program 24h7d) il optimize trovera una proposta manual  inserita come proposta manual
+ quindi non semplicemente pub un message con topic un device ma un result di algo che propone una action di write su un var/pump che poi va consolidata con gli altre proposte di algo (registrate sul loop) a livelli piu bassi dal loop, che portera sostanzialmente a fissare il relay 'g' a on e a un mesage sul topic di i ngresso :
+msg={relay/prob/var:'g',value:'on'}or ={state:{relays:{g:'on',,,,,},probs,vars}
+
+quando ricevo il msg in fv3 distinguo se e' un dev registrato o se e' un Vhavac_ctl che e' una proposta di algo manual/... 
+		>>  simile al staring di un  execute algo 
+mentre ogni volta che scrivo su state.relays + ... mando un topic  Vhavac_input msg={relays}
+Virthacs
+I state.relays che non sono gpio nativi
+Cioè i mqttnumber vanno tutti subscribed come devices
+Ora aggiungiamo anche un subscription anche come pusher al front end con node-red e ogni volta che scrivo uno state su un Plant ogni volta che ho un message da device probe/(var dopo un set di qualche event di execute) di mqttprobe lo invio al front end (  il last viene usato da virtual has quando necessità di conoscere il valore corrente in qualche event di execute )
+Così quando voglio modificare un Pump/,e non un probe che è impossibile ,node red cambia il valore inviando lo come pubs  in  virtualhacs dove si lancia un evento temporarely manual set che simula un button pressed
+
+Quindi
+1  non occorre aggiungere un state.relays   var in quanto essi pumps e var già vengono pubs in mqtt (   no gpio native,  just mqtt Dev )
+2 in message event accanto a riempire la queue per dare agli event readsync lo ultimo valore , : si spara/pusha anche come gruppage a node red 
+- relè : cioè i pumps di mqttnumber
+- intermedi state per pilotare execute del virtual hacs cioè i vari mqttnumber e non i vars diqttprob che sono solo interni
+- i probe
+
+
+NB perché  non ho usato uno state.var aggiugendolo a state.relays al posto di aggiungere una var in mqttprob (   che viene poi storata nel queue in message event ottenendo così un persistant equivalente al state....) : risposta : perché il vero persistant lo faccio con Db dopo averlo pushato verso node red !
+
+Quindi in node red avrò un tab in cui configura :
+- il virtual device
+- Il automatic process che dai probs   attuano i var e pumps set automaticamente  
+- i custom process execute definition
+
+______________________________________________________________________
+
+quindi node red diventa una piattaforma che interfaccia fv3 da usare, aggiungendo una interfaccia 'user' a quella prof del browser, per :
+- config gli execute , normalmente predefiniti 
+- configurare i device via model.js
+- disegnare un execute su modello visual design di node red (virtual controller) es accendi una lampada secondo un program
+- monitorare lo state 
+- interagire con gli algo via var (intermediate result che possso modificare manualmente )
+
+ probabilmente avremo un browser che setta i starting param degli algo e il node red che start i algo e modifica i parametri piu semplici !
+ 
