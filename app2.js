@@ -392,7 +392,9 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
 
         let step=prolist[stepNum],// event at current step
         asyncNam = asyncPoint[stepNum];// ex : asyncPoint={1:'login',,,,,}at step 1 run :   processAsync['login']={login:function(){},,,,,}.login with input  input_ = dataArr[asynckey];
-        let outpu='goonstep called , exec procedure: '+procName+', step: '+stepNum+', event: '+step+'\n state: '+JSON.stringify(that.state,null,2)+'\n  async to run: '+asyncNam+'\n\n';
+       // let outpu='goonstep called , exec procedure: '+procName+', step: '+stepNum+', event: '+step+'\n state: '+JSON.stringify(that.state,null,2)+'\n  async to run: '+asyncNam+'\n\n';
+        let outpu='goonstep called , exec procedure: '+procName+', step: '+stepNum+', event: '+step+'\n  async to run: '+asyncNam+'\n\n';
+
         //console.log('\n *****   goonstep called , exec procedure: ',procName,', step: ',stepNum,'\n state: ',that.state,'\n event: ',step,', async to run: ',asyncNam,'\n');
         console.log('\n ***** ## ',outpu);
       
@@ -441,12 +443,12 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
         let GMTdate=dd.toLocaleString();
         that.state.lastRunnedProcedure={result:lastRunnedProcedure,procName,GMTdate,setBy:'ends execute,last step result. in app2'};
         that.state.relHistory=that.state.relHistory||[];
-        if(lastRunnedProcedure&&lastRunnedProcedure.execute)// log only execute results 
+        if(lastRunnedProcedure&&lastRunnedProcedure.execute)// log only execute not null  results 
           if(that.state.relHistory.push(that.state.lastRunnedProcedure)>MAXHistLen){
             let lent=that.state.relHistory[that.state.relHistory.length-1];
             that.state.relHistory.length=1;that.state.relHistory[0]=lent;// reset array push last entry
           };
-      console.log('****\n execute procedure: ',procName,' stopped running , relHistory dim: ',that.state.relHistory.length,' cur state: ',that.state,' Time Consumed : ');console.timeEnd('execute '+procName);
+      console.log('****\n execute procedure: ',procName,' stopped running with  step/code ',stepNum,', relHistory dim: ',that.state.relHistory.length,' cur state: ',that.state,' Time Consumed : ');console.timeEnd('execute '+procName);
       // moved this.on('data', (data)=> console.log('got data ', data));
 
       if (procName == 'customEv') { };

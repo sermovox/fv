@@ -1362,6 +1362,8 @@ withtime costruisce un event stile procedure basandosi su un event manager (even
  	> data processa il return di asyncfunc  
  		data handler è settato definendo un prototype func che lavora con this , oggetto istanziato dal class constructor 
  __________________________________________
+ openapi fusionsolar huawei : see openapi1.txt
+ see https://forum.huawei.com/enterprise/en/communicate-with-fusionsolar-through-an-openapi-account/thread/591478-100027
 
 plant :
 {
@@ -1398,7 +1400,28 @@ plant :
 }
 
 example site : https://forum.huawei.com/enterprise/en/communicate-with-fusionsolar-through-an-openapi-account/thread/591478-100027?page=2#comments-area
+
+postam don work , just set the poste then get curl command using <> code 
+
+ex get token in file :
+
+curl --location 'https://eu5.fusionsolar.huawei.com/thirdData/login' --header 'Content-Type: application/json' --data-raw '{
+"userName":"MarsonLuigi_API","systemCode":"Huawei@123"}' --cookie-jar cookie_file
+{"data":null,"success":true,"failCode":0,"params":{},"message":null}
+
+ex get the devices for station NE=36026831, cioe via damiano chiesa (inverter: id=1000000036026833 s/n=HV2160184230) :
+
+curl --location 'https://eu5.fusionsolar.huawei.com/thirdData/getDevList' \
+> --header 'XSRF-TOKEN: x-9jmremrzga9hlffydhfsg7bx7v089elic53y0ajzmpqlrz1cka48nv9hbyel7t7yc7ddo6rw3s45jwlgdec4qlpcqoc7vyg5rz05k7hc4aga3zbx6pbtg8jxcbft88de' \
+> --header 'Content-Type: application/json' \
+> --data '{"stationCodes":"NE=36026831"
+> }'
+{"data":[{"devName":"INV-HV2160184230","devTypeId":38,"esnCode":"HV2160184230","id":1000000036026833,"invType":"SUN2000-5KTL-L1","latitude":45.965359,"longitude":12.678223,"optimizerNumber":0,"softwareVersion":"V200R001C00SPC130","stationCode":"NE=36026831"},{"devName":"Battery-1","devTypeId":39,"esnCode":null,"id":1000000036026834,"invType":null,"latitude":45.965359,"longitude":12.678223,"optimizerNumber":null,"softwareVersion":null,"stationCode":"NE=36026831"},{"devName":"Meter-1","devTypeId":47,"esnCode":null,"id":1000000036026835,"invType":null,"latitude":45.965359,"longitude":12.678223,"optimizerNumber":null,"softwareVersion":null,"stationCode":"NE=36026831"}],"failCode":0,"message":null,"params":{"currentTime":1686069692769,"stationCodes":"NE=36026831"},"success":true}
+
 _______________________________________
+
+
+
 
 
 logic of  execute(procName, evcontingencyparam, evAsyn, ev2run, processAsync,asyncPoint, dataArr_,cb)
@@ -2065,4 +2088,74 @@ _______________________________________________________
 now optimize and consolidate merged into consolidate !
 _______________________________________________
 
-is nRsocket.js used in fv3 ?  so add to stage
+is nRsocket.js used in fv3 ?  so add to stage. no used only to study.
+____________________________________
+
+check eM , fn > socket.eM
+____________________________
+
+virtual to real device map 
+
+ anticipate and program , if have any proposal will set lastAnticAlgo and lastProgramAlgo then EVENTUALLY call consolidate/optimize  working on virtual device
+ 	then calling attuators(fn,map,aTT) we map real device into real device as descripted on  relaisEv  and we set:
+ 	- the state.relays and corresponding devices (using writesync ) so also shown in browsers
+ 	
+
+ 	
+ 	now what hapens to intermediate virtual to real devices ??
+ 	probably we must run consolidate on real device and not on virtual device ? no
+ 	
+ 	
+ 	.....
+ 	so in anticipate we set intermediate virtual pump 
+ 	
+ 	
+ 	solution :
+ 		call consolidate only once
+ 			add in consolidate the config read from models.js , specifically the mapping of virtual intermediate to virtual pumps
+ 			
+ 		call attuators only once after consolidator  so better move consoldate into attuators
+ 		
+ 		
+_____________________________________________________
+  duplication in state : plantconfig and plantcfg
+____________________________________________________
+
+ancora su : io.sockets.on('connection', function (socket) {// WebSocket Connection :server is listening a client browser so now we built the socket connection, transmit to server if there are status updates 
+
+	........
+	
+	  socket.on('startuserplant', function (plant_,feat) { // user press button to connect to some plant, so this event is fired , feat url enc
+                                                      // inst/fn/ctl/eM :  here we create the ctl of the plant that will be passed to all the service functions 
+                       .....
+
+	quando arriva un nuovo socket viene eseguito il handler cb :  function (socket) ...
+	
+	il quale registra su socket vari  handler come startuserplant ,cio' è come se fosse tornato dalla closure handler.
+		quindi tutte le var della chiamata handler , closure di startuserplant rimangono disponibili in startuserplan compreso
+________________________________________
+
+ add a appDevSpaceGroup property to state.app to declare the virtual dev space on witch every algo will apply ( each algo knows the role of each device and operate on them ) 
+ _____________________________________________________
+ 
+ to do   correct :
+ 	  {begin:null,// error todo  :  connect:null,
+ _________________________________
+ to do   in consolidate we work on appDevSpaceGroup=default , in future can be also algo working on different appDevSpaceGroup and will generate a different vitual merge 
+ 	then in attuators we merge all groups using specific map to real devices shown in browser
+ 		see : let aTT=consolidate(state,'program');// this is virtual dev. now all algo works on a single def appDevSpaceGroup and produce the def virtual dev set
+                                      // in future can be many groups with some algo working on its group , so aTT will be a array , on wich apply a array of map 
+ __________________________________________
+ 	
+ anticipate setta il gaspdcPref , poin in program si propone il set dei rele sia per valori true che false di gaspdcPref, 
+ 	es essendo i probe a 20 e il desidered a 19 propongo sostanzialmente false e pero indico che nel caso di gaspdcPref posso procedere con true perche non ho superato il overpdc di 1.5 gradi 
+ 	e lo segnalo con una var in lastProgramAlgo . quindi in consolidate riverso il anticInterm2VirtMap.gaspdcPref (che in effetti potrebbe essere inserito nella parte bassa della proposta anticipate
+ 	oppure il program che dovrebbe partire essendo probe = 18.5  ma sapendo da field di lastProgramAlgo  che ci sara power tra 2 ore ( eanche che non ho piu battery)  attendo il fv 
+ 	
+______________________________________________________________________________
+
+storare il anticipate in lastProgramAlgo cosi calcolo le ore di lavoro di anticipate che sono il risparmo di cicli di memoria e se il min battery al mattino è 0 e anche un risparmio di energia 
+__________________________________________________________
+il fv3 engine sara visto come un device plc mqtt based  per un generco havac building monitor . i device saranno comandabili da fve e anche come mqtt da havac. il node red sara un circa browser open source ctl del fv3  
+___________________________________________________________________________
+

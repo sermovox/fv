@@ -167,7 +167,8 @@ const api={// see https://javascript.info/promise-chaining
           }
   
          // api.mapTriggers();
-         let  pdate=new Date();pdate.setHours(pdate.getHours()+1);console.log('writeScriptsToFile(): updated',new_scripts,' on : ',pdate);//  (new Date()).toLocaleString()
+         let  pdate=new Date();pdate.setHours(pdate.getHours()+1);
+         // console.log('writeScriptsToFile(): updated',new_scripts,' on : ',pdate);//  (new Date()).toLocaleString()
           resolve(new_scripts);
       }else reject('file is undefined');
       });
