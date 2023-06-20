@@ -502,6 +502,16 @@ mosquitto_pub -h bot.sermovox.com -t @MarsonLuigi_API@ctl_var_gas-pdc_4 -m "off"
 mosquitto_pub -h bot.sermovox.com -t @MarsonLuigi_API@ctl_var_gas-pdc_4 -m {\"payload\":\">ctlpresent\",\"sender\":{\"plant\":\"MarsonLuigi_API\",\"user\":55}} -p 1883  -u sermovox -P sime01
 
 
+shelly cfg
+
+ al reset è access poimt wifi e il suo address e   192.168.33.1  ??????
+ poi setti il wifi mode client e dai un indirizzo statico e il nome del wifi acess poin del router per cui poi lo accedi con quello indirizzo statico es 192.168.1.150 
+
+poi setti in advnced dev setting mqtt con   server bot.sermovox.com:1883  user sermovox e pass sime01
+
+
+
+
 ________________________________________________
 relevant logs start with : to print with log module .......
 anticipate algo calc new relays values....     or 	anticipate() find cloudily low so start pdc....
@@ -2159,3 +2169,12 @@ __________________________________________________________
 il fv3 engine sara visto come un device plc mqtt based  per un generco havac building monitor . i device saranno comandabili da fve e anche come mqtt da havac. il node red sara un circa browser open source ctl del fv3  
 ___________________________________________________________________________
 
+in ioreadwritestatus si scrive lo status e si invia lo staus al browser che utilizza alcuni campi per descrivere temperature e altre var che potrebbero essere aggiunte ai devices come var per essere inviate anche a node-red !!
+  in particolare le temperature che sono var di state.program set when program algo is active. 
+  so if we e want to send temperature to node red we could write a mqtt var device (where we update state.program)  that can be read by node-red
+  or we just do as in browser , and extract the temperature streaming from the state send in the event socket.on('status',
+  _________________________________________
+  aggiungere in program resul also consolidate, add also in anticipate the power read 
+  _________
+  
+   

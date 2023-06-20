@@ -438,7 +438,7 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
 // UUII : .....
 
       // ends goonstep loop :
-      function ends(stepNum,lastRunnedProcedure){// lastRunnedProcedure= { execute: 'noprogramming'/'pumps suggestion' },
+      function ends(stepNum,lastRunnedProcedure){// lastRunnedProcedure= { execute: 'noprogramming'/'pumps suggestion' ,data},
         let dd=new Date();dd.setHours(dd.getHours()+dOraLegale);
         let GMTdate=dd.toLocaleString();
         that.state.lastRunnedProcedure={result:lastRunnedProcedure,procName,GMTdate,setBy:'ends execute,last step result. in app2'};

@@ -60,6 +60,7 @@ cfgMarsonLuigi={ name:'MarsonLuigi_API',// duplicated FFGG
         ,anticInterm2VirtMap:{gaspdcPref:[true,true,true,null,null,true,null]}//{aintermediateinrelaisEv:[true,false,null,,,,]}
                         // or a function(state) returning [true,false,null,,,,]
         ,virt2realMap:[0,1,2,3,4,5,6],
+        invNomPow:6,
         huawei:{inv:"1000000035350464",bat:"1000000035350466"}// devid
         };
 cfgCasina={ name:'Casina_API',// duplicated FFGG
@@ -112,6 +113,7 @@ cfgCasina={ name:'Casina_API',// duplicated FFGG
         ,anticInterm2VirtMap:{gaspdcPref:[true,true,true,null,null,true,null]}//{aintermediateinrelaisEv:[true,false,null,,,,]}
                                                                                 // or a function(state) returning [true,false,null,,,,]
         ,virt2realMap:[0,1,2,3,4,5,6],// std virtual group , map only if >=0 
+        invNomPow:5,
         huawei:{inv:"1000000036026833",bat:"1000000036026834"}// devid
 
         };
@@ -157,6 +159,7 @@ function getconfig(plant='MarsonLuigi_API'){// =plantconfig, general obj to cust
                         anticInterm2VirtMap:plants[plant].cfg.anticInterm2VirtMap,
                         virt2realMap:plants[plant].cfg.virt2realMap,
                         huawei:plants[plant].cfg.huawei,
+                        invNomPow:plants[plant].cfg.invNomPow,
                         plantName:plant
                         // devid_shellyname:plants[plant].cfg.devid_shellyname,
                        // error :  relaisEv:plants[plant].cfg.mqttprob
