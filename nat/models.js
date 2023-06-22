@@ -121,6 +121,7 @@ let plants={MarsonLuigi_API:{cfg:cfgMarsonLuigi,// will be put in state.app.plan
                 name:"MarsonLuigi_API",// duplicated FFGG
                 passord:"marson",// not used 
                 users:['john'],
+                token:['123'],// really token has a client and a permission to act on some data/process
                 email:'luigi.marson@gmail.com'
                 },
                 
@@ -128,15 +129,23 @@ let plants={MarsonLuigi_API:{cfg:cfgMarsonLuigi,// will be put in state.app.plan
                 name:"Mirco1_API",// duplicated FFGG
                 passord:"marson",
                 users:['mirco1'],
+                token:['xyz'],
                 email:'luigi.marson@gmail.com'
                 },
           Casina_API:{cfg:cfgCasina,// will be put in state.app.plant
                 name:"Casina_API",// duplicated FFGG
                 passord:"marson",
                 users:['irene'],
+                token:['abc'],
                 email:'luigi.marson@gmail.com'
                 }       
 };
+
+let plantbytoken={};
+for(let pl in plants){
+        plantbytoken[plants[pl].token[0]]=pl;
+
+}
 
 function getcfg(plant){// // general obj to customize the  app :functions, generator (ejs) ,,,,, 
             return plants[plant].cfg;
@@ -193,6 +202,7 @@ return prods;
 }
         
 module.exports = {getconfig,// app funtionality custom cfg
+        getPlant:function(token){return plantbytoken[token]},
         getcfg,// all
         getconfig,
         getplant,// user staff

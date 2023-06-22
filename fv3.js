@@ -643,7 +643,7 @@ const api=require('./nat/io/ioreadwritestatus');
 
 
 let ccbbRef;// the app2 instantiator. it is in closure run() !  xxxxx
-
+const started ={};nRWaiting={}// {luigimarson:{  inst,,,}};// inst bank , available also to node-red connections !
 run();// start server
 
 function run(){// build the app2 ctl. pay attention 
@@ -707,7 +707,7 @@ if (Proto) eMClass.prototype.cfg = function (plantname) {// add a cfg static fun
 
 // ccbb : the instanziator INSTANZ
 
-let started ={};// {luigimarson:{  inst,,,}};// inst bank
+// moved to server glogal context : let started ={};// {luigimarson:{  inst,,,}};// inst bank
 ccbbRef=function ccbb(plantname) {// when client/plant got a request (a button) for a plant on a webpage , we fire : socket.on('startuserplant' ,that to operate/ register the fv ctl inst
   // so we instatiate or recover  the fsm: that is a eventmanager or connect to the server with a socket that has the same event managed (so the socket is the session/instance of the event manager for the plant)!
   let inst;
@@ -1251,9 +1251,13 @@ let ddd=pdate();//state.lastAnticAlgo={updatedate:new Date().toLocaleString(),le
 //const dayOfYear = date => Math.floor((date - new Date(date.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));// days of cur year
 const dayOfYear = date => Math.floor((date ) / (1000 * 60 * 60 * 24));// days from 1970
 let saving=state.saving= state.saving||
-{day:[-1],date:['00/00/1970'],battSavings:[0],enSavings:[0],minLevBattery:[0],checkedHour:[0]}// array of daily saving obtained wih application of anticipate algo periods
+// {day:[-1],date:['00/00/1970'],battSavings:[0],enSavings:[0],minLevBattery:[0],checkedHour:[0]}// array of daily saving obtained wih application of anticipate algo periods
+[{day:-1,// day from 1970
+  date:'00/00/1970',battSavings:0,enSavings:0,minLevBattery:0,checkedHour:0}]// array of daily saving obtained wih application of anticipate algo periods
+
 ,checkday;
-function calcsavings(){
+function calcsavings(){// calcola alle ore 8 i savings del giorno precedente
+                        // to do put in obj , not in many arrays !, done
   if(state.lastAnticAlgo){// must exists
 
 
@@ -1275,7 +1279,9 @@ function calcsavings(){
  // let es=state.lastAnticAlgo.daysavings.battery*0.8 - state.aiax.battery; 
 
  // not current min battery but yesterday min batt ! but if minor then current . perhaps limit to 50 anyway ?
- let minBat;if(saving.minLevBattery[saving.minLevBattery.length-1]<battery)minBat=saving.minLevBattery[saving.minLevBattery.length-1];else minBat=battery;
+ // let minBat;if(saving.minLevBattery[saving.minLevBattery.length-1]<battery)minBat=saving.minLevBattery[saving.minLevBattery.length-1];else minBat=battery;
+ let minBat;if(saving[saving.length-1].minLevBattery<battery)minBat=saving[saving.length-1].minLevBattery;else minBat=battery;
+
   let es=state.lastAnticAlgo.daysavings.battery*0.8 - minBat; //(state.aiax.battery+state.saving.minLevBattery[state.saving.minLevBattery.length-1])/2;
   // manca il criterio che quando raggiungo il max battery se anticipo e come se aumentassi la capacita. in effetti se anticipo poi dovrei trovare nel calcolo di sopra un valore maggiore
  //  es parto con batteria a 100 poi anticipo e alla fine ho max  batt . se non avessi anticipato avre immesso in rete e poi alla fine avrei mangiato batteria (meno scorta x il futuro)! 
@@ -1283,38 +1289,64 @@ function calcsavings(){
  //       consumato dopo mangia la batteria se il fotovoltaico non produce piu  quindi il vantaggio e' tutto l'anticipo fino quando la batteria non inizia a scendere
  //       oppure il antaggio e' in tutta il anticipo fino a che la batteria inizia a scendere perche da qui in poi se non avessi anticipato avrei una batteria piu scarica del anticipo ! 
  //         il che si traduce iln perdita se la batteria raggiunge lo 0 . quindi anche qui vale il anticipo -
-  if(es<0)es=0;saving.enSavings.push(es);// savings = 80% del anticipo che invece consumo alla fine - media livello batteria ((batt in + finale)/2) 
-  saving.battSavings.push(state.lastAnticAlgo.daysavings.battery);// risparmio carica ottenuto con anticipate= current anticipated energy
+  if(es<0)es=0;
   
-  if(!saving.date){saving.date=[];for(let i=0;i<saving.day.length;i++)saving.date.push('na');// debug only
+/*
+  saving.enSavings.push(es);// savings = 80% del anticipo che invece consumo alla fine - media livello batteria ((batt in + finale)/2) 
+  saving.battSavings.push(state.lastAnticAlgo.daysavings.battery);// risparmio carica ottenuto con anticipate= current anticipated energy
+  if(!saving.date){saving.date=[];for(let i=0;i<saving.day.length;i++)saving.date.push('na');// debug only allineate date array 
   saving.day.push(checkday); 
-}
   saving.date.push(ddd.toLocaleString()); // added to correct
   saving.checkedHour.push(ddd.getHours());// day and hour of daily calc
   saving.minLevBattery.push(battery);// initial battery val for next days
+  */
+
+  saving.push({enSavings:es,battSavings:state.lastAnticAlgo.daysavings.battery,day:checkday,date:ddd.toLocaleString(),checkedHour:ddd.getHours(),minLevBattery:battery});
+
+
+
+
+
   
 return true;
-}return false;
+}else return false;
 }
 
 // update/create lastAnticAlgo
-state.lastAnticAlgo=state.lastAnticAlgo||{level:1,policy:0,model:model_,daysavings:{battery:0},setby:'(last) event handler called by some execute/algo step, procname unknown'};
+state.lastAnticAlgo=state.lastAnticAlgo||
+{level:1,policy:0,model:model_,
+  daysavings:{battery:0},// energia anticipata giornaliera cumulata a partire dalle ore 8 , dal algo anticipate
+  setby:'(last) event handler called by some execute/algo step, procname unknown'};
+
 if(!state.lastAnticAlgo.daysavings)state.lastAnticAlgo.daysavings={battery:0};// debug only
+
 checkday=dayOfYear(ddd);
-if(saving.day[saving.day.length-1]<checkday&&ddd.getHours()>=8){// once a day calc savings // at a hour on which battery is minimum  8
+// if(saving.day[saving.day.length-1]<checkday&&ddd.getHours()>=8){// once a day calc savings // at a hour on which battery is minimum  8
+if(saving[saving.length-1].day<checkday&&ddd.getHours()>=8){// once a day calc savings // at a hour on which battery is minimum  8
+
   if(calcsavings()){
-  console.log('anticipate algo calculated previous day n ',checkday,'  energy savings ',saving.enSavings[saving.enSavings.length-1],' and battery savings ',saving.battSavings[saving.enSavings.length-1]);
+    //   console.log('anticipate algo calculated previous day n ',checkday,'  energy savings ',saving.enSavings[saving.enSavings.length-1],' and battery savings ',saving.battSavings[saving.enSavings.length-1]);
+  //   console.log('anticipate algo calculated previous day n ',checkday,'  energy savings ',saving.enSavings[saving.enSavings.length-1],' and battery savings ',saving.battSavings[saving.enSavings.length-1]);
+    console.log('anticipate algo calculated previous day n ',checkday,'  energy savings ',saving[saving.length-1].enSavings,' and battery savings ',saving[saving.length-1].battSavings);
+ 
+ 
   state.lastAnticAlgo.daysavings.battery=0;// reset for cur day
   }
 
 }else{ // calc interval increse of savings upto current hour
 
-  if(saving.day[checkday]&&ddd.getHours()>=8){// only if the daily calcsavings are alredy calc
+  //  if(saving.day[checkday]&&ddd.getHours()>=8){// only if the daily calcsavings are alredy calc
+  if(saving[saving.length-1].day==checkday&&ddd.getHours()>=8){// only if the daily calcsavings are alredy calc
+
+
   let ibs;
   if((ibs=parseInt(state.anticipate.dminutes))!=NaN)ibs=(inverter-consumo)*ibs/60;// kWh, is the batt charge energy from the hour we evaluated min minBatt
   else ibs=0;
   state.lastAnticAlgo.daysavings.battery+=ibs;
-  state.lastAnticAlgo.daysavings.battLevIfNoAntic=saving.minLevBattery[checkday]+state.lastAnticAlgo.daysavings.battery;
+  // state.lastAnticAlgo.daysavings.battLevIfNoAntic=saving.minLevBattery[checkday]+state.lastAnticAlgo.daysavings.battery;
+  state.lastAnticAlgo.daysavings.battLevIfNoAntic=saving[saving.length-1].minLevBattery+state.lastAnticAlgo.daysavings.battery;
+
+
 console.log('anticipate algo increments for current day n ',checkday,'  day upto hour consolidated battery savings ',state.lastAnticAlgo.daysavings.battery);
 }}
 
@@ -2749,6 +2781,9 @@ adminNamespace.use((socket, next) => {// https://socket.io/docs/v4/server-socket
   const token = socket.handshake.auth.token;
 
 let userAutorized=false;
+
+// ggg use models.getPlants();
+
  if(emittedTokenOnRuotingEntryAvailableOnlyToRecognizedUser[token])userAutorized=true;
 
 
@@ -3057,17 +3092,117 @@ if(userAutorized)
 
 adminNamespace.on("connection", socket => {// register emit handlers
   console.log(' from node-red  a socket started');
+
+
+let plant=model.getPlant(socket.handshake.auth.token),eM, 
+  repeat,// active rep func x anticipate
+repeat1;
+const listenxeM=function(){// eM is got after client connected
+
+  eM=checkeM();
+
+}
+
+  eM=checkeM();// if the plant is not launched by some browser it is null 
+
+
+
+
   socket.on("somesubeventodmainspace", () => {
     // ...
   });
+
+
   socket.on("message_from_node-red", (payload) => {
     console.log(' from node-red ',payload);
   });
 
+
+
   adminNamespace.emit("message_from_server", "everyone!");
 
-  // adminNamespace.emit();
-});
+  // adminNamespace.emit()
+
+
+
+
+/*   instead of : 
+socket.on('repeatcheckxSun',repeatHandler);// start anticipating algo with setting and run an execute()
+function repeatHandler(starthour,stophour,dminutes,triggers) {// called also by ....
+  if(!eM)console.error(' repeatHandler(), eM is null ');
+  if(!eM)console.log(' repeatHandler(), eM is null ');else console.log(' repeatHandler(), eM is found '); 
+    repeat=repeat||checkFactory(eM);// could be find null ???
+    if(repeat.repeatcheckxSun(starthour,stophour,dminutes,antic_parmFact())==0)// exit ok 
+    setanticipateflag({running:true,starthour,stophour,dminutes,triggers},'anticipate');// store in state the algo launch params (ex: triggers), update state store
+    else {repeat=null;
+   console.log(' setanticipateflag() not called ');
+    }
+  }
+
+  :
+  */
+  socket.on("repeatcheckxSun", (payload) => {
+
+    console.log(' from node-red repeatcheckxSun  event fired with payload ',payload);
+
+    let {starthour,stophour,dminutes,triggers}=payload;
+
+    if(!eM)eM=checkeM();
+    if (eM){
+    // check if alredy started and wants stop then restart :
+    if(eM.state.anticipate)return;// alredy started , so stop before 
+
+
+    repeat=repeat||checkFactory(eM);// could be find null ???
+    if(repeat.repeatcheckxSun(starthour,stophour,dminutes,antic_parmFact())==0)// exit ok 
+    setanticipateflag({running:true,starthour,stophour,dminutes,triggers},'anticipate');// store in state the algo launch params (ex: triggers), update state store
+    else {repeat=null;
+   console.log(' setanticipateflag() not called ');
+    }
+  }
+  });
+  
+
+
+
+  // helper of onconnection closure :
+
+function setanticipateflag(set_,algo,activeAlgoRes=null){ // store in state the algo launch params (ex: triggers), update state store :
+  // state[algo]=.... ex state.anticipate={....}  .
+  // if set_=null :  state.anticipate=false
+  //    state[algo]=false     the algo init parm are false because the algo is not active
+  //    and
+  //    state[activeAlgoRes]=false    the last algo result are nullified so dont influence relay set 
+  
+  // nbnb is duplicated !!!!
+
+
+if(!eM)console.error('.. setanticipateflag() eM is null ');
+if(!eM)console.log('.. setanticipateflag() eM is null ');else console.log(' . setanticipateflag(), eM is found '); 
+console.log(' setanticipateflag() called to set running algo: ',algo,' init param: ',set_,' , in state.',algo,' ,(if null init parm will also  reset state.',activeAlgoRes);
+//if(set_)
+anticipateFlag(set_,eM,algo,activeAlgoRes);}// eM is set before in a preceeding  socket.on('startuserplant',,, ( like create a  closure var)
+
+function checkeM(){
+if(started[plant]&&started[plant].inst&&started[plant].inst.init){// eM instance redy to be used 
+
+  let eM=started[plant].inst;
+  if(eM){eM.socketNR=socket;// make available in eM the client sochet
+  nRWaiting[plant]=null;
+}
+  return eM;
+}else {// waiting to be activated by some browser
+
+nRWaiting[plant]=listenxeM;
+
+}
+}
+
+
+
+});// onconnection ends 
+
+
 
 adminNamespace.emit("", "everyone!");// see from .......
 
@@ -3176,7 +3311,7 @@ session.save();// save socketid
      let state=eM.state;
      if(eM.reBuildFromState){// we got status in persistance, so start the active algo that was running 
      
-   
+      // restart the active algo as state.anticipate  tells
      // same handler that : on('repeatcheckxSun',(starthour,stophour,hourinterval) );
      
      
@@ -3237,6 +3372,8 @@ const keepDeviceDef=true;// is true, try false
   // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><   todo   devices > {relais_:[],probes_:[]}// probs are input devices with only syncread() , can be mqtt or modbus
 
   abilita2(devices); eM.init=true;
+  if(nRWaiting[plant])nRWaiting[plant]();// add eM to node-red socket closure
+  nRWaiting[plant]=null// reset
 
   startfv(eM);})// ** start/update/recover plant singlethon ctl eM state and .....
 // .catch();
@@ -3645,6 +3782,9 @@ function setanticipateflag(set_,algo,activeAlgoRes=null){ // store in state the 
                                                           //    and
                                                           //    state[activeAlgoRes]=false    the last algo result are nullified so dont influence relay set 
                                                           
+                                                          // nbnb is duplicated !!!!
+
+
   if(!eM)console.error('.. setanticipateflag() eM is null ');
   if(!eM)console.log('.. setanticipateflag() eM is null ');else console.log(' . setanticipateflag(), eM is found '); 
     console.log(' setanticipateflag() called to set running algo: ',algo,' init param: ',set_,' , in state.',algo,' ,(if null init parm will also  reset state.',activeAlgoRes);
@@ -3772,6 +3912,7 @@ process.on('SIGINT', function () { //on ctrl+c
 
 
 function anticipateFlag(set_,fn,algo,activeAlgoRes){// like onRelais, write state after completed it to store anticipate algo init param// algo =anticipate/program
+                                                    // sets state.anticipate and state.program 
   if(!fn)console.error('anticipateFlag(), eM is null ');
   if(!fn){console.log('anticipateFlag(), eM is null ');}else console.log(' anticipateFlag(), eM is found ');
   let state=fn.state;

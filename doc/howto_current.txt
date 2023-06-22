@@ -2175,6 +2175,95 @@ in ioreadwritestatus si scrive lo status e si invia lo staus al browser che util
   or we just do as in browser , and extract the temperature streaming from the state send in the event socket.on('status',
   _________________________________________
   aggiungere in program resul also consolidate, add also in anticipate the power read 
-  _________
+ _________
+ 
+ revisionare il plant init   socket.on('startuserplant', function (plant_,feat) { // user press button to connect to some plant, so this event is fired , feat url enc
+ 
+ 	eM = ccbbRef(plantcfg.name);// recover from bank started[name].inst or create a basic app2 instance
+ 	
+ 	eM.socket=socket;   >>>>> interessante qui il socket , param della closure che gestisce il dialogo con uno user, e' appiccicato al eM per renderlo disponibile in altre helper richiamate con eM come param
+ 		es in ioreadwritestatus :
+ 			  console.log('sendstatus() pretty is: ',prettyjson);
+   			 fn.socket.emit('status',fn.state,prettyjson);// send the status to the browser too, also if the related plant section is not jet visible !
+   			 
+   			 >>>> in closure che gestiche il cliente/plant per node-red aggiungeremo anche il
+   			 fn.sochetNR=node-read socket !!!!
   
+ 	
+      	recoverstatus.call(eM,plantcfg,plantcnt,plantconfig,feature).then((em_) => startfv_(em_)); 
+      	// we got status in persistance, so start the active algo that was running :
+      	..........
+      	
+      	
+      	
+      		function startfv_(eM){// 
+      		
+		      		const keepDeviceDef=true;// is true, try false
+				 if(keepDeviceDef||!eM.init){
+				 //  abilita(eM.state);//// abilita sezione gestione eventi ( relais_)  plant nella pagina
+				 abilita(eM.state).then((devices)=>{ 
+
+					  abilita2(devices); eM.init=true;// flag che avverte nodered instance se posso usare il app2 (state recovered e device attached )
+
+					  startfv(eM);})// ** start/update/recover plant singlethon ctl eM state and .....
+					// .catch();
+					 }else{
+					  startfv(eM);
+					 }
+
+
+da cui si vede che la prima volta creo la basic app2 instance ma poi metto a bank la app2 dopo aver recuperato lo state dal persistance e aggiunto i device con abilita e abilita2 
+ 		
+ ________________________________________
+ 
+ la logica di una app socket.io e' uguale al fsm che gestisce un input via browser 
+ discussione teorica :
+ 
+ il fsm e' un oggetto con uno stato interno che gestisce le transazioni i cui input sono gestiti da listener
+   .on/get(listname,handler/listener)
+   
+   nel caso di piu utenti lo stato dello user viene appiccicato al listener come session  su cui lavorano i listener
+   
+   fsm={
+   	state,// interno non dipende dallo user 
+   	userstate, // vietato se ho multiuser
+   	list1234:function(){},
+   	helperfuncs,
+   	init
+   	}
+   poi con il main creo il connector
+   e registro sul conector i listener del fsm :
+   connector.listen(listname,fsm.listx)
+   pero siccome utto loggetto deve lavorare sul user state e' come se lo instanziassi aggiungendo uno userstate che il connector di solito appiccica al request.session in modo da evitare l'instanziazione 
+   
+   noi invece in socket.io il connector chiama un listener particolare alla connessione a cui fornisce un oggetto il socket a cui io appiccico i listener di fsm ) 
+   
+   connector.on('onconnect',function (socket){// closure
+   	state=new state
+   	fsminst=new fsm(state)
+   	socket.on(listenername,fsminst.list123)
+   }
+    
+   il che si semplifica se il fsm diventa un oggetto della clusure 
+   
+   
+   rivedi il tutto verificando che il tutto sia ok con i suggerimenti : socket.io : seerver-application-structure   and somwere to see how to manage user state ( attach to socket !!!) 
+    
+   
+   
+   }
+          
+__________________________________________________________________
+
+ripresa di come inviare streaming date a node-red :
+ -1 via mqtt per i device rele come comandi 
+ 	( i dati vengono inviati direttamente da shelly)
+ 	todo : testare su dev 11 ? 
+ 	
+ 2 via mqtt per i dev var come write con topic principare ,  mentra come cmd da node-red sia invia su topic comand del device 
+ 
+ 3 per lo state via socket.io su event state . e' modo molto simile al mqtt emit su basic topic !
+ 	todo: testare con emitter 'status'  see  fn.socket.emit('status',fn.state,prettyjson); 
+      
+                
    
