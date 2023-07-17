@@ -1078,7 +1078,7 @@ todo manage status x var differentemente . quando faccio start non ripristino il
   
   
   quindi alla partenza recupero il state o lo setto come initial state con : recoverstatus.call(eM,plantcfg,plantcnt,plantconfig,feature)
-  poi usando il ctl con lo state settato da recoverstatus (init state o lo state recoverato dal persistant file .data/... ) :
+  poi usando il ctl con lo state settato da recoverstatus (con un init state o lo state recoverato dal persistant file .data/... che dovredde essre .init=true cioe pronto per girare) :
   - startfv_(em_) che :								LUUIO
 	  - abilita : return devices_={myctls,myprobs} 
 
@@ -2179,9 +2179,9 @@ in ioreadwritestatus si scrive lo status e si invia lo staus al browser che util
  
  revisionare il plant init   socket.on('startuserplant', function (plant_,feat) { // user press button to connect to some plant, so this event is fired , feat url enc
  
- 	eM = ccbbRef(plantcfg.name);// recover from bank started[name].inst or create a basic app2 instance
+ 	- eM = ccbbRef(plantcfg.name);// recover from bank started[name].inst or create a basic app2 instance
  	
- 	eM.socket=socket;   >>>>> interessante qui il socket , param della closure che gestisce il dialogo con uno user, e' appiccicato al eM per renderlo disponibile in altre helper richiamate con eM come param
+ 	- eM.socket=socket;   >>>>> interessante qui il socket , param della closure che gestisce il dialogo con uno user, e' appiccicato al eM per renderlo disponibile in altre helper richiamate con eM come param
  		es in ioreadwritestatus :
  			  console.log('sendstatus() pretty is: ',prettyjson);
    			 fn.socket.emit('status',fn.state,prettyjson);// send the status to the browser too, also if the related plant section is not jet visible !
@@ -2190,30 +2190,34 @@ in ioreadwritestatus si scrive lo status e si invia lo staus al browser che util
    			 fn.sochetNR=node-read socket !!!!
   
  	
-      	recoverstatus.call(eM,plantcfg,plantcnt,plantconfig,feature).then((em_) => startfv_(em_)); 
+      	- recoverstatus.call(eM,plantcfg,plantcnt,plantconfig,feature).then((em_) => startfv_(em_)); 
       	// we got status in persistance, so start the active algo that was running :
       	..........
       	
       	
-      	
+      		so in startfv_ we do : 
       		function startfv_(eM){// 
       		
 		      		const keepDeviceDef=true;// is true, try false
-				 if(keepDeviceDef||!eM.init){
-				 //  abilita(eM.state);//// abilita sezione gestione eventi ( relais_)  plant nella pagina
-				 abilita(eM.state).then((devices)=>{ 
+				 if(keepDeviceDef||!eM.init){// eM is not initiated (non recovered from started[name] )
+				 
+				 	abilita(eM.state).then((devices)=>{ 
 
 					  abilita2(devices); eM.init=true;// flag che avverte nodered instance se posso usare il app2 (state recovered e device attached )
 
 					  startfv(eM);})// ** start/update/recover plant singlethon ctl eM state and .....
 					// .catch();
-					 }else{
-					  startfv(eM);
+				  }else{
+					  startfv(eM);// ** call setPump to allineate pump state to state.relays
 					 }
 
 
-da cui si vede che la prima volta creo la basic app2 instance ma poi metto a bank la app2 dopo aver recuperato lo state dal persistance e aggiunto i device con abilita e abilita2 
- 		
+				>>  da cui si vede che la prima volta creo la basic app2 instance ma poi metto a bank la app2 (eM) dopo aver recuperato lo state dal persistance e aggiunto i device con abilita e abilita2 
+
+ 	-      if(state.anticipate){...     repeatHandler(starthour,stophour,dminutes,triggers);/// activate repetitive algo anticipate 
+ 	- 	if(state.program){...     repeatHandler1(starthour,stophour,dminutes,triggers2);/
+ 	
+ 	- eM.reBuildFromState=false;// reset now the ctl has the procurure loaded on closure checkFactory()
  ________________________________________
  
  la logica di una app socket.io e' uguale al fsm che gestisce un input via browser 
@@ -2263,7 +2267,626 @@ ripresa di come inviare streaming date a node-red :
  2 via mqtt per i dev var come write con topic principare ,  mentra come cmd da node-red sia invia su topic comand del device 
  
  3 per lo state via socket.io su event state . e' modo molto simile al mqtt emit su basic topic !
- 	todo: testare con emitter 'status'  see  fn.socket.emit('status',fn.state,prettyjson); 
-      
-                
-   
+ 	todo: testare con emitter 'status'  see  fn.socket.emit('status',fn.state,prettyjson);
+________________________________________________________
+
+warning . when read a dev var class 2 or 4 , in last implementation we read null because the device reading the mqtt subscription will discard its proper formatted message write or anyway message that is signalling
+	so if no one write to dev main topic the queue will be void and the readsync will return null
+	seems to remember that anyway the listener in case of void queue is disabilitated on current implementation so as usually there are nodered presence only but it will write in a coman topic only !!
+		in mqtt.js see:
+			console.log(' readsync() :  rread()  is reading for dev: ',gp,', current queue : ',mqttInst.status[gp],' ,request ts # ',ts);// todo 05052023  called 2 times ???
+			if (checkQueueFirst)console.log(' ......   rread()  will now try to get the top of current queue ',mqttInst.status[gp]);
+			.......
+			
+>>> thats why in readyng the current set value in var device we have null :
+
+ stlist() : listener x dev :  55 , registered to wait for next message, in request ts # 1687555929521 , in listener position #  0  is timeout.  so cb with void message
+ ** readsync() for portid  55 , is ending . reading val:  null , now current dev queue is :  []  req id  1687555929521  listener chained  0
+ onRelais, coming from:  server , current rele position x dev name  gaspdcPref , is  null  asking to set :  0
+_________________________________________________
+
+remember how was built the state of fm/eM/app2 inst :
+
+	bacic was defined in appe Status_ constructor 
+	
+	then was completed in : socket.on('startuserplant' 
+		 after we got plant info from models.js and put plant cfg in state.
+		 we call  recoverstatus.call(eM,plantcfg,plantcnt,plantconfig,feature).
+	 
+	 		here if we cant recover state from persistence we complete the state with plant cfg :
+	 		
+	 			              ctl.state.app.plantcfg=plantcfg;// add to new std state the plant cfg
+					      ctl.state.app.plantname=plantcfg.name;// rindondante , giusto per compatibilita vecchia versione !!!!
+					      ctl.state.app.plantcnt=plantcnt;// ex ejs context to generate pump list in browser
+					      ctl.state.app.plantconfig=plantconfig;
+
+  ___________________________________________________
+              
+  exiting from execute algo 
+  		 execute(procName, evcontingencyparam, evAsyn, ev2run, processAsync,asyncPoint, dataArr_,cb){
+  when ends() : function ends(stepNum,lastRunnedProcedure)
+  	is called from a step stepNum, 
+  	
+  	then:
+  
+  	 fill:
+  	 - that.state.relHistory
+  	 - state.lastRunnedProcedure
+  	 
+  	 - but not lastxxxAlgo if the execute wont get the std last event so returns with a result (ex: HYYG): right ????
+  	 
+  	 >>> nb if we cant get the token or we got too many times we ends with stepNum=1001
+  	 
+  	 > then return to    function callFn()   with cb()
+  	 	to  update the status 
+  	 
+  
+  
+  
+  	 
+  HYYG to do :  in antic algo execute we 
+  	- extract token (if  not alredy known) in step connect then 
+  	
+  		- if token dont got we exit execute (calling en) because next step is 1001 (> 1000)
+  		- if token was got we pass to :ds() 
+  	
+  	- step openapi to get api results  but if it fails ( returned null ) step will loop to step connect (known token but expired )
+  		exiting the loop and goon with normal next step 
+  		
+  	>>>>> to avoid loop running forever limit loop to just max 2 turn of looping !!!!
+  __________________________________________
+  
+  dev mapping 26062023  summary 
+  
+  - dopo device built (see getio.getctls() in abilita buildPlantDev()
+  
+  	buildPlantDev  si risolve dopo la costruzione dei dev info {myctls,myprobs} ,
+  					dove myctls e myprobs contengono rispettivamente info sui device esposti nel browser e i device esposti negli algo , con formato :
+  						 {ctls:[ctl1,,,],devmap:[{devNumb,devType,portnumb},12,,,]}, ctlx sono i controller che poi in abilita2 verranno assegnati a state.
+  - in abilita2 partendo dai  {myctls,myprobs} si fillano ggli array dei dev controller , rispettivamente iodev.relais_ e iodev.probs_
+  
+  	- devMap e probMap elencano i device id a cui si attaccano i :
+  			- real device del web browser (output rele e var) scelti tra le config (see model.js) gpionumb e mqttnumb ( priorità per i not null mqttnumb[i] al posto dei gpionumb[i]  ! )
+  			- prob device  (probe e var) scelti tra la config mqttprob
+  
+  	ex : 
+	  	    "devMap" : [
+				{
+				    "portid" : 11,
+				    "clas" : "out",
+				    "protocol" : "shelly",
+				    "subtopic" : "shelly1-34945475FE06"
+				},
+				16,	// null if no device can be set
+				20,
+				21,
+				26,
+				19,
+				{
+				    "portid" : 55,
+				    "subtopic" : "var_gas-pdc_",
+				    "varx" : 4,
+				    "isprobe" : false,
+				    "clas" : "var",
+				    "protocol" : "mqttstate"
+				},
+				6
+			    ],
+			 "probMap" : [
+				{
+				    "portid" : 110,
+				    "subtopic" : "ht-cucina",
+				    "varx" : null,
+				    "isprobe" : true,
+				    "clas" : "probe",
+				    "protocol" : "shelly"
+				},
+  
+   dve 16 sta per gpio 16  mentre gli oggetti sono 
+  
+    ___________________________________________________________
+    
+    
+   revisionato  il plant init   socket.on('startuserplant', function (plant_,feat) { // user press button to connect to some plant, so this event is fired , feat url enc
+ 
+ 	- eM = ccbbRef(plantcfg.name);// recover from bank started[name].inst or create a basic app2 instance
+ 	
+ 	
+ 				ccbb() will 
+			
+				recupera ctl : inst=started[name].inst = (new eMClass()).cfg(name); 
+					LLKK : NB inst.state.reBuildFromState=false
+							>> qui il inst e' già operativo compreso di 
+								(inst.socket) e
+								inst.state.anticipating...   e 
+								execute procedure regstrate nel closure .........
+				o si crea :
+				- crea il ctl : inst=started[name].inst = (new eMClass()).cfg(name);
+					dove in .cfg(), chiamando customOn(this), : si personalizza gli handler degli eventi (non socket) chiamati da app2.js  
+						NB reBuildFromState=true, so see .......
+						
+						
+	  // poi  si registra o si aggiorna il ctl con   il socket corrente , cio permette di comunicare con la nuova sessione browser :
+ 	-  eM.socket=socket;   >>>>> interessante qui il socket , param della closure che gestisce il dialogo con uno user, e' appiccicato al eM per renderlo disponibile in altre helper richiamate con eM come param
+ 		es in ioreadwritestatus :
+ 			  console.log('sendstatus() pretty is: ',prettyjson);
+   			 fn.socket.emit('status',fn.state,prettyjson);// send the status to the browser too, also if the related plant section is not jet visible !
+   			 
+   			 >>>> in closure che gestiche il cliente/plant per node-red aggiungeremo anche il
+   			 fn.sochetNR=node-read socket !!!!
+  
+ 	
+      	- recoverstatus.call(eM,plantcfg,plantcnt,plantconfig,feature).then((em_) => startfv_(em_,oncomplete)); 
+      			// we got status in persistance, so start the active algo that was running :
+      	
+	      	 		> recoverstatus:
+	      	 		chiama  loadScriptsFromFile(src,ctl) ,che 
+	 					se c'e' in file=process.env.PersFold+src+'.json' un processdel plant  attivo:
+	 						lo  carica lo state nel ctl, 
+	 							>>>> nb quando disattivare un plant ??
+	 					se non c'e' init a new state sostanzialmente usando i pumps configutati per il plant : relaisEv
+	 						
+	 						
+	 			 e poi  (LKIO):
+	 			 writeScriptsToFile(scripts,plantname) in modo async (.then(),
+	 			 	writeScriptsToFile chiama anche socket.emit() per updatare :
+	 			 	 - file in /.data 
+	 			 	 - la parte di state che e' visualizzato nel browser via 
+	 			 	 			socket.emit('status',, e 
+	 			 	 			nel browser socket.on('status'...
+	 			 	 		es il .anticipate( )
+	 			 	 			TODO   aggiungere anche i browser triggers input !!!
+	 			 	 	(escluso i relays state che sone gestiti via event 'pump' , vedi anche DDRR )
+      		..........
+      	
+      	
+      		- so in startfv_ we do : 
+      		function startfv_(eM,cb){// 
+      		
+		      		const keepDeviceDef=true;// is true, try false
+				 if(keepDeviceDef||!eM.init){// eM is not initiated (non recovered from started[name] )
+				 
+				 	abilita(eM.state)
+				 	
+				 				che :
+				 				return buildPlantDev();
+				 					che :  async function buildPlantDev(){
+
+											eM.pumpsHandler={}; // not the super . the app can have many browser connected each one with its handler to manage the update of the browser
+											eM.iodev={};
+											
+											mqttInst=mqtt.init(plantconfig);// the plant mqtt instance on which works and are created  all plant mqtt dev ctl ( ctl=new fc()) 
+											
+												nb   init:function(plantconfig){  return new mqttClass(plantconfig);}
+											
+
+											myctls_= getio.getctls(mqttInst,gpionumb,mqttnumb);// get devices choosing from describing gpio and mqtt info array : these are the visible rele/var in browser
+                                          								// myctls_={ctls:[ctl1,,,,,],devmap:[{devNumb,devType,portnumb},,,,]}
+													  // get pump/relais r/w devices from preferred  mqtt or gpio arrays
+													  
+													  
+													  in getio.getctls() :
+													  
+													  	return new Promise((resolve) => {  see mqttdev.txt ......
+													  		resolve({ctls:resu,devmap:resolved})
+													  				/*
+													  				ctls=[ctl1,,,,,] ctlx:PRX, see PIRLA in mqtt 
+													  				
+													  				
+															  		if mqtt use mqttInst factory, mqttInst.fact(), to get PRX:
+															  					ctl1={ctl:new fc(gp,ind,inorout,cfg,mqttInst)= 	
+			 																		{gpio=11,
+			 																		devNumb=0,// array index 0,1,2
+			 																		type=inout,
+			 																		cfg,
+			 																		cl=1(clas='out')/2(a var)/3(clas='in'OR'prob'),
+			 																		isOn,
+			 																		mqttInst,
+			 																		readsync,
+			 																		writesync : function (val){
+			 																				 that=this;
+			 																				if(client && client.connected && this.mqttInst.status[gp])
+			 																				 topic=this.mqttInst.mqttTopPub[dev] or this.Inst.mqttTopPub[dev];
+			 																				if(this.cl==1)  {  
+																			    		 		  if(val==0)message=messageOff;else message=messageOn;
+																			    		 		  client.publish(topic, message, pub_options, function (err) {
+																			    		 		   ....
+																			    		 		     console.log("Published on device ",dev," , a (no var) msg ",message,",successfully to " + topic);
+																			    		 		  
+																			    		 		  } 
+			 																		
+			 																		
+			 																			}
+			 																		},
+			 																	devNumb:ind,
+			 																	type:'mqtt'} 
+													  				
+													  				
+													  				*/
+													  				
+													  				
+													  		
+													  			ctlx/PRX is got using :
+													  			getio(num, iotype, ind, ismqtt = false,mqttInst) 
+													  				that returns (PRX) {ctl={readsync,writesync,,,},devNumb:ind,type:'gpio'} that can be: 
+													  			
+													  				- mqttInst.fact(num,ind,iotype);// factoty of dev ctl , a promise resolving to :
+													  				
+													  				  {ctl:new fc(gp,ind,inorout,cfg),devNumb:ind,type:'mqtt'}  (= PRX)
+													  					
+																		//  a relais if iotype='out' a pump or var
+																		//    or if (iotype='in-var', a probe or var
+																		//  mqtt dev 
+																		// iotype: is the capability requested and must match the dev registration data done in init()
+																		
+																		
+																		
+																		
+																		or if(Gpio)return:
+																	-  {ctl:new Gpio(num, iotype),devNumb:ind,type:'gpio'}; // as Promise.resolve
+																	
+																	
+																	nb in fact() we run numbSubscr(val,that,ctlpack,subscred) and  probSubscr(cfg,that,ctlpack,subscred)
+																	
+																				that sets some dev  property in mqttInst itself , like :
+																				- that.mqttTopPub[portid]=topicPub, ..... 
+																				- that.status[portid] = [] subscribe queue read by readSync 
+													  
+													  
+													  
+											myprobs_= getio.getctls(mqttInst,null,mqttprob,true);//   {ctls,devmap} , true = a probe/var device. invisible in browser
+ 
+											return   new Promise(function(resolve, reject) {
+				 								myctls_.then((ctl1)=>{myprobs_.then((ctl2)=>{// all resolved
+                                								resolve({myctls:ctl1,myprobs:ctl2});// DDQQAA
+				 	
+				 	
+				 	
+				 	
+				 	
+				 	.then((devices)=>{ //  devices={myctls,myprobs} ,usati poi per def :il device in eM/fn.iodev.relais_ e eM/fn.iodev.probes_
+	  				 
+	  				 
+				 	
+
+						abilita2(devices); eM.init=true;// flag che avverte nodered instance se posso usare il app2 (state recovered e device attached )
+						
+						
+							*/
+									che : 
+						
+							  	  	   	devices={myctls: 	{ctls:[ctl1=new fc(gp,ind,inorout,cfg)= 	
+ 																		{gpio=11,
+ 																		devNumb=0,// array index 0,1,2
+ 																		type=inout,
+ 																		cfg,
+ 																		cl=1(clas='out')/2(a var)/3(clas='in'OR'prob'),
+ 																		isOn,
+ 																		readsync,
+ 																		writesync}
+				 										,,,],
+				 									devmap:[{devNumb,devType,portnumb},,,,]
+				 									} ,										
+ 											myprobs:	{}
+ 											}			
+ 														
+ 										devices=devices_.myctls;		
+	      									probes=devices_.myprobs;
+	      			
+								      		usando builddev()// transform devices={devmap,ctls} >>  state.devMap eM.iodev.relais_  
+								      		 si costruiscono (usando i ctls buildati in abilita())  :
+								      		eM.iodev.relais_ e 
+								      		eM.iodev.probs_
+								      		che verranno usati da setPump e specificatamente da onRelais per fare io sui device e anche da altre funzioni per vedere come gestire gli i/o: ......
+								      		
+								      		SDDWW 
+													
+						
+							*/
+
+						
+
+					  	startfv(eM);})// ** start/update/recover plant singlethon ctl eM state and .....
+
+				  		}else{
+					  	startfv(eM);// ** call setPump to allineate pump state to state.relays
+					 	}
+			cb();
+			}// ends startfv_
+				  
+				>>  da cui si vede che la prima volta creo la basic app2 instance ma poi metto a bank la app2 (eM) dopo aver recuperato lo state dal persistance e aggiunto i device con abilita e abilita2 
+				
+  const oncomplete_= function oncomplete(){
+
+     displayView(eM.state.app.plantconfig.relaisEv,state);// return emitting event 'view'  to browser
+                                  // was in abilita2() 
+
+
+     if(eM.reBuildFromState){// we got status in persistance, so start the active algo that was running 
+     
+ 	-  if(state.anticipate){...     repeatHandler(starthour,stophour,dminutes,triggers);/// activate repetitive algo anticipate 
+ 	-  if(state.program){...     repeatHandler1(starthour,stophour,dminutes,triggers2);/
+     	eM.reBuildFromState=false;// reset now the ctl has the procurure loaded on closure checkFactory()
+     }
+    }	
+________________________________________
+
+session.socketId 
+ question : quando nasce un nuovo connection col suo socket eM viene recuperato ed assegnato al nuovo connection closure. question : il vecchio closure continua a far girare il repetitive active algo ???	
+ 
+ __________________________________________________
+ 
+ usare il  if(!clientDiscon)// when client disconnect it useless run function that will emit browser .emit , because no connection is available
+ non solo in setPump but before all .emit call . the browser is unavailable so dont send any emit to a unconnected socket !!!!	
+ 
+ ________________________________________________
+ 
+ onRelais is called by : startfv,attuators e abilita2.
+ usa :
+ 
+    let session=fn.getcontext.getSession(),
+   clientDiscon=fn.getcontext.getCliDiscon();
+   dove getcontext is set when in closure :    socket.on('startuserplant',closure)
+   	 in   ccbb()     we  recover/create the eM and set the reference eM to bank of instances started[name].inst
+   	 
+   	 
+   	 
+   	>>>>>   nb 
+   	1: insted of decide if goon with browser req using var recovered from eM.getcontext e eM.state.discFromBrow/blocking  we can put the logic in a cb of eM.getcontext
+   	2: perhaps is useless to use 2 vat to store closure staf : eM.state.xxx   and eM.getcontext.xxx    use a single container ,
+   	 for ex getcontext so
+   	 	a)  put discFromBrow/blocking directly in eM.getcontext instead of eM.state
+   	 	b)  let discFromBrow/blocking in closure and set the cb in eM.getcontext.processBrow=function(){}
+   	 	>>>> forse e ancora  meglio solo avvertire il browser di non inviare il doppio req a onRelais !!!!!!!!!!!    >>>>>> todo todo .......................
+______________________________________________
+
+ancora sul cambio di socket :
+quando un socket dsconnect ( NO : a parte setPump())  altre funzioni continuano a emettere socket.emit('someevent',func)  che chiaramente andranno a perdere se il socket è disconnected.
+	es: qundo il anticipate setta qualche pump viene chiamato da anticipate il setPump (fuori closure ) che chiama 
+	- sia il browser via  la var del closure pumpsHandler . essa in abilita2 (nel closure)) si fa riferire alla var di eM eM.pumpsHandler(fuori closure)  e assgnato alla func watchparam (nel closure ma sarebbe meglio metterla fuori closure) 
+	- che direttamente il onRelais che e' fuori dal closure !! e lavora solo su eM
+	se togliessi il ref che da x chiama un event pump  (nel closure alora il closure pu essere garbaged collect )
+		quindi , todo, quando il closure disconnect il socket va tolto il rif di pumphandler a eM.pumphandler 
+		infatti al nex browser connection si crea un nuovo closure per il socket e in ccbb() si ripesca il eM (fuori closure) e si riassegna 
+
+
+ora quaando un nuovo connection apre un nuovo socket su una nuova closure noi alla richiesta di  socket.on('startuserplant',...) :
+	- si riassegnano in eM le cose relative al nuovo socket / closure :
+	-   eM.getcontext
+	-  em.socket 
+	-   in recoverstatus : 
+			- eM.sate viene recuperato dal file 
+			- state vene completato da var dipendenti da plant : 
+				ctl=eM
+			 	ctl.state.app.plantcfg=plantcfg;// add to new std state the plant cfg
+			      ctl.state.app.plantname=plantcfg.name;// rindondante , giusto per compatibilita vecchia versione !!!!
+			      ctl.state.app.plantcnt=plantcnt;// ex ejs context to generate pump list in browser
+			      ctl.state.app.plantconfig=plantconfig;
+			      
+			- si azzera relais state :   ctl.state.relays[pump]=false;/
+	- ora a seconda che l'instanza sia gia stata generata da browser precedente:
+	
+		eM.init) true 
+		-   startfv(eM);
+		
+		
+		
+		eM.init) true 
+		- abilita     // build here the plant ctl devices (ctl/eM/fn).iodev.relais_ dev/pumps (+ /button switch) and their handlers 
+		- abilita2   // redefine eM.iodev.relais_ and eM.iodev.probs_ e state.devMap e  state.probMap
+			     //  reset pumpsHandler[ind], to call browser socket  emitters x 'pumps'
+		-   startfv(eM);	
+		
+		
+		>>>> si vede che qualche reset è inutile ( es lo state reload and the plant config staff )	
+			ma la cosa principale e' che vengo attaccti al nuovo closure/socket  i device ctl che permetteranno agli handler dei socket listener di lavorare sui device	
+				es 
+					i listener degli event pump
+					i eM.pumpsHandler=watchparam  chiamati da setPump ( chiamato sia da closure (stato iniziale  ) che fuori (algo))   essendo
+						 watchparam  function del closure chiamerà gli emitter del socket/closure !!
+						> in pratica eM.pumpshandler ha un ref del closure (watchparam)  che lavora sul socket .emit('pump'...
+							e i handler dei socket event 'pump' verranno agganciati a onRelais che e' fuori closure passando il ref eM (bank degli eM fuori closure )
+							 che potra agire sui device
+							 
+					SUMMARY  - quando il socket disconnect si potra togliere tutti i rif esterni al closure percge nessun handler di eventi nel closure
+							potra chiamare eM e nessun socket event emitter potra essere chiamato da funzioni fouri del closure 
+							
+							soluzione definire tutti le var  esterni alla closure che puntano a funzioni della closure  su un unico obj da resettare quando ho il disconnection !!!
+							
+									lista external var/func che puntano a oggetti nel closure:
+									es
+									- funzioni di socket io che chiamano gli handler registrati con socket.on ()  .
+										 tali  rif si spera siano resettati da socket.io
+									- setPump usa eM che ha var (eM.pumpshandler) che punta a una funzione di closure: watchparam  ; 
+										quindi bastera inserire in on('disconnect',,,   eM.pumpshandler=null e 
+											naturalmente testare se esso e' null non eseguirlo 
+									
+							
+						- sebra inutile invce ridefinire i device in eM che possono stare in eM perche non cambiano al variare del socket connection !!!!
+  
+
+meglio sarebbe distinguere le funzioni lanciate quando il closure non viene disconnected e qulle lanciate dai  repetitive algo e verificare che il closure puo essere garbage collected !! 
+  }
+  __________________________________________
+  
+  todo : 
+  
+  nb ora il context in eM.getcontext va bene ,ma comunque e' meglio chiamare il event 'pump' da setPump in modo che non risponda chiamando onRelais !!!!!!!!!!!!!!!!1
+  ______________________________
+  
+  working mosquitto x openremote:
+  - mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writestring/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user2 -P ZSxwu2AwfGYb0EJ4D9mJK7TkSmfLZbkK -i client123 -m '{"ciao13": 1234}' -p 1883
+  - mosquitto_sub -t master/client123/attribute/subscribeAttribute/3fkopVxPrC3Cz7u5GqztUR  -u master:mqtt_user2 -P ZSxwu2AwfGYb0EJ4D9mJK7TkSmfLZbkK -h 192.168.1.213 -p 1883 -i client123
+
+	- x ext brocker link to a text attribute :
+	mosquitto_pub -h bot.sermovox.com -t shellySN -m '{"prova":"9"}' -p 1883  -u sermovox -P sime01
+
+_______________________________________________________________
+
+nodered pubs and subscr
+ - var dev type , protocol == 'mqttstate' :
+	- when subsc var to topic : topic=that.topPlantPrefix+'ctl_' + subtopic + varx		AAOO
+			topicPub= null   ????? is not set, so we writeSync on same topic used to read 
+			topicNodeRed=topic+nodeRedp;// subscribed topic to receive from node-red 
+							// questo topic simula, qui sulla app, il subsciption del topic ..../command sui schelly 
+							// quando si ricevera un msg con questo topic si fara quello che shelly fa quando riceve un msg sul subscribed connand ::
+							//   trasferire il command come val e quindi publicare nel topic il new val update !!!
+							//	quando il dev riceve l message sul subscribed topic ci si accorgerà che e' diverso dal state.relais 
+							//	( che acquisisce subito lo state proposto da writeSync)  
+							// solo che (TTVV) : 
+							// 	mentre con i device shelly (rele / out) si lancia (still todo)  un interrupt dopo un check tra :
+							//		- il received msg on topic,  
+							//		con 
+							//		- il expexted state state.relais 
+							// qui  si lancia direttamente un interrupt AAQQWW !!!!
+							//		probabilmente l'interrupt agirà solo se lo state.relais non è congruente con la richiesta del node-red !!
+							
+							
+							// logica dei var dev :
+							// - quando un algo si cambia state del dev su state.relais e 
+							//	scrive/pub nella stesso topic un val formatted  : {payload:load,sender:{plant:Plant,user:portid}}, cosi da riconoscere il sender
+							//	azzerando il queue  del topic
+							//   immediatamente doppo in receiving message, on topic (!isCmdTopic) , we recognize the msg coming from itself , so no interrupt
+							// - quando invece è il node-red a scriver sul topic topicNodeRed  (isCmdTopic) allora emettero un interrupt !!!!!
+							//			nb can a msg on topicNodeRed be come from itself ???? probably not , >> correct 
+							// in sostanza in questa implementazione il topic AAOO serve solo a registrare i set di this ctl ma non ha effetto pratico 
+							//	solo message su  topicNodeRed (isCmdTopic)  hano effetto via interrupt ! 
+							
+							// se usiamo or al posto di node-red  topicNodeRed e da usare come un shelly cmd topic e va usato per traccare i cmd
+							// se voglio posso anche da or cambiare stato pubs su questo topic 
+							//  mentre al solito il topic puo essere usato per traccare il var !!! : 
+							
+							
+							
+			
+       			topicNodeRedPubish=topic+nodeRedpp;// topic used to publish to a node-red subscription 
+       							// probably can be used to inform node-red that this ctl pubs alredy  on dev topic  AAOO 
+	
+		nb il subscribe serve ad alimentare il readsync che in var type serve solo a verificare che non ci siano cambi di stato provocati da publisher esterni
+			infatti al writesync  si alimenta il subscribe topic ma il .sender è fromthisctl
+
+	- subscribe the node red pub: client.subscribe(topicNodeRed,  useless handler )  ???
+	- register topic : that.mqttTop[portid]=topic
+	- register staff to manage incoming topic :  invTopic[topic]={portid,mqttInst:that,topic,topicNodeRed,cl_class,protocol,ctlpack};}
+  	- as is var register same staff for topicNodeRed :  invTopic[topicNodeRed]=invTopic[topic];// duplicate entry for cmd topic
+  	- register write pub topic : mqttTopPub[portid]=topicPub // null??
+  		nb when writesync we pub to it and update the persistant state (relais ) without check the subscr topic ( infact we dont public on it : incoming message cant come from itself !
+  			if someone change the state it will pubs to topic but we really dont use to check (with readSync) topic message changes ( from the state.relais set with last writeSync) 
+  				(infact readsync is called only to check the dev state when we writesync !!!) 
+  			
+  			
+  	>>  at the income message we :
+  			
+  			- recover staff : adev = regTopic(topic), ctlpack = adev.ctlpack={ctl:new fc(gp,ind,inorout,cfg,that),devNumb:ind,type:'mqtt'};
+  			- is var , so :
+  			- fromthisctl = true, isCmdTopic=false;
+  			- topicNodeRed=adev.topicNodeRed
+  			- check if the topic is node red topic :
+  				isCmdTopic=topicNodeRed==topic;
+  			- message_ = rec(message);// can return a obj if good formatted , else null .
+  			- if formatted ( not signal) :
+  			 
+  			- check if the message come from itself (a formatted payload contais the sender  ).  
+  				fromthisctl = message_.sender && message_.sender.plant == mqttInst.plantName && message_.sender.user == dev;
+  			
+  			- if !isCmdTopic : fill the dev queue with the subcribed msg 
+  				>>> nb SSWW we dont expect anyone to pubs on topic unless fromthisctl
+  					 if it were (external  pubs on topic ) we would launch a interrupt 
+  			
+  			
+  			- else   is a command : AAQQWW
+  			
+  				- if (!fromthisctl) // 
+  				 	console.log('  message  with cmd topic x device ', dev, ', of type var , so  interrupt to update the value. 
+  				 		after update this dev will writesync the value x confirmation');
+  				 	ctlpack.ctl.int(msg, mqttInst.status[dev], ctlpack.ctl.lastwrite); // interrupt , like was a browser click to change state !!
+  				 - else // error: can from thisctl pubs on topicNodeRed  ?????????
+                    			console.log('  message x device ', dev, ', of type var has been emitted by this ctl, so no interrupt');
+  
+
+                    
+  -   rele dev type           (clas == 'out') , cl_class='rele';// rele
+  			nbnb rele out var used a command topic to write new dev state :  topicPub (no node-red staff !)
+  			quindi  quando scrivo cambio dev state sul topicPub cambio subito lo relais state
+  				senza attendere un message di conferma su topic , lo si da per scontato 
+  				tuttavia qualcuno potrebbe cambiare dev state (manuale o sempre via topicPub )
+  				il che poi trovera un riscontro nel topic payload che mostrera con un certo ritardo uno state diverso 
+  				>>> quindi si potra dopo aver scritto un valore(pub in ), atteso 10 s, nel caso il valore cambi rispetto relais,
+  					  si potra lanciare un interrupt come per il type var simulando un manual (o interrompendo un algo ?)
+  			a differenza del caso var	
+  
+  
+                if (protocol == 'shelly') {
+                    topic =  shelly_stopic + subtopic + shelly_topicp;// shellies/<model>-<deviceid>/relay  must be unique in all plants
+                    topicPub=shelly_stopic + subtopic + shelly_topicpp;/	writing to schelly 
+                    
+                 subscribing :
+                 
+                  client.subscribe(topic,....
+                  
+                  }else if (protocol == 'ro')   ......
+                  
+                  
+        >>  at the income message we do as for var type but :
+        
+        	- isCmdTopic=false;
+        	- fromthisctl = true      ????? 
+ 
+        	- if !isCmdTopic fill the dev queue with the subcribed msg 
+        	
+        	
+  - conclusioni : 
+        	>> per il rele dev type the logic is :
+        	 shelly receive cmd on topicPub and after a delay pub the updated val in topic.
+        		when we changed the val using topicPub we immediately change the state.relays state dando per scontato che arrivera poi in topic
+        			una volta che il device prende atto del comando emettera nel topic un message con payload il val cambiato
+        			 quindi il writesync non fa un update del topic con un pub !
+        			quindi i valori payload del topic messo in queue servovo a checckare la congruenza e usualmente è fatta prima di updatare il state.relais
+        		nel caso in cui il val venga cambiato hardware o altra app che fa un pub allora e' meglio che  noi dopo un certo ritardo confrontando il val storato in state.relais
+        			e constatato che non è allineato allora lanciamo un interrupt
+        			
+        	>>>>>>> cio è diverso per un var perche'... see AAQQWW
+        	
+        	
+ *** di seguito alcuni commenti da mqtt.js che sintetizzano i concetti sopra studiati :
+    
+    - in message receiving :
+          fromthisctl = true,// serve a capire nei msg contenenti il sender (var dev scrivono msg formatted ) se esso proviene da un pub di questo ctl, non sempre usato: di solito i var dev usano il meccanismo node-red quando un ext ctl vuole cambiare stato pubs un message con topic command topicNodeRed (il dev è un virt var dev, isCmdTopic=true )
+          isCmdTopic=false;// simulera il subscription  di un virtual shelly node-red . il nodered comanda questo virt device fisico che simula un cambio stato genera un call a questo listener che diventa il  listener del suo subscription. constatato che è meritevole di interruput ( probabile state change) lo lo chiama 
+
+    
+    - near xxxSubscr():
+    
+            function numbSubscr(val,that,ctlpack,subscred){// al subscribe del topic associato al dev , that=mqttInst
+                                                        // difference from pubSubscr() : 
+                                                        // fv3 will keep dev state into state.relais. 
+                                                        // so when fv3 algo change the state writesync pub to a cmd topic to change thephisical dev value according to state.relais and 
+                                                        // we dont need to check the dev output state pubs into topic if the update is done fromthisctl (writesync())
+                                                        //  so in var dev  we dont even fill dev queue with fromthisctl message coming to topic
+                                                        // var dev adds  a virtual cmd topic topicNodeRed that ( pubs by ext ctl)  will interrupt running a manual algo to change the state.relais state 
+                                                        // only if the dev change its state alne or ext dev ctl will cll its cmd topic we find a queue value different from internal state.relais
+                                                        // and we must (todo) interrupt with a specific manual algo to take care of the ext changes
+                                                        
+                                                        // pubSubscr() dont have state.relais , so the dev state must be read from queue (pay attention to delay from writesync)
+                                                        // to avoid delay problem we 
+    
+        topicNodeRed=topic+nodeRedp;// news : anche i shelly possono essere comandati con meccanismo virtual da un ext ctl come node red o openremote usando questo topic
+ 
+    
+        // QUESTION : probe var dev , def in probSubscr() (a differenza dei numb var dev ) non ha meccanismo/topic topicNodeRed ? significa che gli ext ctl banalmente scrivono  anche loro sul topic base in cui si legge lo stato. infatti non c'e' un state.relais che raccoglie il dev status !!!!
+        // quindi i probe var dev , def in probSubscr() quando writeSync pubblicano  su topic che filla il dev queue cosi come pubblicano su topic anche i ext ctl !!!
+        //	quando necessito di conoscere il dev state, non essendo info su state.relais devono fare un readSync che tornano l'ultimo valoe del queue !
+        // 	( a differenza dei numb var dev che , con writeSync, pubs  sul topic ma i msg  con topic non alimentano the dev queue se sono prodotti dal ctl stesso
+        // 		addirittura nemmeno i ext ctl non scrivono su topic in quanto si basano sul meccanismo node-red (topicNodeRed)!  )
+        // 		in altre parole lo stato determinato dagli writesync viene gestito da relais senza checcare il queue riempito (forse)  da msg su topic
+        
+        todo verificare i var dove scrive il writeSync : ................. sembra che scrivano solo su topic mancando il caricamento di topicPub !!!!
+        //		mentre lo update dello status di ext ctl viene gestito da topicNodeRed che impone un int per cambiare uno state di var tipo numb ( def in numbSubscr())
+        
+         
+        
+        , solo quando vengono pubs su topic da ext ctl . quando ho bisogno di leggere lo status  non ho state.relais e devo chiamare readSync che legge l'ultimo valore in dev queue
+        //	 
+        
+        
+ 

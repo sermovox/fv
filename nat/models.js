@@ -26,13 +26,25 @@ cfgMarsonLuigi={ name:'MarsonLuigi_API',// duplicated FFGG
                 // devices have/map a calculated topics according to protocol and interface (readsync/writesync) versus mqtt topics pub/subscrtipt 
         */ 
 
-      mqttnumb:[{portid:11,clas:'out',protocol:'shelly',subtopic:'shelly1-34945475FE06'},// clas 'out' or 'var' , same dim than gpionumb
+      mqttnumb:[// same dim as gpionumb 
+                 {portid:11,clas:'out',protocol:'shelly',subtopic:'shelly1-34945475FE06'},// clas 'out' or 'var' , same dim than gpionumb
                                                                                         // subtopic: other protocol, different from shelly, can have different feature ex subscriptTopic and PubTopic !
-      null,null,null,null,null,
+                // {portid:11,clas:'out',protocol:'ro',subtopic:'master/client123/writeattributevalue/writeAttribute/3fkopVxPrC3Cz7u5GqztUR'},// test x remoteo
+
+                // on protocol 'or' subtopic is the topic (dev state ) listened from or . like shelly does this is the   result , delayed, of 
+                // the cmd topic (shelly is topic+'/command') that can be published by :
+                //      - this app as result of a writesync
+                //      - node-red or or pubs 
+                // in or protocol, we can do :
+                //      subtopic can be the shelly relay topic , subscribed by this app as usual, and by or  as external brocker subscription
+                //      varx can be  the shelly command topic published by this app, as usual ,  and  by or  as external brocker pub
+                //   nb remain still to lauch interrupt in receiving message handler when we receive from subscribe a dev state diffenent from relais that is the state of dev as proposed by app writeSync ! 
+                //      as already  defined we do 
+                
+                null,null,null,null,null,
       // {portid:10,clas:'var',topic:'gas-pdc',varx:3,protocol:'mqttstate'} ex of 'out' var
       {portid:55,subtopic:'var_gas-pdc_',varx:4,isprobe:false,clas:'var',protocol:'mqttstate'},// a var
       null],// mqtt device info/id/port. number is the device id to subscribe
-
 
       mqttprob:[{portid:110,subtopic:'ht-cucina',varx:null,isprobe:true,clas:'probe',protocol:'shelly'},//a probe,  the shelly ht probes to register (read only) 
                                                                                 // nbnb clas e isprobe sono correlati !! > semplificare !
@@ -79,10 +91,13 @@ cfgCasina={ name:'Casina_API',// duplicated FFGG
                 // devices have/map a calculated topics according to protocol and interface (readsync/writesync) versus mqtt topics pub/subscrtipt 
         */ 
 
-      mqttnumb:[{portid:11,clas:'out',protocol:'shelly',subtopic:'shelly1-34945475FE06'},// clas 'out' or 'var' , same dim than gpionumb
-     // correct:  mqttnumb:[{portid:11,clas:'out',protocol:'shelly',subtopic:'shelly1-34945475F7DE'},// clas 'out' or 'var' , same dim than gpionumb
+      //mqttnumb:[{portid:11,clas:'out',protocol:'shelly',subtopic:'shelly1-34945475FE06'},// clas 'out' or 'var' , same dim than gpionumb
+     // correct: 
+      mqttnumb:[
+        // {portid:11,clas:'out',protocol:'shelly',subtopic:'shelly1-34945475F7DE'},// clas 'out' or 'var' , same dim than gpionumb
                                                                                         // subtopic: other protocol, different from shelly, can have different feature ex subscriptTopic and PubTopic !
-      null,null,null,null,null,
+        {portid:11,clas:'out',protocol:'shelly',subtopic:'shelly1-34945475FE06'},// for test only
+       null,null,null,null,null,
       // {portid:10,clas:'var',topic:'gas-pdc',varx:3,protocol:'mqttstate'} ex of 'out' var
       {portid:55,subtopic:'var_gas-pdc_',varx:4,isprobe:false,clas:'var',protocol:'mqttstate'},// a var
       null],// mqtt device info/id/port. number is the device id to subscribe

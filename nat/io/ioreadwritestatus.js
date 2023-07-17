@@ -84,6 +84,13 @@ const api={// see https://javascript.info/promise-chaining
               // update the staus on basic ctl
   
               ctl.state=scripts;
+
+            // UPDATE MODEL CFG . CAN BE DONE ?   todo: verify !!!!   otherwise delete scripts file then restart
+              ctl.state.app.plantcfg=plantcfg;// add to new std state the plant cfg
+              ctl.state.app.plantconfig=plantconfig;
+
+
+
           } else {//  >>>  status cant be recovered so keep the basic status of ctl  and complete it
   
             //  console.log('loadScriptsFromFile , cant find a data json obj: ',file,' , so crete a basic state from ctl: ',ctl);
@@ -102,6 +109,9 @@ const api={// see https://javascript.info/promise-chaining
              plantconfig.relaisEv.forEach((pump,ind) => {// ['pdc',// socket event to sync raspberry buttons and web button
               // 'g','n','s']
               ctl.state.relays[pump]=false;//  (false or look at present gpio ???????????????) 
+
+             // ctl.state.blocking.push(false);// same dim then relaisEv
+             // ctl.state.discFromBrow.push(false);// same dim then relaisEv
               });
   
   

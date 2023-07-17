@@ -377,6 +377,35 @@ sessionStorage.setItem('__lock', '1');
 
                         // TODO in server .on('connection' get the token and recover user !!!!  *******************************************
 
+/*
+  connect event , see : https://socket.io/docs/v4/client-socket-instance/
+
+This event is fired by the Socket instance upon connection and reconnection.
+
+socket.on("connect", () => {
+  // ...
+});
+
+Please note that you shouldn't register event handlers in the connect handler itself, as a new handler will be registered every time the Socket reconnects:
+
+// BAD
+socket.on("connect", () => {
+  socket.on("data", () => {  });
+});
+
+// GOOD
+socket.on("connect", () => {
+  // ...
+});
+
+socket.on("data", () => {});
+
+
+*/
+
+
+
+
 
   // todo move after socket=   io()                      
     window.addEventListener("load", function () { //when page loads

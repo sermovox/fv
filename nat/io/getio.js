@@ -31,7 +31,7 @@ async function getio(num, iotype, ind, ismqtt = false,mqttInst) {// returns prom
       return retu;//
   
   
-    } else {// embed gpio, presently only 'out' iotype
+    } else {// embed raspberry gpio, presently only 'out' iotype
   
             // aa
                /*
@@ -111,12 +111,15 @@ function doSomethingAsync(gpio,ind,ismqtt=false) {// a wrapper to getio()
   let clas;
   if(isProbe){clas='in-var';// temp use std shelly ht mqtt protocol  in-var:probe or var device (look cfg in mqttprob!)
 }else {clas='out';// relay device or var dev (without update in browser) (look cfg in mqttnumb!), temp use shelly 1 protocol 
-
 }
 return getio(gpio,clas,ind,ismqtt,mqttInst);// return a promise
 }
 
-function fillctls() {
+
+
+
+
+function fillctls() {// main run 
 const promises = [];
 let resu=Array(numOfDev).fill(null);// the returning dev ctl array, null means there is no dev , the sw will not do any write and anyway read a 0 state 
 let pr,resolved= [],probj;//Array(8).fill(false);
@@ -130,7 +133,7 @@ if(mqttInst&&mqttInst.avail&&mqttnumb[i]){// try first to get the mqtt device
 // mqtt ctl registered at key/index 11 in AAFF
 pr=doSomethingAsync(mqttnumb[i].portid,i,true);//probj={ind:i,prom:pr};// mqttnumb[i] is {portid:110,topic:'gas-pdc',varx:3,isprobe:false,clas:'var'/'out'}
 }else{// if there is a spare in local gpio 12
-pr=doSomethingAsync(gpionumb[i],i);// gpionumb[i] is an integer the device port/id 
+pr=doSomethingAsync(gpionumb[i],i);// gpionumb[i] is an integer: the raspberry device port/id 
 }
 
 
@@ -209,6 +212,8 @@ console.error("All ctls done error: ",e);
 
 
 
+
+// start here : 
 
 fillctls();// fill array of resolving device that when resolved ( all or after a max time) resolve the  SSSDD promise with the array of available devices ctl: resu[dev1ctl,,,]
 

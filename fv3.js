@@ -8,12 +8,15 @@
 
 // load page cfg 
 require('dotenv').config();// load .env
+const INVERTONOFF_RELAY=process.env.INVERTONOFF_RELAY||(process.env.INVERTONOFF_RELAY=='true');
+
 const model=require("./nat/models.js");
 const dOraLegale=parseInt(process.env.dOraLegale)||0;
 const  pdate=function (){let d=new Date();d.setHours(d.getHours()+dOraLegale);return d;}
 
 // debug staff normally is false
 const DEBUG_probe=true;// assign a std 20 degrees if no read on device  
+const PRTLEV=5;
 
 
 // let getcfg=model.getcfg;//can  be used for plant cfg
@@ -52,7 +55,8 @@ ejscont=model.ejscontext('luigi')// to generate pumps list in html after  emit('
 const PersFold=process.env.PersFold,// persistence folder .data
 test1=require("cors"),
 IsRaspberry=process.env.IsRaspberry != 'false',
-forceWrite=true;// in setPump, write to dev , also if present state is the same as new val , infact dev can change val in different way 
+forceWrite=true,// in setPump, write to dev , also if present state is the same as new val , infact dev can change val in different way 
+Serv_='Srv';// debug only, to be sure not to forghet some changes in code
      
 console.log(' is raspberry: ',IsRaspberry,PersFold);
 
@@ -259,6 +263,8 @@ passport.deserializeUser((id, cb) => {
 // var io = require('socket.io')(http) //require socket.io module and pass the http object (server on wich socket will be built)
 // cors enabled :
 const { Server } =require("socket.io");//import { Server } from "socket.io";
+
+// see example : https://dev.to/admirnisic/real-time-communication-with-socketio-and-nodejs-3ok2
 
 const io = new Server(http, {
   cors: {
@@ -719,7 +725,8 @@ ccbbRef=function ccbb(plantname) {// when client/plant got a request (a button) 
     if (started[name]&&started[name].inst)// its alredy requested and a instance is alredy set, so continue on a fv instance 
     {console.log('ccbb   find an alredy running plant with name ',name,' with cur state: ',started[name].inst.state);
     started[name].inst.reBuildFromState=false;
-      return started[name].inst;// just goon using the alredy running inst x plant name ( and its stored state inst.state )
+    if(!started[name].inst)console.error(' ccbb() found a instance on started[',name,'] that was not ready to run !!!!')
+      return started[name].inst;//  just goon using the alredy running inst x plant name ( and its stored state inst.state )
             /*  **************
             would be better like in web post handler recover the session/state x a plant and run a stateless handler
             see where we talk about implement the ctl using a http post handler , instead of a app.ctl implementation
@@ -1476,9 +1483,11 @@ openapi getstat() catched so results is null .........
                   console.log(' aiax extracting battery info from aiax data got: ',JSON.stringify(data,null,2));
 
                   // todo : change state.aiax.inverter to state.aiax.battery 
-                  let ret= state.aiax.battery= data.data[0].dataItemMap.battery_soc;
+                  let ret= state.aiax.battery= data.data[0].dataItemMap.battery_soc,
+                    ret1=state.aiax.battCharge= data.data[0].dataItemMap.ch_discharge_power;
+                      
                   console.log(' aiax x battery got: ',ret);
-                  return ret;
+                  return {battery:ret,battCharge:ret1};
 
 
                  }}
@@ -1534,7 +1543,15 @@ resu;
   } else if (res === undefined) { // true
     console.log(' getstat recover from device: ',key,'aiax result cant be calc, so exit execute procedure ');
     i=100;results=undefined;
-  }else  { results[key]=res;// goon next dev
+  }else  { 
+    
+    if (
+      typeof res === 'object' &&
+      !Array.isArray(res) &&
+      res !== null
+  ) {// ex : res={battery,battCharge}
+    Object.assign(results, res);
+  }else  results[key]=res;// is string or number goon next dev
   console.log(' getstat recover from device: ',key,' the required info : ',results[key]);
   }
   } else{ 
@@ -1628,7 +1645,9 @@ function conf() {// config and start fv server instance(the controller)
 }
 
 
-function startfv(eM) {// ** start/update singlethon 
+// function startfv(eM,session) {// ** start/update singlethon : update pumps as state.relays , 
+// now session is got recovering eM.SockClosur
+  function startfv(eM) {// ** start/update singlethon : update pumps as state.relays , 
   // console.log(' startfv : the ctl instance is :\n',JSON.stringify(eM,null,2));
   let plant=eM.state.app.plantname;
   console.log(' startfv plant: ',plant,' , following  we allign relay value according with current recovered state. so running setPump()');
@@ -1668,6 +1687,7 @@ function startfv(eM) {// ** start/update singlethon
   // allign relays current status to state.relays :
   relaisEv.forEach((pump,ind) => {// ['pdc',// socket event to sync raspberry buttons and web button
     // 'g','n','s']
+   // setPump(ind,eM.state.relays[pump],eM,session);// setPump(ind,eM.state.relays[pump]); // todo xxx : is error ?
     setPump(ind,eM.state.relays[pump],eM);// setPump(ind,eM.state.relays[pump]); // todo xxx : is error ?
 });
 
@@ -1980,7 +2000,7 @@ if(inp_&&inp_.dataArr){inp=inp_.dataArr;//  inp=sched
     // map[0]>=1000
     let curval
     if(these.iodev.probes_[map[1]])// curval=await this.relais_[pump_].readSync();// 0/1
-    curval=await these.iodev.probes_[map[1]].readSync();// 0/1
+    curval=valCorrection(await these.iodev.probes_[map[1]].readSync());// 0/1
     probes.notte=curval;
 
   }
@@ -2009,7 +2029,7 @@ if(inp_&&inp_.dataArr){inp=inp_.dataArr;//  inp=sched
     // map[0]>=1000
     let curval
     if(these.iodev.probes_[map[0]])// curval=await this.relais_[pump_].readSync();// 0/1
-    curval=await these.iodev.probes_[map[0]].readSync();// 0/1 or also ''/null that could mean N/A   .... todo manage that case !
+    curval=valCorrection(await these.iodev.probes_[map[0]].readSync());// 0/1 or also ''/null that could mean N/A   .... todo manage that case !
     probes.notte=curval;
 
   }
@@ -2200,6 +2220,7 @@ async function concludi(){
 });
 */
 
+// let result=await attuators(these,session,clientDiscon);// .catch((e) => {
 let result=await attuators(these);// .catch((e) => {
   console.log("attuators(): returns consolidate :",result);
   res.data={consolidate:result.toString()};
@@ -2526,7 +2547,8 @@ console.log('sendstatus() pretty is: ',prettyjson);
 }
 
 
-async function attuators(fn){//},map_,aTT_){// 04062023  now aTT_ and map are null, so calc aTT using consolidate !!!!
+// async function attuators(fn,session,clientDiscon){//},map_,aTT_){// 04062023  now aTT_ and map are null, so calc aTT using consolidate !!!!
+  async function attuators(fn){//},map_,aTT_){// 04062023  now aTT_ and map are null, so calc aTT using consolidate !!!!
   
   
                                   // aTT: the program() algo resuts (after consolidating with anticipate algo and manual set)
@@ -2585,6 +2607,7 @@ let i,mmax=aTT.length,mapmax=map.length;
                       console.log(' attuators() : just to info that at real index ',i,' current  pump state : ', relays[relaisEv[i]], ' is different from newval call setPump(0,', relaisEv[i], ')');
                   }
              
+     // promises.push(setPump(realind,aTT[i], fn,session,clientDiscon));// was : promises.push(setPump(i, relaisEv[realind], fn));
       promises.push(setPump(realind,aTT[i], fn));// was : promises.push(setPump(i, relaisEv[realind], fn));
     }
     else;// anyway se richiedo un set diverso dal corrente cambio il suo valore 
@@ -2609,7 +2632,7 @@ let value=state.relays[pump];// true/false, pump as recorded on status
 let   pump_=state.app.plantcfg.relaisEv.lastIndexOf(pump);// the index in relais_ of real pump
 if(pump_>=0){// found
 if(fn.iodev.relais_[pump_])// curval=await this.relais_[pump_].readSync();// 0/1
-curval=await fn.iodev.relais_[pump_].readSync();// 0/anynumber
+curval=valCorrection(await fn.iodev.relais_[pump_].readSync());// 0/anynumber
 else curval=null;//curval=0;
 if(!curval||(value&&curval==0)
 // ||((!value&&curval==1))
@@ -2620,6 +2643,7 @@ console.log(' bug to fix : attuators(), find pump ',pump,' state different from 
 }}
 }
 
+/*
 function attuators_old(fn,map,heat,pdc,g,n,s,split){// or function attuators(fn,map,aTT){// heat=aTT[0],pdc=aTT[1],,,,,,,,,
                                             // 
                                             // ctl,true/false,,,   (heat,pdc,g,n,s,split) si riferiscono ai nomi dei rele nel virtual algo
@@ -2691,24 +2715,42 @@ async function incong(pump,state){// segnala solo se il current state pump value
   }
 }}
 }
+*/
 
+//function setPump(pumpnumber,on,fn,session,clientDiscon=false){// 0,1,2,3    on : changing value (true/1 or false/0)
 function setPump(pumpnumber,on,fn){// 0,1,2,3    on : changing value (true/1 or false/0)
+
+
+
   console.log(' setpump() will emit socket pump event (+ direct onrelays()) to change browser relay value x pump number',pumpnumber);
 
   let on_,state=fn.state;
-  let relaisEv=state.app.plantconfig.relaisEv;
-  if(on)on_=1;else on_=0;// conver true > 1
-  fn.pumpsHandler[pumpnumber](0,on_);// called by anticipating algo in attuators
+  let relaisEv=state.app.plantconfig.relaisEv,
+  clientDiscon=fn.getcontext.getCliDiscon();;
+
+  if(!clientDiscon){
+  // fn.state.discFromBrow=true;//old to delete.  better : set true only if the sockeck connection is connected !
+  // better >>>  warn in contxt that we launch  a server request that is followed by a double req from browser if the client is connected  :
+  //            a expiration time out will mantain fn.state.discFromBrow=true; for 2 s. 
+  fn.getcontext.discFromBrow=true;// so in eM.getcontext.processBrow return false if fn.state.discFromBrow=true
+
+  if(fn.getcontext.blocking)clearTimeout(fn.getcontext.blocking);// fn.state.discFromBrow : the server req  (onRelais ) is followed by a browswer req : 
+  //    so if a previous browser timeout was set , reset it and  reset the interval of browser  blocking 
+  fn.getcontext.blocking=setTimeout(()=>{ fn.getcontext.discFromBrow=false ;fn.getcontext.blocking=null},2000);
+  }
+
+  console.log(' setpump() just emitted socket  event x pumpnumber',pumpnumber,' asking to set: ',on,' blocking browser confirm ',fn.state.discFromBrow);
+  //onRelais(pumpnumber,on_,'server',state);// anyway set directly the gpio relay, in case the browser is not connecte ! 
+  if(on)on_=1;else on_=0;// conver true > 1                                         // ERROR : pump not pumpnumber !
+  onRelais(relaisEv[pumpnumber],on_,Serv_,fn);// dont wait, WARNING usually called before the duplicate call coming from browser as feedback of previous  pumpsHandler[pumpnumber] call !
+  
+ if(!clientDiscon)// when client disconnect it useless run function that will emit browser .emit , because no connection is available
+  fn.pumpsHandler[pumpnumber](0,on_);// 
                                 // its a copy of gpio button relays handler (so we are simulating a gpio button press) that launch socket events
                                  // after set the browser pump flag will return with a socket handler that will call
                                  // onRelais(pumpnumber,on,'browser...',) : the gpio phisicalrelay
                                  // so the gpio relays can be called 2 times !
                                  // see :YUIO
-  console.log(' setpump() just emitted socket  event x pumpnumber',pumpnumber,' asking to set: ',on);
-  //onRelais(pumpnumber,on_,'server',state);// anyway set directly the gpio relay, in case the browser is not connecte ! 
-                                          // ERROR : pump not pumpnumber !
-  onRelais(relaisEv[pumpnumber],on_,'server',fn);// dont wait, WARNING usually called before the duplicate call coming from browser as feedback of previous  pumpsHandler[pumpnumber] call !
-                                    
                                           
   
   return Promise.resolve(true);// why return promises ?
@@ -2788,7 +2830,6 @@ let userAutorized=false;
 
 
 if(userAutorized)
-
   next();else   next(new Error("thou shall not pass"));
 });
 
@@ -3094,10 +3135,10 @@ adminNamespace.on("connection", socket => {// register emit handlers
   console.log(' from node-red  a socket started');
 
 
-let plant=model.getPlant(socket.handshake.auth.token),eM, 
-  repeat,// active rep func x anticipate
+let plant=model.getPlant(socket.handshake.auth.token),// token > plant,client 
+eM,repeat,// active rep func x anticipate
 repeat1;
-const listenxeM=function(){// eM is got after client connected
+const listenxeM=function(){// eM is got  by some browser, after node-red client connected
 
   eM=checkeM();
 
@@ -3183,17 +3224,16 @@ console.log(' setanticipateflag() called to set running algo: ',algo,' init para
 //if(set_)
 anticipateFlag(set_,eM,algo,activeAlgoRes);}// eM is set before in a preceeding  socket.on('startuserplant',,, ( like create a  closure var)
 
-function checkeM(){
-if(started[plant]&&started[plant].inst&&started[plant].inst.init){// eM instance redy to be used 
-
+function checkeM(){// check if eM x plant 
+if(started[plant]&&started[plant].inst&&started[plant].inst.init){// eM instance for the plant associated to client , already ready to be used 
   let eM=started[plant].inst;
   if(eM){eM.socketNR=socket;// make available in eM the client sochet
-  nRWaiting[plant]=null;
+  nRWaiting[plant]=null;// no listener is needed
 }
   return eM;
 }else {// waiting to be activated by some browser
 
-nRWaiting[plant]=listenxeM;
+nRWaiting[plant]=listenxeM; // the listener will be call to make available the plant to the nr client 
 
 }
 }
@@ -3236,7 +3276,9 @@ session.save();// save socketid
         // poi inserito in socket.eM  , quindi deve essere non usato piu !!!!!!!!!!!!
         
    repeat,// active rep func x anticipate
-  repeat1;// active rep func x temperature programmer
+  repeat1,// active rep func x temperature programmer
+  clientDiscon=false;
+
   // define the listener :
   socket.on('startuserplant', function (plant_,feat) { // user press button to connect to some plant, so this event is fired , feat url enc
                                                       // inst/fn/ctl/eM :  here we create the ctl of the plant that will be passed to all the service functions 
@@ -3266,6 +3308,21 @@ session.save();// save socketid
    //  socket.eM = ccbbRef(plantcfg.name);// ** il fsm recupera/crea un siglethon x plant , state to be updated with recoverstatus()
     eM = ccbbRef(plantcfg.name);
 
+    // reset the context = this closure (socket.on('startuserplant',closure)) 
+    // must be nullified when socket disconnect so closure can be garbagecollected 
+
+    eM.getcontext={// to make available this closure var to setPump,.....
+                  // probably must nulllified when socket disconnect clientDiscon=null, instead to pass clientDiscon !
+      getSession:function(){return session;},
+      getCliDiscon:function(){return clientDiscon;},
+      processBrow:function(){
+        if(this.discFromBrow)return false;// discard processing the browser req
+        else return true;},
+      discFromBrow:false
+
+    }
+
+
     // error here eM is the closure so it il like a object static property available at every func call 
     // but eM was now in the closure set by last   socket.on('startuserplant' and 
     // could be from a different socket ( so different connection) and the set was according with user connected and the plant it requested
@@ -3286,7 +3343,7 @@ session.save();// save socketid
     
     if(eM)console.error('startuserplant , eM is built/recovered from pool ');
     if(eM)console.log('startuserplant , eM is built/recovered from pool ');
-    eM.socket=socket;// update/embed the socket to connect the browser client
+    eM.socket=socket;// update/embed the socket to connect the last browser client: todo check only 1 browser pointing to  a eM
 
     // UUYY add here (or in instance constructor ???)
 
@@ -3294,7 +3351,7 @@ session.save();// save socketid
 
     if (eM) {
      // startfv_(eM,user);// ** start/update singlethon 
-     recoverstatus.call(eM,plantcfg,plantcnt,plantconfig,feature).then((em_) => startfv_(em_)); // >>>>   recoverstatus() returns a promise resolved. we finished to write status back with promise .writeScriptsToFile
+     recoverstatus.call(eM,plantcfg,plantcnt,plantconfig,feature).then((em_) => startfv_(em_,oncomplete_)); // >>>>   recoverstatus() returns a promise resolved. we finished to write status back with promise .writeScriptsToFile
                                                                     // ctl event status: in eM.state 
                                                                     // socket in eM.socket
                                                                     // plant cfg in eM.status.plantcfg, 
@@ -3304,11 +3361,17 @@ session.save();// save socketid
 // load also ejs context x future use :
 
 
-
+     const oncomplete_= function oncomplete(){
 
      // DANGER  :::   here state could not jet be recovered by previous promise !!!!
      //     so , it is really dangerous ? we just add properties to state 
      let state=eM.state;
+
+
+     displayView(eM.state.app.plantconfig.relaisEv,state);// return emitting event 'view'  to browser
+                                  // was in abilita2() 
+
+
      if(eM.reBuildFromState){// we got status in persistance, so start the active algo that was running 
      
       // restart the active algo as state.anticipate  tells
@@ -3334,13 +3397,13 @@ session.save();// save socketid
      }
      eM.reBuildFromState=false;// reset now the ctl has the procurure loaded on closure checkFactory()
      }
-
+    }
     }
     return;// thread ends
   });// ends on('startuserplant'
 // });
 
-  function startfv_(eM){// entry point when status is recovered from file   // // why do not use eM invece di passarlo come em_ ?
+  function startfv_(eM,cb){// entry point when status is recovered from file   // // why do not use eM invece di passarlo come em_ ?
                         // and applied to update eM.state
   
     let plant=eM.state.app.plantname;// or app.plantcfg.name
@@ -3361,24 +3424,27 @@ session.save();// save socketid
                                       //    relaisEv:users[user].cfg.relaisEv,
                                       //    devid_shellyname:users[user].cfg.devid_shellyname
                                       //  }
+                                      // 
     let{gpionumb,mqttnumb,mqttprob,relaisEv,devid_shellyname}=plantconfig;
     
 
 const keepDeviceDef=true;// is true, try false
- if(keepDeviceDef||!eM.init){
+ if(keepDeviceDef&&!eM.init){// eM is not initiated (non recovered from started[name] )
  //  abilita(eM.state);//// abilita sezione gestione eventi ( relais_)  plant nella pagina
  abilita(eM.state).then((devices)=>{ 
 
   // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><   todo   devices > {relais_:[],probes_:[]}// probs are input devices with only syncread() , can be mqtt or modbus
 
   abilita2(devices); eM.init=true;
-  if(nRWaiting[plant])nRWaiting[plant]();// add eM to node-red socket closure
+  if(nRWaiting[plant])nRWaiting[plant]();// call the nr listener to add plant eM to node-red socket closure
   nRWaiting[plant]=null// reset
 
-  startfv(eM);})// ** start/update/recover plant singlethon ctl eM state and .....
+  //startfv(eM,session);})// ** call setPump to allineate pump state to state.relays
+  startfv(eM);})// ** call setPump to allineate pump state to state.relays
 // .catch();
  }else{
-  startfv(eM);
+ // startfv(eM,session);// ** call setPump to allineate pump state to state.relays
+  startfv(eM);// ** call setPump to allineate pump state to state.relays
  }
 
   // put here code that can be done waiting the devices resolution !
@@ -3494,7 +3560,8 @@ state.probMap=Array(probes.ctls.length).fill(null);
     state.pumpMap[index]=devices.devmap[index].portnumb;// just to make easy the debug
   }
 });*/
-builddev(devices,eM.iodev.relais_,state.devMap,0);// transform devices={devmap,ctls} >>  state.devMap eM.iodev.relais_  : the action relays listed in browser
+builddev(devices,eM.iodev.relais_,state.devMap,0);  // reset pumpsHandler[ind], to call browser socket  emitters x pumps
+                                                    // transform devices={devmap,ctls} >>  state.devMap eM.iodev.relais_  : the action relays listed in browser
 builddev(probes,eM.iodev.probs_,state.probMap,1); //                                      state.probMap eM.iodev.probs_   : will be used 
                                                 //                                                                        - in events like these.on("initProg", and these.on('genZoneRele',
                                                 //                                                                          looking at its input set in the exec  builder prog_parmFact(sched) :
@@ -3512,12 +3579,12 @@ builddev(probes,eM.iodev.probs_,state.probMap,1); //                            
                                                 //                                                                            
                                                 //                                                                        - to store/write or get/read intermediate var status connectable to node red
 
-function builddev(devices,ct,map,type){// fill obj map with dev id/port (see models.js) + fill ctl in ct[index of devices],  
+function builddev(devices,ct,map,type){// fill obj map with dev id/port (see models.js) + fill ctl  in ct[index of devices], ct can be  iodev.relais_ or iodev.probs_  
 devices.ctls.forEach((mdev,index)=>{
   if(mdev){ct[index]=mdev;
     map[index]=devices.devmap[index].portnumb;// just to make easy the debug, for ever index we know the portnumber of the model assocated device
-   if(type) console.log(' builddev(), device of type probe , id/port ',map[index],' was added on ctl.iodev.probs_');
-   else console.log(' builddev(), device of type relay , id/port ',map[index],' was added on ctl.iodev.relais_');
+   if(type) console.log(' builddev(), device of type probe , id/port ',map[index],' was added on ctl.iodev.probs_, on index ',index);
+   else console.log(' builddev(), device of type relay , id/port ',map[index],' was added on ctl.iodev.relais_, on index ',index);
   }
 });}
 
@@ -3550,7 +3617,7 @@ if(relais&&relais[ind])relais[ind].watch(pumpsHandler[ind]);// attach same handl
 
 if(eM.iodev.relais_[ind]&&eM.iodev.relais_[ind].cl&&(eM.iodev.relais_[ind].cl==2||eM.iodev.relais_[ind].cl==4)){// the dev is a mqtt var , see VVCC in howto
 
-  eM.iodev.relais_[ind].int= (val='0',queue,lastwrite)=>{// the int func . 25052023 val is '0' or '1' > error !!!
+    eM.iodev.relais_[ind].int= (val='0',queue,lastwrite)=>{// the int func . 25052023 val is '0' or '1' > error !!!
     let isOn=val==1,isoff=0;
     console.log(' abilita2 interrupt : receiving   var ',pump,', msg val (0/1) : ',val,' , actual status is :',state.relays[pump],' , queue is :',queue,', lastwrite (true/false) was ',lastwrite);
     // idea just interrupt if is different then state.ralays[dev]!
@@ -3560,6 +3627,7 @@ if(eM.iodev.relais_[ind]&&eM.iodev.relais_[ind].cl&&(eM.iodev.relais_[ind].cl==2
 
       if(val_==0) ;else val_=1;
   console.log(' abilita2 interrupt : fire interrupt to change value : ',val,' so we change val as ',val_,' , on dev ',pump);
+ //   setPump(ind,val_!=0,eM,session,clientDiscon);// return a promise , ok ?? val=0,1
     setPump(ind,val_!=0,eM);// return a promise , ok ?? val=0,1
     } else console.log(' abilita2 interrupt : fire interrupt to change value : ',val,' but was not a string number so discard .  , on dev ',pump);
   }
@@ -3569,29 +3637,31 @@ if(eM.iodev.relais_[ind]&&eM.iodev.relais_[ind].cl&&(eM.iodev.relais_[ind].cl==2
 
 });
 
+// moved : displayView(relaisEv,state);
 
-
-
-
-scope={relaisEv}// pass the part of plantcfg che interessa lo spa nel browser , to config pumps in html js  after  emit('view',,)
-//was : ejscont=model.ejscontext('luigi')// to generate pumps list in html after  emit('view',,)
-
-let ejscont=state.app.plantcnt;// ejs context=ejscontext(plant).pumps=[{id,title},,,,]
-    // view the relays input on browser , see there the def of context ={ejscont,scope}
-    let context={ejscont,scope};
-    socket.emit('view', context); // nb .on('pump',,) can be not jet assigned 
-    console.log('event startuserplant : abilita(). it is  emitting socket event view, user plant is: ',plantconfig);
     // socket.emit('status',,,) .on('status',)
   }// ends abilita2()
-
+  cb();
   }// ends startfv_
+
+  function displayView(plantconfig,state){
+    relaisEv=plantconfig.relaisEv;
+    scope={relaisEv}// pass the part of plantcfg che interessa lo spa nel browser , to config pumps in html js  after  emit('view',,)
+    //was : ejscont=model.ejscontext('luigi')// to generate pumps list in html after  emit('view',,)
+    
+    let ejscont=state.app.plantcnt;// ejs context=ejscontext(plant).pumps=[{id,title},,,,]
+        // view the relays input on browser , see there the def of context ={ejscont,scope}
+        let context={ejscont,scope};
+        socket.emit('view', context); // nb .on('pump',,) can be not jet assigned 
+        console.log('event startuserplant : abilita(). it is  emitting socket event view, user plant is: ',plantconfig);
+    }
 
   var lightvalue = 0; //static variable for current status
 
   // set local gpio relay to some button on web page, web page will emit a socket event 'light' that will in this server activate
   // the gpio port
 
-  if(pushButton)pushButton.watch(function (err, value) { // detail : Watch for io hardware interrupts on specific pushButton  
+  if(pushButton)pushButton.watch(function (err, value) { // detail : Watch for io hardware interrupts on specific pushButton  on raspberry only 
                                             // to review , see also staff/webserver07112022.txt
 
     if (err) { //if an error
@@ -3691,7 +3761,7 @@ let ejscont=state.app.plantcnt;// ejs context=ejscontext(plant).pumps=[{id,title
  });*/
  
  
- function onRelaisClos(){
+ function onRelaisClos(session){
 
   return function(pump,val,coming){// return with a void closure ?
     console.log(' onRelaisClos() called x pump: ',pump,' set value: ',val,' coming from: ',coming,' ctl is null: ',!eM,', socket id ',socket.id,', user ',user,', plantname ',state.app.plantname);
@@ -3701,7 +3771,7 @@ let ejscont=state.app.plantcnt;// ejs context=ejscontext(plant).pumps=[{id,title
  }
  function onRelaisClos_(pump,val,coming){// return with a void closure ?
    if(!eM)console.error('onRelaisClos(), eM is null , cant process browser old event call');
-    if(!eM)console.log('onRelaisClos(), eM is null ');else console.log(' onRelaisClos(), eM is found '); 
+    if(!eM)console.log('onRelaisClos(), eM is null , ssessionid ' ,session.id,' socketid ',session.socketId);else console.log(' onRelaisClos(), eM is found '); 
     if(eM){
       console.log(' onRelaisClos() called x pump: ',pump,' set value: ',val,' coming from: ',coming,' ctl is null: ',!eM,', socket id ',socket.id,', user ',user,', plantname ',eM.state.app.plantname);
       onRelais(pump,val,coming,eM);
@@ -3887,6 +3957,15 @@ socket.on('stopprogrammer',() => {
   }
   });// 
 
+
+
+  socket.on('disconnect',() => {// to do 
+    // set a flag to avoid browser .emit call from any function that can do that
+    // eM will run also if the client dead . when a new connection come and it refears to same plant of the running eM , attact it to the closure and goon  
+    clientDiscon=true;
+  });
+
+
  }// ends cf (or cb ?!) function (socket) on sockets.on('connection',)
 
 
@@ -3899,7 +3978,7 @@ socket.on('stopprogrammer',() => {
 // run a bash shell
 process.on('SIGINT', function () { //on ctrl+c
   console.log('control c got');
-  LED.writeSync(0); // Turn LED off
+  LED.writeSync(valCorrection(0)); // Turn LED off
   LED.unexport(); // Unexport LED GPIO to free resources
   if(pushButton)pushButton.unexport(); // Unexport Button GPIO to free resources
   process.exit(); //exit completely
@@ -3927,7 +4006,7 @@ function anticipateFlag(set_,fn,algo,activeAlgoRes){// like onRelais, write stat
       });
 }
 
-async function onRelais  (pump,data,coming,fn) { //pumps unique handlerget pumps switch status from client web page  data=0/1 pump ='pdc',,,
+async function onRelais(pump,data,coming,fn) { //pumps unique handlerget pumps switch status from client web page  data=0/1 pump ='pdc',,,
                                                 // return a promise but is never used !
                                   // accoppiato con emit('pump',)   
                                   // >> pump in relaisEv
@@ -3949,20 +4028,90 @@ async function onRelais  (pump,data,coming,fn) { //pumps unique handlerget pumps
     console.log('OnRelais started x mqttnumb dev , pump/devName: ',pump, ', plantname ',fn.state.app.plantname,', to set ',data,',  but data is not a number so return'); 
     return   
   }  
+
+  // no sessio + clientdiscon in param but :
+  let session=null,
+   clientDiscon=true;
+   if(fn.getcontext){session=fn.getcontext.getSession();clientDiscon=fn.getcontext.getCliDiscon();
+   }
+
   if(data!=0)data=1;// normalize data                            
-  console.log('OnRelais started x mqttnumb dev , pump/devName: ',pump, ', plantname ',fn.state.app.plantname,', to set ',data,',  coming from ',coming);
+  //console.log('OnRelais started x mqttnumb dev , pump/devName: ',pump, ', plantname ',fn.state.app.plantname,', to set ',data,',  coming from ',coming);
   if(!fn)console.error('onRelais(), eM is null ');
   let state=fn.state,relaisEv=state.app.plantconfig.relaisEv;
   let value=state.relays[pump];// true/false, pump value as recorded on status
   //let data = data,// 0/1 value to set
-  pump_=relaisEv.lastIndexOf(pump);// the index in relais_
+  let pump_=relaisEv.lastIndexOf(pump);// the index in relais_
+  const useCb=true;
   if(pump_>=0){// found
+    let sessionid=null,socketid=null;
+    if(session){sessionid=session.id,socketid=session.socketId;}
+
+
+  
+    //fn.state.discFromBrow=fn.state.discFromBrow||[false,false,false,false,false,false,false];
+    if(coming&&coming==Serv_){// set a expiring flag if coming from server. when comes browser duplicated command il the flag is set and valid we dont care 
+      console.log('OnRelais started x mqttnumb dev , pump/devName: ',pump, ', plantname ',fn.state.app.plantname,' , session id ',sessionid,', socket id ',socketid,', to set ',data,',  coming from ',coming,' browserstopflag ', fn.state.discFromBrow);
+     // put in  fn.state.discFromBrow[pump_]=true;// better : pdate().getTime(); the expiration data
+                                        // discFromBrow was init with false in loadScriptsFromFile 
+
+
+      if(!useCb){
+      if(!clientDiscon)// if client is disconnected we will anyway blocking double browser req , so it is useless 
+      // discFromBrow  > discFromBrow[pump_]  ??
+      if(fn.state.discFromBrow&&state.blocking){ clearTimeout(state.blocking);// fn.state.discFromBrow : the server req  (onRelais ) is followed by a browswer req : 
+                                                                            //    so if a previous browser timeout was set , reset it and  reset the interval of browser  blocking 
+      state.blocking=setTimeout(()=>{ fn.state.discFromBrow=false ;state.blocking=null},2000);// discard browser req, server req  is enougth
+    }
+
+
+
+    }
+    }else{// coming from browser , 
+
+
+      if(!useCb){
+      if(//             // if the socket conn is became disconnected , this req cant come here , so the connection is active, so check if timeout is
+        fn.state.discFromBrow==true) {//  all onRelais browser are probably duplicated of a onRelais server req if it come on a not expired time out  
+
+                                   //  this way can happend (rarely) that also concomitant browser req from user activity , that's a pity !!!
+                                   // so every browser req tha comes in timeout validity will be discard 
+        console.log('OnRelais started x mqttnumb dev , pump/devName: ',pump, ', plantname ',fn.state.app.plantname,' , session id ',sessionid,', socket id ',socketid,', to set ',data,',  coming from ',coming,' but it comes on a not expired time out on which the duplicated req is expected  ');
+        // error : fn.state.discFromBrow=false;// optional , is anyway done by timeout
+        // the previous was the server cmd , so dscard the browser duplicated 
+       
+       // /* optional ? 
+         return api.writeScriptsToFile(fn)// upddate persistance and send status to browser
+        .catch(function(err) {
+          console.log(' onRelais(),  writefile catched : ',err);
+            console.error(err);
+            // process.exit(1);
+          });
+       //  */
+      }
+    }else {
+      if(fn.getcontext&&fn.getcontext.processBrow)
+      if(!fn.getcontext.processBrow()){
+        console.log('OnRelais started x mqttnumb dev , pump/devName: ',pump, ', plantname ',fn.state.app.plantname,' , session id ',sessionid,', socket id ',socketid,', to set ',data,',  coming from ',coming,' but it we dont process it   ');
+ 
+        return;
+      }
+    }
+
+
+    }
+
+    // console.log('OnRelais started x mqttnumb dev , pump/devName: ',pump, ', plantname ',fn.state.app.plantname,' , session id ',sessionid,', socket id ',socketid,', to set ',data,',  coming from ',coming,' but it comes on a  expired time out on which the duplicated req is expected  ');
+ 
+
     let ctl=fn.iodev.relais_[pump_];// pump_= ctl.devNumb
   if(ctl){
    
-  console.log('OnRelais  pump/devName: ',pump, ', found with index ',ctl.devNumb,', devid/portid ',ctl.gpio,', is a mqttdev?: ',!!ctl.cfg);
+  console.log('OnRelais  accept processing pump/devName: ',pump, ', found with index ',ctl.devNumb,', devid/portid ',ctl.gpio,', is a mqttdev?: ',!!ctl.cfg);
+  console.log('......, plantname ',fn.state.app.plantname,' , session id ',sessionid,', socket id ',socketid,', to set ',data,',  coming from ',coming);
+ 
   if(!!ctl.cfg)console.log('.......  mqtt dev feature from model mqttnumb : cl_class (mqttnumb:1rele/2var mqttprob:3probe/4var) ',ctl.cl,', plant ',ctl.mqttInst.plantName,' class ',ctl.cfg.clas,', protocol ',ctl.cfg.protocol);
-    curval=await ctl.readSync();// 0/anynumber or null  present value of gpio register   now better 0/1 or null(cant know)
+    curval=valCorrection(await ctl.readSync());// 0/anynumber or null  present value of gpio register   now better 0/1 or null(cant know)
    //  if(curval==null)curval=0;// std out 
    if(isNaN(curval))curval=null;// must be a number 
   }
@@ -3982,8 +4131,8 @@ async function onRelais  (pump,data,coming,fn) { //pumps unique handlerget pumps
  // now ever write  if (!curval||data != curval) 
  
   { // 0/1 != 0/1 gpio comanding relays is called,>>>>> only change gpio if current position/value is different from present hw relay value !!
-    console.log(' onRelais,  changing/confirm current rele hw position/value x ',pump,' to new value: ',data); 
-    if(fn.iodev.relais_[pump_])fn.iodev.relais_[pump_].writeSync(data); //turn LED on or off
+    console.log(' onRelais,  changing/confirm current rele hw position/value x ',pump,' , index ',pump_,' ,  to new value: ',data); 
+    if(fn.iodev.relais_[pump_])fn.iodev.relais_[pump_].writeSync(valCorrection(data)); //turn LED on or off
     console.log(' onRelais,  todo : verifying current rele  position/value changing  x ',pump,' now is: ',data); 
     //console.log(' ****\n browser/algo ask ',pump,' relay to change value into : ',data); // ex 0
     /*
@@ -4004,7 +4153,7 @@ async function onRelais  (pump,data,coming,fn) { //pumps unique handlerget pumps
       procedura='unknown';// to do .....
     // update status file , dont need to wait so not async func  otherwise see doc on async in .on handler
     // 
-    console.log(' onRelais(), to update, now call writeScriptsToFile: ',plantname,' scripts/state: ',state);
+    if(PRTLEV>5)console.log(' onRelais(), to update, now call writeScriptsToFile: ',plantname,' scripts/state: ',state);
     // return // not mandatory
     //return api.writeScriptsToFile(state,plantname,procedura)
     return api.writeScriptsToFile(fn)// upddate persistance and send status to browser
@@ -4091,7 +4240,7 @@ state=that.state,reBuildFromState=that.reBuildFromState;
 }).then(function(that_) {// resolved results is that_ , that_ :it is that with updated state read from file
                         // the  current plant state: from saved in file or a basic state  if new controller (that)
     // verify that we can now write back to the file.
-    console.log(' recoverstatus() , now loadScriptsFromFile is resolved so callwriteScriptsToFile() writefile: ',plantcfg.name,' script: ',that_.state);
+    if(PRTLEV>5)console.log(' recoverstatus() , now loadScriptsFromFile is resolved so callwriteScriptsToFile() writefile: ',plantcfg.name,' script: ',that_.state);
     //return api.writeScriptsToFile(scripts,plantname)
  
     // recover registered functionality if start from a new instance 
@@ -4458,3 +4607,9 @@ return null;
 
 }
 function checkval(lastUserAlgo){return true;}// todo
+
+function  valCorrection(value){// change 0 <> 1
+  if(value==null||isNaN(value))return value ;
+  if(INVERTONOFF_RELAY)if(value==0)return 1; else return 0;
+  
+  }

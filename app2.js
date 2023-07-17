@@ -69,7 +69,8 @@ class WithTime extends EventEmitter {// js version ....
       this.token=null;
       this.stepInd=-1;// next step navigation
       this.relays={};//{pdc:false,g:false,n:false,s:false};// current gpio relays values , moved to fv3
-
+      this.discFromBrow=[];// used in onRelais to not duplicate server cmd when duplicated c md comes from browser 
+      this.blocking=[];// the timer ref used with discFromBrow, to block the brouser duplicated onRelais req
     }
 
 
@@ -459,7 +460,7 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
           // to do : fire a socket event to browser !
         }
       }
-      cb();// execute ends: return flow to cb (see OuterFunction)
+      cb();// execute ends: return null flow to cb (see OuterFunction)
       }
     
     // func:

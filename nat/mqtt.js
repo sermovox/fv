@@ -3,6 +3,10 @@ var mqtt = require('mqtt');// http://www.steves-internet-guide.com/using-node-mq
 //const caFile = fs.readFileSync("ca.crt");
 var fs = require('fs'); //require filesystem module
 
+require('dotenv').config();// load .env
+const INVERTONOFF_RELAY=process.env.INVERTONOFF_RELAY||(process.env.INVERTONOFF_RELAY=='true'),
+OR_Present=parseInt(process.env.OR_Present)||0;
+
 const SubAfterPlantReq=true;// code implem alternative
 const defVar='off',// or -7777  default first write value for var device
 debug_int=false;// if false , no debug, so process interrupts normally.
@@ -19,6 +23,12 @@ const options = {// conn opn
     clean: true,
     reconnectPeriod: 5000 // Try reconnecting in 5 seconds if connection is lost
     // credential ca ??
+},roOptions = {// conn opn x remote O
+    port: 1883,
+    host: '192.168.1.213',
+    clientId: "client123",
+    username: "master:mqtt_user2",
+    password: "ZSxwu2AwfGYb0EJ4D9mJK7TkSmfLZbkK"
 },tlsoptions = {// conn opn
     // if not in url add here :
     port: 8883,
@@ -39,16 +49,16 @@ const options = {// conn opn
         //,qos: 1
     };
 
-let client;
+let client,roClient;
 // subscription and publishing topic x rele dev , shelly protocol :
 // std Subscribe variables, in future will be customized using gpio set from device model config data in init() according with the type requested 
 const shelly_stopic = 'shellies/',shelly_topicp = '/relay/0',
      shelly_options = {qos: 0},// needed really ?
-    nodeRedp='/NReadUser/cmd';
+    nodeRedp='/NReadUser/cmd';// usato per comandare dal esterno il var/rele dev come fosse anche un virtual device con questo cmd topic
 
 // Publish variables
 const shelly_topicpp = '/relay/0/command',
-nodeRedpp='/NReadUser/publish',
+nodeRedpp='/NReadUser/publish',// usato per ........  ????????
 messageOn = 'on', messageOff = 'off',
 pub_options = {qos: 0, retain: false};// in http://www.steves-internet-guide.com/using-node-mqtt-client/ use    ={retain:true,qos:1}
 
@@ -79,10 +89,6 @@ if(text.slice(0,8)=='shellies'&&text.slice(-8)==shelly_topicp&&ok){// ok also ?
    for(mel in gpio){if (gpio[mel]==devName){devid=mel;break;}}*/
 
 
-
-
-
-    
  
      
 }else  console.log("mqtt Received message on  non shelly topic: " + text);
@@ -132,247 +138,261 @@ function regTopic(topic){// just returns invTopic[topic], useless !
     // or x tsl :
     // var client  = mqtt.connect("mqtts://192.168.1.71:8883",tlsoptions);
     console.log("mqtt starting :  asking connection to broker with ops: " + JSON.stringify(options,null,2));
-client = mqtt.connect(options);
+client = mqtt.connect(options);if(OR_Present)roClient = mqtt.connect(roOptions);
 
 
-if (client) {
+if (roClient) {
     console.log("mqtt client connecting .... , so registering message listener ...");
+    
     let waitListReturn = false,
         waitPromiseRes;// resolve che si mettera a disposizione se il precedente msh non ha resettato ancora i listener
     const CheckPrevMessageEnd = false; // debug 
-    client.on('message', function (topic, message, packet) {// message=obj=buffer
-        //   immagino che non ci possono essere 2 chiamate attive (2 tread) contemporanei//
-        let msg,// the payload
-            message_;// the js object
+    
+    roClient.on('message', msgListFact(waitListReturn,waitPromiseRes,CheckPrevMessageEnd));
+}
+if (client) {
+    console.log("mqtt client connecting .... , so registering message listener ...");
+    
+    let waitListReturn = false,
+        waitPromiseRes;// resolve che si mettera a disposizione se il precedente msh non ha resettato ancora i listener
+    const CheckPrevMessageEnd = false; // debug 
+    
+    client.on('message', msgListFact(waitListReturn,waitPromiseRes,CheckPrevMessageEnd));
+}
+function msgListFact(waitListReturn,waitPromiseRes,CheckPrevMessageEnd){
 
-            console.log(' mqtt income. Received message ',message.toString(),' on topic ',topic);
+return function (topic, message, packet) {// message=obj=buffer  >>>>   the message income handler
+    //   immagino che non ci possono essere 2 chiamate attive (2 tread) contemporanei//
+    let msg,// the payload
+        message_;// the js object
 
-        if (waitListReturn) {
-            new Promise((res, rej) => {// HUUY the previous message income has still the listener to reset , wait for it ,waitPromise=res, to resolve 
+        console.log(' mqtt income. Received message ',message.toString(),' on topic ',topic);
 
-                waitPromiseRes = res; // metto a disposizione il resolver che aspella il reset dei listener nel precedente income
+    if (waitListReturn) {// the listener of previous message didnt retured jet
+        let waitPromise= // added to correct error (forget to define waitPromise)
+        new Promise((res, rej) => {// HUUY the previous message income has still the listener to reset , wait for it ,waitPromise=res, to resolve 
+            waitPromiseRes = res; // metto a disposizione il resolver func e si  aspetta il reset dei listener nel precedente income, per procedere al ricevimento di questo message
 
-            });
-            waitPromise.then(function () {
-                console.log("mqtt Received message , .....  goonP after previous readsync finished to reset listeners");
-                waitPromiseRes = null; // tolgo il resolver reference anyway 
-                goonP();
-            })
-
-        } else {
-            waitPromiseRes = null; // tolgo il resolver reference anyway
+        });
+        waitPromise.then(function () {
+            console.log("mqtt Received message , .....  goonP() (continue to process the received message) after previous readsync finished to reset listeners");
+            waitPromiseRes = null; // tolgo il resolver reference anyway 
             goonP();
-        }
+        })
+
+    } else {
+        waitPromiseRes = null; // tolgo il resolver reference anyway
+        goonP();
+    }
 
 
-        function goonP() {
+    function goonP() {// goon with message processing, we dont have to wait previous readsync finished
+        let adev, packprop = [], packprop1 = Object.keys(packet);// packet contain some info , not used now
+        //for (let x in packet) {
+        //    packprop.push(x);
+        //    };
 
-
-            let adev, packprop = [], packprop1 = Object.keys(packet);
-            //for (let x in packet) {
-            //    packprop.push(x);
-            //    };
-            function props(obj) {// duscover prototype property chain 
-                var p = [];
-                for (; obj != null; obj = Object.getPrototypeOf(obj)) {
-                    var op = Object.getOwnPropertyNames(obj);
-                    for (var i = 0; i < op.length; i++)
-                        if (p.indexOf(op[i]) == -1)
-                            p.push(op[i]);
-                }
-                return p;
+        /*
+        function props(obj) {// duscover prototype property chain , not used more
+            var p = [];
+            for (; obj != null; obj = Object.getPrototypeOf(obj)) {
+                var op = Object.getOwnPropertyNames(obj);
+                for (var i = 0; i < op.length; i++)
+                    if (p.indexOf(op[i]) == -1)
+                        p.push(op[i]);
             }
-            // let allprops2=props(packet);
+            return p;
+        }*/
 
-            //   if ((dev = isShelly(topic))!=null || (dev = isProbe(topic))!=null  ) {// use statusList and queue status[dev] built for dev whose config is described in  gpio and  mqttprob
-            // >>> satisfy all listener waiting for a msg , fill queue status[dev] to satisfy future coming read for msg request
-            // device  id ex: 11 , not : shelly1-34945475FE06
-            // status[dev]=status[dev]||{};
+        // let allprops2=props(packet);
 
-            if (adev = regTopic(topic)) {//just returns invTopic[topic], useless !
-                                        // in var dev topic can be base topic ( dont contain any '/') or cmd topic
+        //   if ((dev = isShelly(topic))!=null || (dev = isProbe(topic))!=null  ) {// use statusList and queue status[dev] built for dev whose config is described in  gpio and  mqttprob
+        // >>> satisfy all listener waiting for a msg , fill queue status[dev] to satisfy future coming read for msg request
+        // device  id ex: 11 , not : shelly1-34945475FE06
+        // status[dev]=status[dev]||{};
 
-                let dev = adev.portid, mqttInst = adev.mqttInst,
-                    ctlpack = adev.ctlpack,// ctlpack={ctl:new fc(gp,ind,inorout,cfg,that),devNumb:ind,type:'mqtt'};
-                    avar = ctlpack.type == 'mqtt' && (ctlpack.ctl.cl == 2 || ctlpack.ctl.cl == 4),// is a var dev
-                    fromthisctl = true,
-                    isCmdTopic=false;
+        if (adev = regTopic(topic)) {//just returns invTopic[topic], useless !
+                                    // in var dev topic can be base topic ( dont contain any '/') or cmd topic
 
-                // decode msg if is a var :
-                if (avar) {// is a var json of : {payload:load,sender:{plant:topPlantPrefix,user:portit}}
-                    let topicNodeRed=adev.topicNodeRed;
-                    isCmdTopic=topicNodeRed&&topicNodeRed==topic; // if topic==topicNodeRed we have a cmd topic in case of var dev !!!
+            let dev = adev.portid, mqttInst = adev.mqttInst,
+                ctlpack = adev.ctlpack,// ctlpack={ctl:new fc(gp,ind,inorout,cfg,that),devNumb:ind,type:'mqtt'};
+                avar = ctlpack.type == 'mqtt' && (ctlpack.ctl.cl == 2 || ctlpack.ctl.cl == 4),// is a var dev
+                fromthisctl = true,// serve a capire nei msg contenenti il sender (var dev) se esso proviene da un pub di questo ctl, non sempre usato: di solito i var dev usano il meccanismo node-red quando un ext ctl vuole cambiare stato pubs un message con topic command topicNodeRed (il dev è un virt var dev, isCmdTopic=true )
+                isCmdTopic=false;// simulera il subscription  di un virtual shelly node-red . il nodered comanda questo virt device fisico che simula un cambio stato genera un call a questo listener che diventa il  listener del suo subscription. constatato che è meritevole di interruput ( probabile state change) lo lo chiama 
 
-                    message_ = rec(message);// can return a obj if good formatted else null .
-                    if (message_ == null) {//  , is a signal not formatted 
-                        msg = message.toString();// convert buffer to string   
-                        fromthisctl = false;// in this case ever consider the msg not coming back from this device 
-                        console.log(' mqtt Received a var  not fomatted message x dev ', dev, '  coming from outside so can readsync the not formatted value (msg itself) if is not a presence  ');
-                       
-                    } else {// var message formatted 
-                        msg = message_.payload;
-                        fromthisctl = message_.sender && message_.sender.plant == mqttInst.plantName && message_.sender.user == dev;
+            // decode msg if is a var :
+            if (avar) {// is a var json of : {payload:load,sender:{plant:topPlantPrefix,user:portit}}
+                let topicNodeRed=adev.topicNodeRed;
+                isCmdTopic=topicNodeRed&&topicNodeRed==topic; // if topic==topicNodeRed we have a cmd topic in case of var dev !!!
 
-                        //if(message_.plant&&message_.plant.user&&message_.plant.user==dev){
-                        if (message_.sender && message_.sender.plant == mqttInst.plantName && message_.sender.user == dev) {// user = dev !
-                            //console.log(' mqtt Received message x dev ',dev,' thats a var , coming from itself, so discard it ');
-                            console.log(' mqtt Received message x dev ', dev, ' thats a var , coming from itself, so can readsync the fotmatted value (payload) if is not a presence  ');
-                            // return;//msg=null;   // discard incoming msg
-                            // no now we process , will be rread that will manae the msg content (decide se è un signal '>ctlpresence' o un valore 'on/'off e torna 0/1/''(=N/A))
-                        }
+                message_ = rec(message);// can return a obj if good formatted , else null .
+                if (message_ == null) {//  , is a signal not formatted 
+                    msg = message.toString();// convert buffer to string   
+                    fromthisctl = false;// in this case ever consider the msg not coming back from this device 
+                    console.log(' mqtt Received a var  not fomatted message x dev ', dev, '  coming from outside so can readsync the not formatted value (msg itself) if is not a presence  ');
+                   
+                } else {// var message formatted 
+                    msg = message_.payload;
+                    fromthisctl = message_.sender && message_.sender.plant == mqttInst.plantName && message_.sender.user == dev;
+
+                    //if(message_.plant&&message_.plant.user&&message_.plant.user==dev){
+                    if (fromthisctl) {// user = dev !
+                        //console.log(' mqtt Received message x dev ',dev,' thats a var , coming from itself, so discard it ');
+                        console.log(' mqtt Received message x dev ', dev, ' thats a var , coming from itself, so can readsync the fotmatted value (payload) if is not a presence  ');
+                        // return;//msg=null;   // discard incoming msg
+                        // no now we process , will be rread that will manae the msg content (decide se è un signal '>ctlpresence' o un valore 'on/'off e torna 0/1/''(=N/A))
                     }
+                }
+
+            } else{ // not var , can be rele (or probs?), probably not formatted
+                msg = message.toString();// convert buffer to string , can be 'on'/'off'  in case of rele , topic or topicNodeRed
+                let topicNodeRed=adev.topicNodeRed;// added also x rele type ( and probe too ??????)
+                isCmdTopic=topicNodeRed&&topicNodeRed==topic; // if topic==topicNodeRed we have a cmd topic in case of var dev !!!
+            }
+                    if (fromthisctl) {// user = dev !
+            if(!isCmdTopic){// can be var (we calc if is  ) or rele (or probes ?) : 
+
+            // satisfy all pending listeners : (nb []  added  in init func , that can be still to call)
+            if (mqttInst.statusList[dev]) {// process existing pending listener for device number id=portid=11
+
+                if (CheckPrevMessageEnd) waitListReturn = true;// impedisce al next msg process till  the listener in current msg are defined ( Promise.all(iterListen) .then((results))
+
+                let nlis = mqttInst.statusList[dev].length;
+                if (nlis > 0) {
+                    console.log("Received message . LISTENER:  we found : ", nlis, "listener to call , so scanit to cb=resolve them");
+                    // console.log("... probably listeners was added as msg queue is (0 expected ) Received message , we found : ", mqttInst.status[dev]);
+                    if (!debug_int) {
+                        let count = 0;
+
+                        let iterListen = [],//  list of  listener result promise and its request  to reset
+                            itsReq = [];// the list request number
+
+                        mqttInst.statusList[dev].forEach((el) => {
+                            count++; // IIOOPP
 
 
-                } else // not var 
-                    msg = message.toString();// convert buffer to string
+                            if (count <= nlis) {// to permit to all during process, not used ?
 
+                                // iterListen.push(alist = el(msg));//  el(), sync,  is the listener embedded on resolving func in stList() !
+                                // better 
+                                if (el) {
 
-                if(!isCmdTopic){// cmd topic dont write to dev queue, just interrupt !
-
-                // satisfy all pending listeners : (nb []  added  in init func , that can be still to call)
-                if (mqttInst.statusList[dev]) {// process existing pending listener for device number id=portid=11
-
-                    if (CheckPrevMessageEnd) waitListReturn = true;// impedisce al next msg process till  the listener in current msg are defined ( Promise.all(iterListen) .then((results))
-
-                    let nlis = mqttInst.statusList[dev].length;
-                    if (nlis > 0) {
-                        console.log("Received message . LISTENER:  we found : ", nlis, "listener to call , so scanit to cb=resolve them");
-                        // console.log("... probably listeners was added as msg queue is (0 expected ) Received message , we found : ", mqttInst.status[dev]);
-                        if (!debug_int) {
-                            let count = 0;
-
-                            let iterListen = [],//  list of  listener result promise and its request  to reset
-                                itsReq = [];// the list request number
-
-                            mqttInst.statusList[dev].forEach((el) => {
-                                count++; // IIOOPP
-
-
-                                if (count <= nlis) {// to permit to all during process, not used ?
-
-                                    // iterListen.push(alist = el(msg));//  el(), sync,  is the listener embedded on resolving func in stList() !
-                                    // better 
-                                    if (el) {
-
-                                        iterListen.push(el(msg));//  el(), sync,  is the listener embedded on resolving func in stList() !
-                                        itsReq.push(el(0, 1));
-                                    }
+                                    iterListen.push(el(msg));//  el(), sync,  is the listener embedded on resolving func in stList() !
+                                    itsReq.push(el(0, 1));
                                 }
-                            });
-
-                            Promise.all(iterListen)
-                                .then((results) => {// [true,false,,,,]
-                                    console.log('Received message . we scanned all LISTENER list ,  some listener want to iterate if cant read a value ( msg was considered a presence/signal)they are  indexes: ',results,' ,  with relating requests :', itsReq);
-                                    postList(nlis, count, results, itsReq);
-
-                                    // next 2 must be atomic 
-                                    if (waitPromiseRes) waitPromiseRes();// if next msg has alredy arrived and see  waitListReturn true (HUUY) it will wait waitpromise resolver call to goon                   
-                                    waitListReturn = false;// next msg income will find  listener setted , dont neet to wait ;
-
-                                })
-
-
-
-
-
-
-                        }
-                    }
-
-
-
-                    function postList_(nlis, count, iterListen, itsReq) {// error, old .here we keep the listener added !!!
-
-                        console.log("Received message , we just finished calling: ", count, " msg listener ");
-                        //   console.log("Received message . after scanned LISTENER list :  we found listener that will wi", mqttInst.statusList[dev].length, "listener ");
-                        if (nlis < mqttInst.statusList[dev].length) {// now listener cant add listener , just return the listener (itself ) to continue waiting x nexr msg !
-
-                            console.error("Received message . we scanned LISTENER list but it number is increased of ',mqttInst.statusList[dev].length-nlis,', so leave the last listener into list list to process next msg ");
-
-                            // so todo: do not delete the coming new listener :
-                            mqttInst.statusList[dev].splice(0, mqttInst.statusList[dev].length - nlis);
-                        } else // mqttInst.statusList[dev].length = 0;// reset at the end
-                        {
-                            mqttInst.statusList = iterListen;
-                            console.log('Received message . we scanned LISTENER list , and some listener want to iterate , they are relating requests :', itsReq)
-                        }
-
-                    }
-
-                    function postList(nlis, count, list2reset, itsReq) {// usually this thread is running after this msg is been processed and
-
-                        console.log("Received message , we just finished calling: ", count, " msg listener , proposed new listener to goon waiting next msg are working on req id :", itsReq);
-                        //   console.log("Received message . after scanned LISTENER list :  we found listener that will wi", mqttInst.statusList[dev].length, "listener ");
-
-
-                        let resetList = [], iterReq = [];
-
-                        mqttInst.statusList[dev].forEach((el, ind) => {
-                            if (list2reset[ind]) {
-                                resetList.push(el);// insert the current listener in next listener list because has been reset ( )
-                                iterReq.push(itsReq[ind]);
                             }
                         });
 
+                        Promise.all(iterListen)
+                            .then((results) => {// [true,false,,,,]
+                                console.log('Received message . we scanned all LISTENER list ,  some listener want to iterate if cant read a value ( msg was considered a presence/signal)they are  indexes: ',results,' ,  with relating requests :', itsReq);
+                                postList(nlis, count, results, itsReq);
+
+                                // next 2 must be atomic 
+                                if (waitPromiseRes) waitPromiseRes();// if next msg has alredy arrived and see  waitListReturn true (HUUY) it will wait waitpromise resolver call to goon                   
+                                waitListReturn = false;// next msg income will find  listener setted , dont neet to wait ;
+
+                            })
 
 
 
-                        console.log('Received message . we scanned LISTENER list , and some listener want to iterate( indexes: ',list2reset,' ), they are relating requests :', iterReq);
-                        mqttInst.statusList[dev] = resetList;
+
+
 
                     }
-                }// end listener process 
-
-
-                if (mqttInst.status[dev]) {// // subscribed  so put msg in buffer!
-                    if (mqttInst.status[dev].push(msg) > 10) mqttInst.status[dev] = mqttInst.status[dev].slice(-2);// add queue
-                    console.log(" Inserted current message (", msg, ") , in current msg queue for device:", dev, " is: ", mqttInst.status[dev]);
-                } else console.error(" Received message , current msg queue for device:", dev, " had not been subscribed ");// never happen
-
-            }
-
-              else // isCmdTopic  
-              if (ctlpack.type == 'mqtt' && avar) {// a var with cmd topic
-                    if (!fromthisctl) {// a msg coming from someoneelse , if the message is not frmatted it is considered not coming back from this device writesync/publish
-                        // let packprop2=Object.keys(ctlpack.ctl);//,packprop3=Object.keys(ctlpack.ctl.prototype);
-                        // allprop=props(ctlpack.ctl);
-                        // let ass=ctlpack.ctl.readSync;
-
-                        console.log('  message  with cmd topic x device ', dev, ', of type var , so  interrupt to update the value. after update this dev will writesync the value x confirmation');
-
-
-                        if(Number.isNaN(val_=Number(msg)))
-                        console.error('  message   a cmd msg ',msg,' , x var dev ', dev, ', is not a string number so reject ');
-
-
-                        // if the text msg must be processed according to type in adev  call readsync otherwise can use msg
-                       // if (mqttInst.status[dev].length > 0)// per sicurezza il dato deve essere nel queue
-                            // ctlpack.ctl.readSync().then((read) => {// read the queue last pos
-
-
-                                ctlpack.ctl.int(msg, mqttInst.status[dev], ctlpack.ctl.lastwrite);
-                           //  });//  set to  int that call setPump that call 
-                        //    - pumpsHandler (update browser) 
-                        //    - onRelays che update state ma trovando il valore effettivo = valore richiesto da setPump non chiama il writesync che il valore e' gia stato settato !! 
-                    } else // cant ever be 
-                        console.log('  message x device ', dev, ', of type var has been emitted by this ctl, so no interrupt');
                 }
-            } else {
-
-                //  ...write here code  for topic different from gpio (cfg in gpio) and probe-var (cfg in mqttprob) devices
-                console.log(" Received message , no dev was registered with current msg  topic: " + topic.toString());
-            }
 
 
 
+                function postList_(nlis, count, iterListen, itsReq) {// error, old .here we keep the listener added !!!
+
+                    console.log("Received message , we just finished calling: ", count, " msg listener ");
+                    //   console.log("Received message . after scanned LISTENER list :  we found listener that will wi", mqttInst.statusList[dev].length, "listener ");
+                    if (nlis < mqttInst.statusList[dev].length) {// now listener cant add listener , just return the listener (itself ) to continue waiting x nexr msg !
+
+                        console.error("Received message . we scanned LISTENER list but it number is increased of ',mqttInst.statusList[dev].length-nlis,', so leave the last listener into list list to process next msg ");
+
+                        // so todo: do not delete the coming new listener :
+                        mqttInst.statusList[dev].splice(0, mqttInst.statusList[dev].length - nlis);
+                    } else // mqttInst.statusList[dev].length = 0;// reset at the end
+                    {
+                        mqttInst.statusList = iterListen;
+                        console.log('Received message . we scanned LISTENER list , and some listener want to iterate , they are relating requests :', itsReq)
+                    }
+
+                }
+
+                function postList(nlis, count, list2reset, itsReq) {// usually this thread is running after this msg is been processed and
+                    console.log("Received message , we just finished calling: ", count, " msg listener , proposed new listener to goon waiting next msg are working on req id :", itsReq);
+                    //   console.log("Received message . after scanned LISTENER list :  we found listener that will wi", mqttInst.statusList[dev].length, "listener ");
+
+                    let resetList = [], iterReq = [];
+
+                    mqttInst.statusList[dev].forEach((el, ind) => {
+                        if (list2reset[ind]) {
+                            resetList.push(el);// insert the current listener in next listener list because has been reset ( )
+                            iterReq.push(itsReq[ind]);
+                        }
+                    });
 
 
+                    console.log('Received message . we scanned LISTENER list , and some listener want to iterate( indexes: ',list2reset,' ), they are relating requests :', iterReq);
+                    mqttInst.statusList[dev] = resetList;
+
+                }
+            }// end listener process 
+
+
+            if (mqttInst.status[dev]) {// // subscribed  so put msg in buffer!
+                if (mqttInst.status[dev].push(msg) > 10) mqttInst.status[dev] = mqttInst.status[dev].slice(-2);// add queue
+                console.log(" Inserted current message (", msg, ") , in current msg queue for device:", dev, " is: ", mqttInst.status[dev]);
+            } else console.error(" Received message , current msg queue for device:", dev, " had not been subscribed ");// never happen
 
         }
 
+          else {// isCmdTopic  , news now also rele dev can have cmdtopic !!. // cmd topic dont write to dev queue, just interrupt ! valid now for var and also for rele dev !!!
+          if (ctlpack.type == 'mqtt' && (avar||ctlpack.ctl.cl==1)) {// a var or a rele with cmd topic
+                if (!fromthisctl) {// a msg coming from someoneelse , if the message is not frmatted it is considered not coming back from this device writesync/publish
+                    // let packprop2=Object.keys(ctlpack.ctl);//,packprop3=Object.keys(ctlpack.ctl.prototype);
+                    // allprop=props(ctlpack.ctl);
+                    // let ass=ctlpack.ctl.readSync;
 
-    });
+                    console.log('  message  with cmd topic x device ', dev, ', of type ',ctlpack.ctl.cl,' , so  interrupt to update the value. after update this dev will writesync the value x confirmation');
+
+
+                    if(Number.isNaN(val_=Number(msg)))
+                    console.error('  message   a cmd msg ',msg,' , x  dev ', dev, ', is not a string number so reject ');
+
+
+                    // if the text msg must be processed according to type in adev  call readsync otherwise can use msg
+                   // if (mqttInst.status[dev].length > 0)// per sicurezza il dato deve essere nel queue
+                        // ctlpack.ctl.readSync().then((read) => {// read the queue last pos
+
+
+                            ctlpack.ctl.int(msg, mqttInst.status[dev], ctlpack.ctl.lastwrite);// todo check that can be call for both var and rele type dev 
+                       //  });//  set to  int that call setPump that call 
+                    //    - pumpsHandler (update browser) 
+                    //    - onRelays che update state ma trovando il valore effettivo = valore richiesto da setPump non chiama il writesync che il valore e' gia stato settato !! 
+                } else // cant ever be 
+                    console.log('  message x device ', dev, ', of type var has been emitted by this ctl, so no interrupt');
+            }}
+        } else {
+
+            //  ...write here code  for topic different from gpio (cfg in gpio) and probe-var (cfg in mqttprob) devices
+            console.log(" Received message , no dev was registered with current msg  topic: " + topic.toString());
+        }
+
+
+
+
+
+
+    }
+
+
 }
+}}
+
 let gpio=null,// now substituted by mqttnumb .    gpio,//={"11":'shelly1-34945475FE06'};// todo : fill with init !   nb dev=11  devname=shelly1-34945475FE06. cfg of gpio like dev (relay)
 mqttnumb,// { portid, varx, isprobe, clas, protocol, subtopic } .
         // config of devices that are relay/var (class=out/var) and follow some protocol (mqttstate (+isprobe in future) for var and shelly for relay) 
@@ -405,24 +425,37 @@ let futurecb={};// cb of subcribe can resolve a request to get a new fc dev ctl 
 
 // moved inside mqttInst :              async function getgpio(gp,clas){/
 
+if(OR_Present){
+roClient.on("error", function (error) {
+    console.log(" ro brocker Can't connect" + error);
+    process.exit(1);// cant retry
+});
 
+// Notify reconnection
+roClient.on("reconnect", function () {
+    console.log(" ro brocker Reconnection starting");
+});
 
+// Notify offline status
+roClient.on("offline", function () {
+    console.log(" ro brocker Currently offline. Please check internet!");
+});
 
-
+}
 
 client.on("error", function (error) {
-    console.log("Can't connect" + error);
+    console.log(" mosquitto brocker Can't connect" + error);
     process.exit(1);// cant retry
 });
 
 // Notify reconnection
 client.on("reconnect", function () {
-    console.log("Reconnection starting");
+    console.log(" mosquitto brocker Reconnection starting");
 });
 
 // Notify offline status
 client.on("offline", function () {
-    console.log("Currently offline. Please check internet!");
+    console.log(" mosquitto brocker Currently offline. Please check internet!");
 });
 
 /*
@@ -520,7 +553,7 @@ let fc= function (gp,ind,inorout,cfg,mqttInst){// mqtt gpio constructor new fc w
 
 
     async function getgpio(clas){// get last entry in that.status[gpio] queue array, leave in array only last msg OR fill a listener for coming msg
-        // nb first time we receive a  msg queue is filled and we  wont  use listener if future
+        // nb first time we receive a  msg,  queue is filled and we  wont  use listener if future
         //   nb msg in queue can be very old !!! 
         // , returns 0 or 1 !
 
@@ -634,37 +667,38 @@ re= await stList();//(gp,123);// add a listener for device gp. when a msg arrive
 
 // caricamento valore letto  secondo tipo (rele/var/probe) e protocollo 
 
-if (clas == 1) {// rele
-if(that.cfg.protocol=='shelly') 
-{if (re == 'on') return ending( 1); else return ending( 0);}
-else return ending( null);// unknown
-}// relays value: 0/1
-else if (clas == 2||clas == 4) {// a var in mqttnumb or mqttprob
-if (re == '>ctlpresent') {// must come after POLP,  >>>>>    is a signal in incoming mqtt stream ,  used in var device 
-   // no more wait a next msg :  return rread(false);// discard (coming from this inst. or other)  ctl presence
-   if(curlength>0)console.error('can be an error in rread() processin a var ');
+    if (clas == 1) {// rele
+        if (that.cfg.protocol == 'shelly') { if (re == 'on') return ending(1); else return ending(0); }
+        else if (that.cfg.protocol == 'ro') { return ending(re);// the same re
+        }else return ending(null);// unknown
+    }// relays value: 0/1
+    else if (clas == 2 || clas == 4) {// a var in mqttnumb or mqttprob
+        if (re == '>ctlpresent') {// must come after POLP,  >>>>>    is a signal in incoming mqtt stream ,  used in var device 
+            // no more wait a next msg :  return rread(false);// discard (coming from this inst. or other)  ctl presence
+            if (curlength > 0) console.error('can be an error in rread() processin a var ');
 
-   console.log(' readsync() , dev: ',gp,', current queue : ',mqttInst.status[gp],' ,request ts # ',ts,'. warning a listener  fired with   still a presence/signal msg, so add another listener to be called on a new next message in a new listener list');
- //  mqttInst.status[gp].push(defVar);// anyway add def in top  queue
- resetListener=true;// or just add a listener in list queue
-   return rread(false);// relaunch rread
-}
-else {if(that.cfg.protocol=='mqttstate') // the msg is a value not a signal , according to proocol return a value (usually a var has integer)
-                                        // return a int or ''/null 
-// {if (re == 'on') return ending( 1); else return ending( 0);}
-{if (re == '') return ending(null) ;// '' or null
-else{ return ending( re);}// usually a integer 
-}
-else return ending( null);// unknown
-}
+            console.log(' readsync() , dev: ', gp, ', current queue : ', mqttInst.status[gp], ' ,request ts # ', ts, '. warning a listener  fired with   still a presence/signal msg, so add another listener to be called on a new next message in a new listener list');
+            //  mqttInst.status[gp].push(defVar);// anyway add def in top  queue
+            resetListener = true;// or just add a listener in list queue
+            return rread(false);// relaunch rread
+        }
+        else {
+            if (that.cfg.protocol == 'mqttstate') // the msg is a value not a signal , according to proocol return a value (usually a var has integer)
+            // return a int or ''/null 
+            // {if (re == 'on') return ending( 1); else return ending( 0);}
+            {
+                if (re == '') return ending(null);// '' or null
+                else { return ending(re); }// usually a integer 
+            }
+            else return ending(null);// unknown
+        }
 
-}else if (clas == 3) {// probe in mqttprob
-if (that.cfg.protocol=='shelly')
-{return ending( re);}
-else return ending( null);// unknown protocol
+    } else if (clas == 3) {// probe in mqttprob
+        if (that.cfg.protocol == 'shelly') { return ending(re); }
+        else return ending(null);// unknown protocol
 
 
-} 
+    } 
 
 
 else return ending( null);// error !
@@ -754,35 +788,32 @@ else return ending( null);// error !
                         console.log(' stlist() : this listener x dev : ', dev, ', is timeout so reviewing the list list of dim ', mqttInst.statusList[dev].length);
                         mqttInst.statusList[dev].splice(ind, 1);// delete it without wait for a probable  never coming msg !
                         console.log(' stlist() : this listener x dev : ', dev, ',  id ', ts, ', as overridden by timeout cannot process a next msg and  will delete its reference set in listener array index ', ind, ' , so the current listener list is now of dim ', mqttInst.statusList[dev].length);
-
                     }
                 }
-
                 res('');// timeout readsync result :  would be better reject !
-
-
             }, to);
-
         });
     }
 
 function ending (value) {
     resRetList(null);// no iterate listener 
-    console.log(' ** readsync() for portid ',gp,', is ending . reading val: ',value,', now current dev queue is : ',mqttInst.status[gp],' req id ',ts,' listener chained ',listCall);
-    return value;
+    console.log(' ** readsync()  , using instance ',mqttInst.id,' for portid ',gp,', is ending . reading val: ',value,', now current dev queue is : ',mqttInst.status[gp],' req id ',ts,' listener chained ',listCall);
+    console.log(' ** readsync()  ,debug  mqttTopPub is  ',mqttInst.mqttTopPub);
+    return valCorrection(value);
 }
 
 
 }// ends rread()
 return rread(true);
 
-}
+}// ends getgpio()
 
 }
 
-fc.prototype.writeSync = function (val) {// val 0/1, can return false if in error 
+fc.prototype.writeSync = function (val_) {// val 0/1, can return false if in error 
     // will send a topic KKUU as registered in init() conf data for the device 
     // todo : in dev config data we can mark a dev if is available for out (a shelly 1 relay) or 'in' a HT device
+    val=valCorrection(val_);
     let gp = this.gpio,// portid
     queue=this.mqttInst.status[gp],
     that=this;
@@ -802,10 +833,6 @@ fc.prototype.writeSync = function (val) {// val 0/1, can return false if in erro
             if(this.cfg.protocol=='shelly')
             if (val == 0) message = messageOff; else message = messageOn;
 
-
-
-
-
             // clear msg queue ( and its listener ? must be rejected ????)
             // WARNING hope a message in transit dont get here meanwile !!!!
             this.mqttInst.status[gp].length = 0; // ??????
@@ -815,7 +842,7 @@ fc.prototype.writeSync = function (val) {// val 0/1, can return false if in erro
                     console.log("An error occurred during publish on dev: ", gp);
                     return ending( false);
                 } else {
-                    console.log("Published on device ",dev," , a (no var) msg ",message,",successfully to " + topic);
+                    console.log("writeSync() , using instance ",that.mqttInst.id, " Published on device ",dev," , a (no var) msg ",message,',successfully with protocol ',this.cfg.protocol,' and topic ', topic);
                     return ending( true);
                 }
             });
@@ -843,20 +870,20 @@ fc.prototype.writeSync = function (val) {// val 0/1, can return false if in erro
                     console.log("An error occurred during publish on dev: ", gp);
                     return ending( false);
                 } else {
-                    console.log("Published on device ",dev," , a var msg ",message,",successfully to " + topic);
+                    console.log("writeSync() , using instance ",that.mqttInst.id, " Published on device ",dev," , a var msg ",message,",successfully to " + topic);
                     return ending( true);
                 }
             });}
             else return ending( false);// cant write to unknown proto 
 
-        }else if (this.clas == 3) {// a probe in mqttprob[i] . a prob cant write |||||||||||||||||  sodo  return true
+        }else if (this.cl == 3) {// a probe in mqttprob[i] . a prob cant write |||||||||||||||||  sodo  return true
             return ending( true);
     } else return ending( false);// return  false if error
 }else return ending( null);// cant write
 
 function ending (value) {
     that.lastwrite=value;// record last write
-    console.log(' ** writesync for portid ',gp,', is ending writinging val: ',val,', now current dev queue is : ',queue,' returning code',value);
+    console.log(' ** writesync , using instance ',that.mqttInst.id, ' for portid ',gp,', cl  ',that.cl,', is ending writinging val: ',val,', now current dev queue is : ',queue,' returning code',value);
     return value;
 
 }
@@ -874,6 +901,7 @@ module.exports ={// returns ...
     }
 }
 function mqttClass(plantconfig){
+    this.id= new Date().getTime();// debug 
     this.gpio=null;// not used // deleted : gpio=plantconfig.devid_shellyname||{11:'shelly1-34945475FE06'}; 
     this.mqttnumb=plantconfig.mqttnumb,
     this.mqttprob=plantconfig.mqttprob;// prob + var state cfg array
@@ -893,6 +921,7 @@ function mqttClass(plantconfig){
    this.futurecb[dev]=null;// it will be filled by the request of a dev ctl
    this.status[dev]=null;// the queue x device dev  not subscribed jet !
    this.statusList[dev]=[];// init list arrays
+   console.log('mqttClass() create a mqttInst id: ',this.id,' for plant ',this.plantName);
    }}
    //for(dev in mqttprob){
     for(let i=0;i< this.mqttprob.length;i++){
@@ -993,7 +1022,7 @@ mqttClass.prototype.fact = function(gp,ind,inorout='out'){// // gp=portid,ind=0,
                                                 // protocol:'shelly',subtopic:'shelly1-34945475FE06',
                                                 // if !'out'  +
                                                 // topic:'gas-pdc',varx:3,isprobe:false}
-        that=this;
+        that=this;// fact generated instance
 
     // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx 
         let ctlpack= {ctl:new fc(gp,ind,inorout,cfg,that),devNumb:ind,type:'mqtt'};// depend on inorout the model cfg is different (see  mqttnumb,mqttprob in plantconfig)
@@ -1068,26 +1097,36 @@ mqttClass.prototype.fact = function(gp,ind,inorout='out'){// // gp=portid,ind=0,
 
 
         function numbSubscr(val,that,ctlpack,subscred){// al subscribe del topic associato al dev , that=mqttInst
-
+                                                        // difference from pubSubscr() : 
+                                                        // fv3 will keep dev state into state.relais. 
+                                                        // so when fv3 algo change the state writesync pub to a cmd topic to change thephisical dev value according to state.relais and 
+                                                        // we dont need to check the dev output state pubs into topic if the update is done fromthisctl (writesync())
+                                                        //  so in var dev  we dont even fill dev queue with fromthisctl message coming to topic
+                                                        // var dev adds  a virtual cmd topic topicNodeRed that ( pubs by ext ctl)  will interrupt running a manual algo to change the state.relais state 
+                                                        // only if the dev change its state alne or ext dev ctl will cll its cmd topic we find a queue value different from internal state.relais
+                                                        // and we must (todo) interrupt with a specific manual algo to take care of the ext changes
+                                                        
+                                                        // pubSubscr() dont have state.relais , so the dev state must be read from queue (pay attention to delay from writesync)
+                                                        // to avoid delay problem between write and readsync ,  .....
             // subtopic:'shelly1-34945475FE06
             if(val==null)return false;
             let { portid, varx, isprobe, clas, protocol, subtopic } = val,// val=cfg,
             cl_class;
             
-        
             // now use std Subscribe variables for shelly 1 or shelly ht , 
             // todo in future :
             //      - will be customized using gpio set from device model config data in init() according with the type requested 
             //      - must be done when fc device is created because the subsciption data can depend on the way we want to use the device ( the type requested in fc(gp,ind,type))
-            let topic,topicPub,topicNodeRed,topicNodeRedPubish;
+            let topic,topicPub,topicNodeRed,// topicnodered realizza un virtual dev che comanda il dev via un cmd topic like shelly, puo essere rel o dev 
+            topicNodeRedPubish;// used ?
             if (clas == 'out') {
                 cl_class='rele';// rele
                 if (protocol == 'shelly') {// other protocol different from shelly can have different feature ex subscriptTopic and PubTopic !
                     // RTY
                     topic = // that.topPlantPrefix+
                     shelly_stopic + subtopic + shelly_topicp;// shellies/<model>-<deviceid>/relay  must be unique in all plants
-                    topicPub=shelly_stopic + subtopic + shelly_topicpp;//
-        
+                    topicPub=shelly_stopic + subtopic + shelly_topicpp;// writesync pub to a cmd topic
+                    topicNodeRed=topic+nodeRedp;// news : anche i shelly possono essere comandati con meccanismo virtual da un ext ctl come node red o openremote usando questo topic
                     client.subscribe(topic, shelly_options, function (err) {// in bash do : mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
                         if (err) {
                             console.log("An error occurred while subscribing shelly: ",err);
@@ -1099,19 +1138,40 @@ mqttClass.prototype.fact = function(gp,ind,inorout='out'){// // gp=portid,ind=0,
                         }
                     });
 
+                    if(topicNodeRed)client.subscribe(topicNodeRed, shelly_options, function (err) {// in bash do : mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+                        if (err) {
+                            console.log("An error occurred while subscribing a dev var")
+                        }else ;  // register a handler !
+                     });
+
                     
         
-        
+                }else if (OR_Present&&protocol == 'ro') {;// ro protocol , any protocol will work on a specific mqtt client (connected to a specific brocker )
+
+                    topic = // that.topPlantPrefix+
+                     'futureuse';// shellies/<model>-<deviceid>/relay  must be unique in all plants
+                    topicPub=subtopic;//
+                    roClient.subscribe(topic, shelly_options, function (err) {// in bash do : mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+                        if (err) {
+                            console.log("An error occurred while subscribing ro: ",err);
+                        } else {
+                            that.status[portid] = [];// LLPP : init array, so now is subscribed , was null (no subscribed)
+                            console.log('numbSubscr() deviceid/portid ',portid,' Subscribed successfully in plant ',that.plantName,' to ro brocker  out/rele protocol, topic: ' + topic);
+                            if (that.futurecb[portid]) that.futurecb[portid]();// check point to goon later when we want the gp ctl 
+                            if(subscred)subscred({topic,cl_class});
+                        }
+                    });
+                
                 } else return false;// other prococol x 'out' !!!!!!!!!!!!!!!!!!!
             }else if (!isprobe && varx != null && clas == 'var') {
                 cl_class='var';
         
-                if (protocol == 'mqttstate') {
+                if (protocol == 'mqttstate') {// var std prot
         
                     topic= that.topPlantPrefix+'ctl_' + subtopic + varx;// warning we add ctl_   !!!!!
                     topicNodeRed=topic+nodeRedp;
                     topicNodeRedPubish=topic+nodeRedpp;
-        
+                    topicPub=null;// // writesync pub to the topic so  if not fromthisctl will fill the dev (readsync) queue
   /*      
                     client.publish(topic, ">ctlpresent", opt);// send msg with testtopic topic for debug and trace in var itself a connection was asked?
                                                                 // >>> if the server keeps last var state we delete the current value ! 
@@ -1143,20 +1203,21 @@ mqttClass.prototype.fact = function(gp,ind,inorout='out'){// // gp=portid,ind=0,
                                 //client.publish(topic, 'giovanni', opt);
 
                                                     // subscribe to receive  node-red cmd
-                                client.subscribe(topicNodeRed, shelly_options, function (err) {// in bash do : mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+                                if(topicNodeRed)client.subscribe(topicNodeRed, shelly_options, function (err) {// in bash do : mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
                                     if (err) {
                                         console.log("An error occurred while subscribing a dev var")
-                                    } });
+                                    }else ;  // register a handler !
+                                 });
                                     }
                                 });
                 } else return false;// error 
               
             } else return false;// end clas checks
         
-            if(topic){that.mqttTop[portid]=topic;
+            if(topic){that.mqttTop[portid]=topic;// the topic of a port
                 if(invTopic[topic])log.error('numbSubscr() , error, found a device with already registered topic by someother plant !!!')
                 invTopic[topic]={portid,mqttInst:that,topic,topicNodeRed,cl_class,protocol,ctlpack};};// complete cfg to easier/better dev management !
-                if(cl_class=='var')invTopic[topicNodeRed]=invTopic[topic];// duplicate entry for cmd topic
+                if(topicNodeRed)invTopic[topicNodeRed]=invTopic[topic];// duplicate entry for cmd topic
             if(topicPub)that.mqttTopPub[portid]=topicPub;// register topic x publish if different from subscribe. can be null if writesync receves a null value
             return true;// ??
         }
@@ -1245,7 +1306,7 @@ mqttClass.prototype.fact = function(gp,ind,inorout='out'){// // gp=portid,ind=0,
         // just set the topic x the probe according to protocol 
         if (protocol == 'shelly') {
             topic='ctl_probe_' +subtopic;// according to device 
-            topicPub='';// x dummy write
+            topicPub='';// x dummy write  ??
             client.subscribe(topic, shelly_options, function (err) {// in bash do : mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
                 if (err) {
                     console.log("An error occurred while subscribing shelly")
@@ -1259,11 +1320,11 @@ mqttClass.prototype.fact = function(gp,ind,inorout='out'){// // gp=portid,ind=0,
 
         }
     }
-
     if(topic){that.mqttTop[portid]=topic;
         if(invTopic[topic])log.error('probSubscr() , error, found a device with already registered topic by someother plant !!!');
         invTopic[topic]={portid,mqttInst:that,topic,topicNodeRed,cl_class,protocol,ctlpack};
     };// complete cfg to easier/better dev management !
+    // QUESTION : prob var dev non ha meccanismo/topic topicNodeRed ? significa che gli ext ctl banalmente scrivono sul anche loro sul topic base in cui si legge lo stato. infatti non c'e' un state.relais !!!!
     if(topicPub)that.mqttTopPub[portid]=topicPub;// register topic x publish if different from subscribe. can be null if writesync receves a null value
     return true;// ??
 }
@@ -1287,3 +1348,9 @@ let retu;
 
    // let ret=JSON.parse(msg);
     }
+
+function  valCorrection(value){// change 0 <> 1
+if(value==null||isNaN(value))return value ;
+if(INVERTONOFF_RELAY)if(value==0)return 1; else return 0;
+
+}
