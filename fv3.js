@@ -16,7 +16,7 @@ const  pdate=function (){let d=new Date();d.setHours(d.getHours()+dOraLegale);re
 
 // debug staff normally is false
 const DEBUG_probe=true;// assign a std 20 degrees if no read on device  
-const PRTLEV=5;
+const PRTLEV=5;// print log level 
 
 
 // let getcfg=model.getcfg;//can  be used for plant cfg
@@ -698,11 +698,11 @@ if (Proto) eMClass.prototype.cfg = function (plantname) {// add a cfg static fun
                                                 // similar to subclass that just add cfg func to all instances !!!
                                                 //    and in constructor of subclass call cfg !!
                                                 // https://fromanegg.com/post/2013/01/03/constructor-chaining-inheritance-in-javascript/
-     console.log(' eMCustomClass : this is :\n',JSON.stringify(this,null,2));
+     if(PRTLEV>5) console.log(' eMCustomClass : this is :\n',JSON.stringify(this,null,2));
     //eMClass.apply(this,arguments);// calls instatiators
     // this=new eMClass(arguments);
     Object.assign(this, new eMClass(arguments));
-    console.log(' eMCustomClass : this now is :\n',JSON.stringify(this,null,2));
+    if(PRTLEV>5)console.log(' eMCustomClass : this now is :\n',JSON.stringify(this,null,2));
     this.cfg();// defined in this module, calls customOn(())
 
   }
@@ -1444,7 +1444,7 @@ console.log(' login() started x sername: ',opAPIUser);
       })
   })
   */
-  console.log(' getstat called with state: ',JSON.stringify(state,null,2));
+  if(PRTLEV>5)console.log(' getstat called with state: ',JSON.stringify(state,null,2));
   let bodies=// {body,devTypeId,extract}. extract: extrat usefull info (put in state.aiax,xxx) from resu.data, result=resu={data,token} 
   { inverter:  {body: {devIds:state.app.plantconfig.huawei.inv,// body: the post request 
                 devTypeId:"38"},
@@ -1592,7 +1592,7 @@ resu;
           })
       })
       */
-      console.log(' getWeath called with state: ',JSON.stringify(state,null,2));
+      if(PRTLEV>5)console.log(' getWeath called with state: ',JSON.stringify(state,null,2));
       let bodies=// {body,devTypeId,extract}. extract: extrat usefull info (put in state.aiax,xxx) from resu.data, result=resu={data,token} 
       { cloudly:  {body: null,// to be transf into url enc
                     extract:(data)=> {
@@ -1844,7 +1844,7 @@ function customOn(these) {// set .on custom handler (event called by execute())
 
 
     let state=these.state;//this.state;
-    console.log(' handler fired by event startcheck, with input data: ',inp,' state: ',state);
+    if(PRTLEV>5)console.log(' handler fired by event startcheck, with input data: ',inp,' state: ',state);
  
     /* old
     let calc=(st) =>{// returns false if anticipating
@@ -2091,7 +2091,7 @@ async function ( inp_, cb) {// the fsm ask state updates (we use openapi) : will
   if(inp_&&inp_.initProg){probes=inp_.initProg;// probes={giorno/119.2,notte/2:,,,,}
 
   let state=these.state;//this.state;
-  console.log(' handler fired by event genZoneRele , with input data: ',inp_,' state: ',state);
+  if(PRTLEV>5)console.log(' handler fired by event genZoneRele , with input data: ',inp_,' state: ',state);
 
   /* old
   let calc=(st) =>{// returns false if anticipating
@@ -2240,7 +2240,7 @@ const d = new Date();
 let procName='startcheck'+ d.toString();//d.toLocaleString();
 
 
-console.log(' old (prefer .....) repdayly()  start  procedure ',procName,' fn: ',fn);
+if(PRTLEV>5)console.log(' old (prefer .....) repdayly()  start  procedure ',procName,' fn: ',fn);
   // pprogram the process to call 
 
  // let evAsyn = {asyncFunc:'',evname1:1,startcheck:0};// {asyncfunc to run in some poins:avalue?,the eventasynctorunin sequence:avalue?}startcheck=1 after updated the status will fire startcheck
@@ -2756,7 +2756,57 @@ function setPump(pumpnumber,on,fn){// 0,1,2,3    on : changing value (true/1 or 
   return Promise.resolve(true);// why return promises ?
 }
 
+function setManual (pump_, val, coming,checked,eM)  {// this will be like the final part of a manual algo: propose a single pump value to be evaluater with all other active algo by optimize
+  // the proposal evaluated by execute is in state.lastUserAlgo.pumps
+  // val =0/1
+  if (!eM) console.log('error: pump socket event called ,param: ', pump_, val, coming,checked);// to log too
+  if (!eM) console.error('pump socket event, eM is null ', pump_, val, coming);
 
+
+  // console.log(' manualAlgoProposal() called x pump: ',pump_,' set value: ',val,' coming from: ',coming,' ctl is null: ',!eM);
+  if (!eM) console.error('manualAlgoProposal(), eM is null , cant process browser old event call');
+  if (!eM) console.log('manualAlgoProposal(), eM is null '); else console.log(' manualAlgoProposal(), eM is found ');
+  if (eM) {
+    let pumps, defTO,// pumps:proposal of user for pumps, not expired if not null
+      // defTO[i] default time out  for pumps[i] ??
+      state = eM.state; lastUserAlgo = eM.state.lastUserAlgo;
+
+    // recover pumps proposal
+    // lastUserAlgo={defTo=[],pumps:[true,false,null,,,],updatedate,policy,algo}
+    if (lastUserAlgo && checkval(lastUserAlgo)) {
+      pumps = eM.state.lastUserAlgo.pumps;
+      defTO = eM.state.lastUserAlgo.defTO;
+    } else {
+      pumps = new Array(state.app.plantconfig.relaisEv.length).fill(null);// todo  same length as  relaisEv
+      defTO = new Array(state.app.plantconfig.relaisEv.length).fill(null);
+      // ?? eM.state.lastUserAlgo=false;// expired !
+      eM.state.lastUserAlgo = { policy: 0, algo: "usermanual0" };
+    }
+    let updatedate = pdate(),debug11=false;
+    if(!debug11)state.app.plantconfig.relaisEv.forEach((name, ind) => {// insert new proposal on ind pump
+      if (name == pump_) {
+        if(checked!=0 ){// if set not change scadenza
+          if(pumps[ind]!=null){
+        if (val == 0) pumps[ind] = false; else pumps[ind] = true;
+
+        defTO[ind] = updatedate.getTime() + 3600 * 24 * 1000;// scade dopo 24 ore 
+        }}else{
+          pumps[ind]=null;
+        }
+      }
+    })
+
+    // similar to:  state.lastAnticAlgo={updatedate:new Date().toLocaleString(),level:1,policy:0,algo,pumps:aTT,model};// level is the temp level 0, then 1 after 1 hour. policy is the param of algo that will comand relays to perform a objective; eco,lt,ht,timetable
+    eM.state.lastUserAlgo.updatedate = updatedate.toLocaleString();
+    eM.state.lastUserAlgo.pumps = pumps;// 
+    eM.state.lastUserAlgo.defTO = defTO;
+
+    console.log('manualAlgoProposal(), set the manual proposal on state.lastUserAlgo ', eM.state.lastUserAlgo);
+
+  }
+
+
+};// 
 
 
 
@@ -3593,7 +3643,6 @@ console.log(' buildPlantDev(),got dev ctl list: ',state.devMap);
 // ???????????????????????
 // run();// load in ctl the oparational available dev i/o
 
-// 
 
 if(relaisEv.length>eM.iodev.relais_.length)console.error('buildPlantDev() : managed dev relaisEv are more then avalable devices .iodev.relais_ ! plesa abort ')
   // implements also a button/algo handler array for actuators / pumps
@@ -3601,7 +3650,7 @@ if(relaisEv.length>eM.iodev.relais_.length)console.error('buildPlantDev() : mana
   // GGTTFF
 let pumpsHandler=eM.pumpsHandler; 
 
-  relaisEv.forEach((pump,ind) => {// ['pdc',// socket event to sync raspberry buttons and web button
+  relaisEv.forEach((pump,ind) => {// pump='pdc', ind=2// socket event to sync raspberry buttons and web button
     // 'g','n','s']
     
 if(!eM)console.error('event connection setting hw button , eM is still null ');
@@ -3613,13 +3662,18 @@ if(relais&&relais[ind])relais[ind].watch(pumpsHandler[ind]);// attach same handl
                           // that handler works also x algo handler called in attuators/setpump   ex pumpsHandler[0](err,value) 0 means pdc pump
 
 
-// now do the same for mqtt interrupts for var updating 
+// now do the same for mqtt interrupts for var dev updating  and rele dev , cl = 1 e 2 , no cl 4
 
-if(eM.iodev.relais_[ind]&&eM.iodev.relais_[ind].cl&&(eM.iodev.relais_[ind].cl==2||eM.iodev.relais_[ind].cl==4)){// the dev is a mqtt var , see VVCC in howto
+if(eM.iodev.relais_[ind]&&eM.iodev.relais_[ind].cl&&(eM.iodev.relais_[ind].cl==2||eM.iodev.relais_[ind].cl==1)){// the dev is a mqtt var , see VVCC in howto
 
-    eM.iodev.relais_[ind].int= (val='0',queue,lastwrite)=>{// the int func . 25052023 val is '0' or '1' > error !!!
+  // define interrupt handler for hadling cmd topic topicNodeRed in cl 1 e 2 
+  eM.iodev.relais_[ind].int0=Inter0;// handler point to setPump()
+  eM.iodev.relais_[ind].int1=Inter1;// handler point to setManual()
+    
+    function Inter0 (val='0',queue,lastwrite){// the int func . 25052023 val is '0' or '1' > error !!!  .  call setPump !
+
     let isOn=val==1,isoff=0;
-    console.log(' abilita2 interrupt : receiving   var ',pump,', msg val (0/1) : ',val,' , actual status is :',state.relays[pump],' , queue is :',queue,', lastwrite (true/false) was ',lastwrite);
+    console.log(' abilita2 interrupt Inter0 : receiving   var ',pump,', msg val (0/1) : ',val,' , actual status is :',state.relays[pump],' , queue is :',queue,', lastwrite (true/false) was ',lastwrite);
     // idea just interrupt if is different then state.ralays[dev]!
     let val_;
     if(!Number.isNaN(val_=Number(val))){// val is conveted to integer
@@ -3629,8 +3683,34 @@ if(eM.iodev.relais_[ind]&&eM.iodev.relais_[ind].cl&&(eM.iodev.relais_[ind].cl==2
   console.log(' abilita2 interrupt : fire interrupt to change value : ',val,' so we change val as ',val_,' , on dev ',pump);
  //   setPump(ind,val_!=0,eM,session,clientDiscon);// return a promise , ok ?? val=0,1
     setPump(ind,val_!=0,eM);// return a promise , ok ?? val=0,1
+      // <<<<<<<<<<<<    would be better call user algo ( manual set ) ?
+
     } else console.log(' abilita2 interrupt : fire interrupt to change value : ',val,' but was not a string number so discard .  , on dev ',pump);
   }
+
+  function Inter1 (val=0,queue,data){// url='setMan', (val,checked,queue,lastwrite){// the int func . 25052023 val is '0' or '1' > error !!!  . call setManual
+                                      // 25052023 val,checked is 0 or 1   . call setManual
+
+  
+  let val_,checked_;
+  //  if(!Number.isNaN(val_=Number(data.val))&&!Number.isNaN(checked_=Number(data.checked))&&data,val&&data.checked){// val='0','1'  . checked='0','1'
+  if(!Number.isNaN(val_=data.payload)&&!Number.isNaN(checked_=data.checked)){// payload is integer, so checked : 0/1
+   
+    console.log(' abilita2 interrupt Iter1 : receiving   var ',pump,', msg val (0/1) : ',val_,'  checked : ',checked_,'  , actual status is :',state.relays[pump],' , queue is :',queue,', data was ',data);
+
+      if(val_==0) ;else val_=1;
+
+
+  console.log(' abilita2 interrupt : fire interrupt to set/unset : ',checked_,' Manual Algo with value : ',val_,' , on dev ',pump);
+
+  //    setPump(ind,val_!=0,eM);// return a promise , ok ?? val/checked=0,1
+  setManual (pump, val_,"ext cmd",checked_,eM);
+    } else console.log(' abilita2 interrupt Inter1 : fire interrupt to change value : ',val,' but was not valid message to process .  , on dev ',pump);
+  }
+
+  // set other int handler for different income msg :
+  // eM.iodev.relais_[ind].int1= .....
+
 }
 
 
@@ -3788,49 +3868,8 @@ if(eM.iodev.relais_[ind]&&eM.iodev.relais_[ind].cl&&(eM.iodev.relais_[ind].cl==2
  });// 
 
 
- socket.on('manualAlgoProposal',(pump_,val,coming) => {// this will be like the final part of a manual algo: propose a single pump value to be evaluater with all other active algo by optimize
-                                                      // the proposal evaluated by execute is in state.lastUserAlgo.pumps
-                                                      // val =0/1
-  if(!eM)console.log('error: pump socket event called ,param: ',pump_,val,coming);// to log too
-  if(!eM)console.error('pump socket event, eM is null ',pump_,val,coming);
+  socket.on('manualAlgoProposal',(pump_, val, coming,checked)=>setManual(pump_, val, coming,checked,eM));
 
-
-    // console.log(' manualAlgoProposal() called x pump: ',pump_,' set value: ',val,' coming from: ',coming,' ctl is null: ',!eM);
-    if(!eM)console.error('manualAlgoProposal(), eM is null , cant process browser old event call');
-    if(!eM)console.log('manualAlgoProposal(), eM is null ');else console.log(' manualAlgoProposal(), eM is found '); 
-    if(eM){
-      let pumps,defTO,// pumps:proposal of user for pumps, not expired if not null
-                      // defTO[i] default time out  for pumps[i] ??
-      state=eM.state;lastUserAlgo=eM.state.lastUserAlgo;
-
-      // recover pumps proposal
-      // lastUserAlgo={defTo=[],pumps:[true,false,null,,,],updatedate,policy,algo}
-      if(lastUserAlgo&&checkval(lastUserAlgo)){pumps=eM.state.lastUserAlgo.pumps;
-        defTO=eM.state.lastUserAlgo.defTO;
-      }else {pumps= new Array(state.app.plantconfig.relaisEv.length).fill(null);// todo  same length as  relaisEv
-      defTO= new Array(state.app.plantconfig.relaisEv.length).fill(null);
-      // ?? eM.state.lastUserAlgo=false;// expired !
-      eM.state.lastUserAlgo={policy:0,algo: "usermanual0"};
-    }
-      let updatedate=pdate();
-      state.app.plantconfig.relaisEv.forEach((name,ind)=>{// insert new proposal on ind pump
-        if(name==pump_){if(val==0)pumps[ind]=false;else pumps[ind]=true;
-
-          defTO[ind]=updatedate.getTime()+3600*24*1000;// scade dopo 24 ore 
-        }
-      })
-
-// similar to:  state.lastAnticAlgo={updatedate:new Date().toLocaleString(),level:1,policy:0,algo,pumps:aTT,model};// level is the temp level 0, then 1 after 1 hour. policy is the param of algo that will comand relays to perform a objective; eco,lt,ht,timetable
-  eM.state.lastUserAlgo.updatedate=updatedate.toLocaleString();
-  eM.state.lastUserAlgo.pumps=pumps;
-  eM.state.lastUserAlgo.defTO=defTO;
- 
-  console.log('manualAlgoProposal(), set the manual proposal on state.lastUserAlgo ',eM.state.lastUserAlgo);
-
-    }
-   
-
- });// 
 
 
 

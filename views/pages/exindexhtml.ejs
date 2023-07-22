@@ -454,19 +454,19 @@ ejscont.pumps.forEach((el,ind)=>{// append to div some paragraphs with input as 
 
 
 let p = document.createElement("p");//    <p><input type="checkbox" id="sm< %=i% >" onclick="man(< %=i% >)">Set Manual</p>
-  let x = document.createElement("INPUT");
- //  x.setAttribute("type", "checkbox");
- x.setAttribute("type", "button");
+  let x = document.createElement("INPUT"),x1 = document.createElement("INPUT");
+ 
+    x.setAttribute("type", "button"  ); x1.setAttribute("type", "checkbox");
 
-   x.setAttribute("id","sm"+ind);
- // x.onchange = my2;
- //x.addEventListener('change',man(ind) );
+   x.setAttribute("id","sm"+ind);  x1.setAttribute("id","sm_"+ind);
+ // // x1.onchange = my2;
+ // x1.addEventListener('change',man1(ind) );
  x.addEventListener('click',man1(ind) );
  
 
   //function jsFunc() {document.getElementById("io").style.backgroundColor = "Purple";}
 
- p.append(x,"Set Manual");
+ p.append(x,"Set Manual");p.append(x1,"Set/Reset");
 // p.appendChild(x);
 div.append( p);
 //div.innerHTML += `<br> &nbsp; &ensp; &emsp; ciao <br><h1>${title}</h1>`; // cancella il onchange
@@ -477,15 +477,15 @@ div.append( p);
 function man1(id) { 
       return function(){
      
-      let elm;
-      if ((elm=document.getElementById('cars'+id))) { // se un elemento con l'identificativo specificato esiste,
+      let elm,elm1;
+      if ((elm=document.getElementById('cars'+id))&&(elm1=document.getElementById('sm_'+id))) { // se un elemento con l'identificativo specificato esiste,
 
 
-     let res=this.value;
+     let res=elm.value;//this.value;
 
- let val_;
-    if(!Number.isNaN(val_=Number(res))){// res is conveted to integer
- socket.emit('manualAlgoProposal', el.id, val_, 'browserchangeflag'); //send browser flag status  to server, similar as HYN
+ let val_,checked_;
+    if(!Number.isNaN(val_=Number(res))&&!Number.isNaN(checked_=Number(elm1.checked))){// res is conveted to integer
+ socket.emit('manualAlgoProposal', el.id, val_, 'browserchangeflag',checked_); //send browser flag status  to server, similar as HYN
         }else;
       
 
@@ -514,8 +514,8 @@ let p = document.createElement("p");//    <p>>&emsp; <input type="checkbox" id="
 //  var myParent = document.getElementById('pcont');
 
 //Create array of options to be added
-var array = ["on","off"];
-var array1 = ["0","1"];
+var array = ["1","0"];//array = ["on","off"];
+var array1 = ["1","0"];
 
 //Create and append select list
 let x = document.createElement("select");

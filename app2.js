@@ -7,6 +7,8 @@ const readline = require('readline').createInterface({// see https://stackoverfl
   output: process.stdout,
 });
 const dOraLegale=parseInt(process.env.dOraLegale)||0;
+
+const PRTLEV=5;// print log level 
 /*
 
 summary:
@@ -449,7 +451,8 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
             let lent=that.state.relHistory[that.state.relHistory.length-1];
             that.state.relHistory.length=1;that.state.relHistory[0]=lent;// reset array push last entry
           };
-      console.log('****\n execute procedure: ',procName,' stopped running with  step/code ',stepNum,', relHistory dim: ',that.state.relHistory.length,' cur state: ',that.state,' Time Consumed : ');console.timeEnd('execute '+procName);
+      console.log('****\n execute procedure: ',procName,' stopped running with  step/code ',stepNum,', relHistory dim: ',that.state.relHistory.length,' Time Consumed : ');console.timeEnd('execute '+procName);
+      if(PRTLEV>5) console.log(' ..... cur state: ',that.state);
       // moved this.on('data', (data)=> console.log('got data ', data));
 
       if (procName == 'customEv') { };

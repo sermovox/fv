@@ -1,4 +1,5 @@
 const DEBUG=true;// if false after updating model.js clear the plant state in persistant file .data/ !!
+const PRTLEV=5;// print log level 
 let fs = require('fs'); //require filesystem module. or add a init:(fs_)=>{fs=fs_;return this;}
 let prettyJSONStringify = require('pretty-json-stringify');
 const toprjdit='/../../'// from this dir to project dir
@@ -115,7 +116,7 @@ const api={// see https://javascript.info/promise-chaining
               });
   
   
-              console.log('loadScriptsFromFile, cant find a data json obj: ',file,' , so crete a basic state: ',ctl.state);
+              if(PRTLEV>5) console.log('loadScriptsFromFile, cant find a data json obj: ',file,' , so crete a basic state: ',ctl.state);
   
   
   
@@ -131,7 +132,7 @@ const api={// see https://javascript.info/promise-chaining
 
   
           //PATH_TO_SCRIPTS = src;api.mapTriggers();
-          console.log('loadScriptsFromFile , resolving scripts: ',scripts);
+          if(PRTLEV>5)  console.log('loadScriptsFromFile , resolving scripts: ',scripts);
           resolve(ctl);
       });
   },
@@ -157,7 +158,7 @@ const api={// see https://javascript.info/promise-chaining
           return true;
       }
   });
-  console.log('sendstatus() pretty is: ',prettyjson);
+  if(PRTLEV>5) console.log('sendstatus() pretty is: ',prettyjson);
     fn.socket.emit('status',fn.state,prettyjson);// send the status to the browser too, also if the related plant section is not jet visible !
     if(fn.socketNR)fn.socketNR.emit('state',fn.state);// in case a node-red is listening 
 
