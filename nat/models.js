@@ -54,13 +54,13 @@ cfgMarsonLuigi={ name:'MarsonLuigi_API',// duplicated FFGG
 
                 // a var  add also write capabiliy , so can be used as gen state var to modify with mqtt app/node red . as mqtt num will ha a frame below relay state in browser !
         
-
       relaisEv:['heat','pdc','g','n','s','split'
-        ,'gaspdcPref'],// dev name x mqttnumb cfg  will appears in browser list of relays // >>>>>>>>> todo   add here and in fv3 a new item : heatht !!!!!!!!!!!!!!
+        ,'gaspdcPref','acs'
+        ],// dev name x mqttnumb cfg  will appears in browser list of relays // >>>>>>>>> todo   add here and in fv3 a new item : heatht !!!!!!!!!!!!!!
                                                 // //  relays : https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001
       // titles:["HEAT Low Temp","HEAT High Temp"," PdC (vs GAS)","g"," Zona Notte"," Seminterrato"," Splits"],
       titles:["HEAT Low Temp"," PdC (vs GAS)","g"," Zona Notte"," Seminterrato"," Splits"
-        ,"gaspdcPref"]//,// description of device name
+        ,"gaspdcPref","block acs"]//,// description of device name
 
       // put into mqttnumb !!!
         //devid_shellyname:{11:'shelly1-34945475FE06'// mqtt device id-s/n relais and probes !!!!   , details
@@ -69,9 +69,13 @@ cfgMarsonLuigi={ name:'MarsonLuigi_API',// duplicated FFGG
                                                 //              >>> (now we use a def cfg (out:shelly 1 and in:shelly ht) in mqtt ) 
                                                 // 11:{sn:'shelly1-34945475FE06',types:['in,'out'],subscrptiondata:{in:{},out:{},publishcfg:{}}
                         //}
-        ,anticInterm2VirtMap:{gaspdcPref:[true,true,true,null,null,true,null]}//{aintermediateinrelaisEv:[true,false,null,,,,]}
+        ,anticInterm2VirtMap:{gaspdcPref:[true,true,true,null,null,true,null,false]}//{aintermediateinrelaisEv:[true,false,null,,,,]} update of virtual dev to apply if a intermediate is set true by anticipate
                         // or a function(state) returning [true,false,null,,,,]
-        ,virt2realMap:[0,1,2,3,4,5,6],
+                        // virtual pdc (index =7) is set true: appena il intermediate è true pdc e' settato e verra data priorita al acs piuttosto che al condizionamento
+                        // se si vuole bloccare la acs nella partecentrale della finestra in cui gaspdcPref e' true va introdotto altre regole/array:
+                        // ex : si introduce un contattore che misura i tempo di attivazione di gaspdcpref (t) e si setta pdc a t=0 e dopo le 14
+        ,virt2realMap:[0,1,2,3,4,5,6,7],
+        relaisDef:[false,false,false,false,false,false,false,true],// dafault value (if none algo propose true/false)
         invNomPow:6,
         huawei:{inv:"1000000035350464",bat:"1000000035350466"}// devid
         };
@@ -112,11 +116,12 @@ cfgCasina={ name:'Casina_API',// duplicated FFGG
                 // a var  add also write capabiliy , so can be used as gen state var to modify with mqtt app/node red . as mqtt num will ha a frame below relay state in browser !
         
       relaisEv:['heat','pdc','g','n','s','split'
-        ,'gaspdcPref'],// dev name x mqttnumb cfg  will appears in browser list of relays // >>>>>>>>> todo   add here and in fv3 a new item : heatht !!!!!!!!!!!!!!
+        ,'gaspdcPref','block acs'],// dev name x mqttnumb cfg  will appears in browser list of relays // >>>>>>>>> todo   add here and in fv3 a new item : heatht !!!!!!!!!!!!!!
                                                 // //  relays : https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001
       // titles:["HEAT Low Temp","HEAT High Temp"," PdC (vs GAS)","g"," Zona Notte"," Seminterrato"," Splits"],
       titles:["HEAT Low Temp"," PdC (vs GAS)","g"," Zona Notte"," Seminterrato"," Splits"
-        ,"gaspdcPref"]//,// description of device name
+        ,"gaspdcPref",
+        "acs"]//,// description of device name
 
       // put into mqttnumb !!!
         //devid_shellyname:{11:'shelly1-34945475FE06'// mqtt device id-s/n relais and probes !!!!   , details
@@ -125,9 +130,10 @@ cfgCasina={ name:'Casina_API',// duplicated FFGG
                                                 //              >>> (now we use a def cfg (out:shelly 1 and in:shelly ht) in mqtt ) 
                                                 // 11:{sn:'shelly1-34945475FE06',types:['in,'out'],subscrptiondata:{in:{},out:{},publishcfg:{}}
                         //}
-        ,anticInterm2VirtMap:{gaspdcPref:[true,true,true,null,null,true,null]}//{aintermediateinrelaisEv:[true,false,null,,,,]}
+        ,anticInterm2VirtMap:{gaspdcPref:[true,true,true,null,null,true,null,false]}//{aintermediateinrelaisEv:[true,false,null,,,,]}
                                                                                 // or a function(state) returning [true,false,null,,,,]
-        ,virt2realMap:[0,1,2,3,4,5,6],// std virtual group , map only if >=0 
+        ,virt2realMap:[0,1,2,3,4,5,6,7],// std virtual group , map only if >=0 
+        relaisDef:[false,false,false,false,false,false,false,true],// dafault value (if none algo propose true/false)
         invNomPow:5,
         huawei:{inv:"1000000036026833",bat:"1000000036026834"}// devid
 
@@ -181,6 +187,7 @@ function getconfig(plant='MarsonLuigi_API'){// =plantconfig, general obj to cust
                         mqttprob:plants[plant].cfg.mqttprob,
                         relaisEv:plants[plant].cfg.relaisEv,
                         anticInterm2VirtMap:plants[plant].cfg.anticInterm2VirtMap,
+                        relaisDef:plants[plant].cfg.relaisDef,
                         virt2realMap:plants[plant].cfg.virt2realMap,
                         huawei:plants[plant].cfg.huawei,
                         invNomPow:plants[plant].cfg.invNomPow,

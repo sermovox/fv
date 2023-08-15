@@ -884,7 +884,7 @@ state.program.triggers2.lastT=[date.toLocaleString(),probes];//JSON.stringify(pr
       for(let i=0;i<zonelist.length;i++){// scan inp keys : the zones to find the current index in inp
         // todo improvement: if probes[i]= null allora non modificare il relativo pump !!!!  ( set null ! )
 
-        if(toact(zonelist[i],probes[zonelist[i]],inp[zonelist[i]],isSummer)){// zona,valore sonda, programma orario x la zona
+        if(toact(zonelist[i],probes[zonelist[i]],inp[zonelist[i]],isSummer)){// zona,valore sonda, programma orario x la zona,Summer/Winter
           activation=true;
           toactivate.push(zonelist[i]);// inserisce il programma che necesita una attivazione in toactivate
         }
@@ -2573,12 +2573,12 @@ let state=fn.state,relays=state.relays,// the state of device displayed on brows
 relaisEv=state.app.plantconfig.relaisEv;
 
 
-let aTT=consolidate(state,'program');// this is virtual dev. now all algo works on a single def appDevSpaceGroup and produce the def virtual dev set
+let aTT=consolidate(state,'program'),// this is virtual dev. now all algo works on a single def appDevSpaceGroup and produce the def virtual dev set
                                       // in future can be many groups with some algo working on its group , so aTT will be a array , on wich apply a array of map 
 
 // mapping , use already set in plantconfig/plantcfg, for ex plantconfig :
 
-map=state.app.plantconfig.virt2realMap;
+map=state.app.plantconfig.virt2realMap;// //  iesimo virtual dev is mapped to index= map[i] of name: relaisEv[i], con state:relays[relaisEv[i]])  
 
 
 console.log(' attuators() : current real custom relays pump state is : ',relays,' VIRTUAL target values : ',aTT,' to map into (if>=0) real: ',map);
@@ -2598,7 +2598,7 @@ let i,mmax=aTT.length,mapmax=map.length;
     if (i < mapmax) realind = map[i];// apply map only if are >=0
     else realind = i;// identity 
                 
-      if (aTT[i] != null &&// both null or undefined, the iesimo virtual dev to set on real dev of index map[i]
+      if (aTT[i] != null &&// not both null or undefined, the iesimo virtual dev to set on real dev of index map[i]
                              // at present usually consolidate assign true or false to any dev , so we rewrite each time consolidate runs (on a loop ago or program algo )
            realind >= 0 && realind < relaisEv.length &&//  iesimo virtual is mapped to index= map[i] of name: relaisEv[i], con state:relays[relaisEv[i]])  ,i=-1 means do not map, virtual not used here 
            (forceWrite||aTT[i] != relays[relaisEv[realind]])) {// write to dev , also if present state is the same , infact dev can change val in different way 
@@ -2773,7 +2773,7 @@ function setManual (pump_, val, coming,checked,eM)  {// this will be like the fi
 
     // recover pumps proposal
     // lastUserAlgo={defTo=[],pumps:[true,false,null,,,],updatedate,policy,algo}
-    if (lastUserAlgo && checkval(lastUserAlgo)) {
+    if (lastUserAlgo && checkval(lastUserAlgo)) {// the current request array is valid , so update the current pump_ request item
       pumps = eM.state.lastUserAlgo.pumps;
       defTO = eM.state.lastUserAlgo.defTO;
     } else {
@@ -2783,25 +2783,32 @@ function setManual (pump_, val, coming,checked,eM)  {// this will be like the fi
       eM.state.lastUserAlgo = { policy: 0, algo: "usermanual0" };
     }
     let updatedate = pdate(),debug11=false;
-    if(!debug11)state.app.plantconfig.relaisEv.forEach((name, ind) => {// insert new proposal on ind pump
+    if (!debug11) state.app.plantconfig.relaisEv.forEach((name, ind) => {// insert new proposal on ind pump
       if (name == pump_) {
-        if(checked!=0 ){// if set not change scadenza
-          if(pumps[ind]!=null){
-        if (val == 0) pumps[ind] = false; else pumps[ind] = true;
-
-        defTO[ind] = updatedate.getTime() + 3600 * 24 * 1000;// scade dopo 24 ore 
-        }}else{
-          pumps[ind]=null;
+        if (checked != 0) {// if set not change scadenza
+          if (pumps[ind] != null) {// there is previous user request for this pump : update it 
+            if (val == 0) pumps[ind] = false; else pumps[ind] = true;
+            defTO[ind] = updatedate.getTime() + 3600 * 24 * 1000;// scade dopo 24 ore 
+          }else{// there was no previuos request so do now . same as above ???
+            if (val == 0) pumps[ind] = false; else pumps[ind] = true;
+            defTO[ind] = updatedate.getTime() + 3600 * 24 * 1000;// scade dopo 24 ore 
+          }
+        } else {// if reset cancel previous user request
+          pumps[ind] = null;// no requirement from user for this rele
         }
       }
     })
-
     // similar to:  state.lastAnticAlgo={updatedate:new Date().toLocaleString(),level:1,policy:0,algo,pumps:aTT,model};// level is the temp level 0, then 1 after 1 hour. policy is the param of algo that will comand relays to perform a objective; eco,lt,ht,timetable
     eM.state.lastUserAlgo.updatedate = updatedate.toLocaleString();
     eM.state.lastUserAlgo.pumps = pumps;// 
     eM.state.lastUserAlgo.defTO = defTO;
 
     console.log('manualAlgoProposal(), set the manual proposal on state.lastUserAlgo ', eM.state.lastUserAlgo);
+
+    // instead to call setanticipateFlag(set_,eM,algo,activeAlgoRes);
+    // we call directly  anticipateFlag(set_,fn,algo,activeAlgoRes)
+    //  anticipateFlag(true,fn,'manual');   or : 
+    anticipateFlag(true,eM,'manual','lastUserAlgo');// todo  : manca il call al reset del algo manual : anticipateFlag(false,fn,'manual','lastUserAlgo')
 
   }
 
@@ -3265,7 +3272,7 @@ function setanticipateflag(set_,algo,activeAlgoRes=null){ // store in state the 
   //    and
   //    state[activeAlgoRes]=false    the last algo result are nullified so dont influence relay set 
   
-  // nbnb is duplicated !!!!
+  // nbnb is a duplicated copy of  other namespace.on() : see AAQQOO  .    !!!! todo do 1 function only 
 
 
 if(!eM)console.error('.. setanticipateflag() eM is null ');
@@ -3522,8 +3529,6 @@ return buildPlantDev();
 async function buildPlantDev(){// build here the plant ctl devices (ctl/eM/fn).iodev.relais_ dev/pumps (+ /button switch) and their handlers 
 
 
-
-
 // start building relais_ the dev io ctl  
 // start mqtt connection :
 let mqttInst;//
@@ -3690,7 +3695,14 @@ if(eM.iodev.relais_[ind]&&eM.iodev.relais_[ind].cl&&(eM.iodev.relais_[ind].cl==2
 
   function Inter1 (val=0,queue,data){// url='setMan', (val,checked,queue,lastwrite){// the int func . 25052023 val is '0' or '1' > error !!!  . call setManual
                                       // 25052023 val,checked is 0 or 1   . call setManual
-
+                                      /* {payload: 1,
+                                          sender: {
+                                            plant: "Casina_API",
+                                            user: 55,
+                                          },
+                                          url: "setMan",
+                                          checked: 1,
+                                        }*/
   
   let val_,checked_;
   //  if(!Number.isNaN(val_=Number(data.val))&&!Number.isNaN(checked_=Number(data.checked))&&data,val&&data.checked){// val='0','1'  . checked='0','1'
@@ -3704,7 +3716,7 @@ if(eM.iodev.relais_[ind]&&eM.iodev.relais_[ind].cl&&(eM.iodev.relais_[ind].cl==2
   console.log(' abilita2 interrupt : fire interrupt to set/unset : ',checked_,' Manual Algo with value : ',val_,' , on dev ',pump);
 
   //    setPump(ind,val_!=0,eM);// return a promise , ok ?? val/checked=0,1
-  setManual (pump, val_,"ext cmd",checked_,eM);
+  setManual (pump, val_,"ext cmd",checked_,eM);// val_ /checked_ =0/1
     } else console.log(' abilita2 interrupt Inter1 : fire interrupt to change value : ',val,' but was not valid message to process .  , on dev ',pump);
   }
 
@@ -3884,14 +3896,22 @@ if(eM.iodev.relais_[ind]&&eM.iodev.relais_[ind].cl&&(eM.iodev.relais_[ind].cl==2
                             */
 
 
-function setanticipateflag(set_,algo,activeAlgoRes=null){ // store in state the algo launch params (ex: triggers), update state store :
+function setanticipateflag(set_,algo,activeAlgoRes=null){ //  AAQQOO  
+                                                          // store in state the algo launch params (ex: triggers), update state store :
                                                           // state[algo]=.... ex state.anticipate={....}  .
                                                           // if set_=null :  state.anticipate=false
                                                           //    state[algo]=false     the algo init parm are false because the algo is not active
                                                           //    and
                                                           //    state[activeAlgoRes]=false    the last algo result are nullified so dont influence relay set 
-                                                          
-                                                          // nbnb is duplicated !!!!
+
+
+                                                    // calls anticipateFlag , that:
+                                                    // - set algo init param if set_ != null (state[algo]=)
+                                                    // - otherwhise reset algo init param  e algo result (state[activeAlgoRes]=null)
+                                                    // - call api.writeScriptsToFile(fn) to write fn.state onto persistand + call websocket topic to update state staff on browser + ....
+
+
+                                                          // nbnb is duplicated  on     other namespace.on() !!!! todo do 1 function only !!!!
 
 
   if(!eM)console.error('.. setanticipateflag() eM is null ');
@@ -4031,14 +4051,21 @@ process.on('SIGINT', function () { //on ctrl+c
 
 function anticipateFlag(set_,fn,algo,activeAlgoRes){// like onRelais, write state after completed it to store anticipate algo init param// algo =anticipate/program
                                                     // sets state.anticipate and state.program 
+
+                                                    //  new:
+                                                    // - set algo init param if set_ != null
+                                                    // - otherwhise reset algo init param  e algo result (state[activeAlgoRes]=null)
+                                                    // - call api.writeScriptsToFile(fn) to write fn.state onto persistand + call websocket topic to update state staff on browser + ....
+
   if(!fn)console.error('anticipateFlag(), eM is null ');
   if(!fn){console.log('anticipateFlag(), eM is null ');}else console.log(' anticipateFlag(), eM is found ');
   let state=fn.state;
   state[algo]=set_;
   if(set_==null)state[activeAlgoRes]=null;// nullify last algo results 
-  return api.writeScriptsToFile(fn)
+  return api.writeScriptsToFile(fn)// // - write fn.state to file_=fn.state.app.plantname , fn=ctl
+                                      // - send state to browser using socket :fn.socket.emit('status,,) + ....
     .catch(function(err) {
-      console.log(' anticipateFlag(),  writefile catched : ',err);
+      console.log(' anticipateFlag(),  error calling api.writeScriptsToFile : ',err);
         console.error(err);
 
         // process.exit(1);
@@ -4416,7 +4443,6 @@ return {procName, a,b,ev2run, asyncPoint, processAsync, dataArr:dataArr_,algo:'p
       console.log(' executing cmd: ',myexec);
     return new Promise(function(resolve, reject) {
 
-
         exec(myexec,
         (error, stdout, stderr) => {
           console.log(' executing shell: ',stdout,' cioe ${stdout}');
@@ -4425,22 +4451,18 @@ return {procName, a,b,ev2run, asyncPoint, processAsync, dataArr:dataArr_,algo:'p
             console.log(`exec error: ${error}`);
               reject(error);
         }
-
           else {resolve(stderr);
             console.log(' shellcmd returned : ',stderr,' cioe ${stderr}');
           }
-
         });
-
       });
-
     }
     else return null;
   }
 
 function consolidate(state, lastalgo) {// works on virtual dev  [false, false, false, false,false,false]= [heat,pdc,g,n,s,split], 
   // lastalgo = anticipate,program,user   : used ??
-  // puo essere chiamato sia da anticipate che da program. ma ultimamente program chiama optimize() !!!  >>> todo  sistemare un unico optimize !?!
+  // done : puo essere chiamato sia da anticipate che da program. ma ultimamente program chiama optimize() !!!  >>> todo  sistemare un unico optimize !?!
   // heat : se impostato da program  antic puo solo fare or 
 
   // >>>  torna il valori dei rele , ricalcolati tenuto conto di 3 calcoli degli algo , il piu recente e i due precedenti  set !!! 
@@ -4456,7 +4478,9 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
   // >>>>   program if not null cant have any null val !! ( only true or false)
 
 
-  let res = new Array(state.app.plantconfig.relaisEv.length); res.fill(false);// so if any of proposal has lower dimension we complete with false (std)
+  //let res = new Array(state.app.plantconfig.relaisEv.length); res.fill(false);// so if any of proposal has lower dimension we complete with false (std)
+  // fill result with def value. that will be the value if all antic,program,and user suggested null value
+  let res =[...state.app.plantconfig.relaisDef];// clone array
   let curpumps = state.relays, antic, program
     , user;// the user manual set proposal , valid (no timeout)
   // see what set are active (lastxxxAlgo not false)
@@ -4498,15 +4522,14 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
  browser !!!! see DEW
   */
 
-  let antMap = state.app.plantconfig.anticInterm2VirtMap, apply;
-  const sol = 1;// 0: apply intermedate then merge with program and user 
+  let antMap = state.app.plantconfig.anticInterm2VirtMap,// update of virtual dev to apply if a intermediate is set true by anticipate. {gaspdcPref:[true,true,true,null,null,true,null]}/
+   apply;
+  const sol = 1;// scelta implementativa , 0: apply intermedate then merge with program and user 
   // 1: merge , then apply intermediate 
   // a: process antic + program
   if (antic) {
 
     // MMNN :
-
-
 
     // antMap={ant=gaspdcPref:res=[true,false,null,,,null]}
     if (sol == 0) applyIntermed(antic);
@@ -4514,7 +4537,7 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
     if (program) {// antic + program + possibly user
       // program and antic  case 
       // take current relays (program + day modification of user and apply some lastalgo proposal
-      if (lastalgo = 'program' || lastalgo == 'anticipate') {// useless
+      if (lastalgo = 'program' || lastalgo == 'anticipate') {// useless. probaly  ever
         /*
         res.push(antic[0] || program[0]);
         // idem per pdc e g,n,s e split:
@@ -4525,11 +4548,9 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
         res.push(antic[5] || program[5]);
         */
 
-
         // anticipate and user can have null val (dont set that index), program  cant have null val .
         // old antic version : was set all real pumps to activate in case of anticip
         //  antic.forEach((val,ind)=>{if(val==null)res.push(program[ind]);else res.push(val)});// prog e antic active : take antic values if not null otherwise let program values !
-
 
         // new antic version : is relevant only to set relaisEv.gaspdcPref internal intermediate var
         // so as anyway program algo (or loopalgo) is working ( def program desidered temp is {} thats mean anyway temperature is ok )
@@ -4537,19 +4558,16 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
         //  anzi, indeed we add in program virtual to real map the activation of some real on gaspdcPref : lh + pdc + g 
         //  and we can move that map from browser to model.js , see LLGGYY
 
-        antic.forEach((val, ind) => { if (val == null) res[ind] = program[ind]; else res[ind] = val });// prog e antic active : take antic values if not null, otherwise let program values !
-
-
+        antic.forEach((val, ind) => { if (val == null) {if(program[ind]!=null)res[ind] = program[ind];} else res[ind] = val });// prog e antic active, settings result:
+                                                                                                      // take antic values if not null, otherwise take not null program values !
       }
       // save 
 
-
     } else
-      antic.forEach((val, ind) => { res[ind] = val });
+      antic.forEach((val, ind) => { if(val!=null)res[ind] = val });// antic >> res
   } else {
-    if (program) program.forEach((val, ind) => { res[ind] = val });
+    if (program) program.forEach((val, ind) => { if(val!=null) res[ind] = val });// program >> res
   }
-
 
   // b: apply user wants , initially user will have day validity res will bet set by antic and/or program if active or can be null
   // apply default if no assign and program :
@@ -4564,9 +4582,11 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
         res[ind] = user[ind];
         console.log(' consolidate() merging  found a valid manual set for pump index ', ind, ', that overwrite anticipate and program indication in ', res[ind]);
       }
-
     }
-    if (res[ind] == null) res[ind] = false;// should not be any null val in res !!!
+    if (res[ind] == null) {
+      console.error(' consolidate() merging : after merge antic, program and user we  found a unexpexted null set x dev at index ', ind,', so we set false');
+      res[ind] = false;// should not be any null val in res !!!
+  }
     /*
     // only for lastalgo=='user'
     state.user=true;
@@ -4577,7 +4597,6 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
   console.log(' consolidate() , at hour ', date.getHours(), ', merging anticipate (', antic, '), program (', program, ') and usermanual (', user, ') applyed intermedite (', apply, ') , relays merge into: ', res);
 
   return res;
-
 
   function isscad(date, state) {// check scadenza dei manual set in lastUserAlgo
     // lastUserAlgo={defTo=[],pumps:[true,false,null,,,],updatedate,policy,algo}
@@ -4597,17 +4616,16 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
   }
 
 
-  function applyIntermed(proposal) {
-    if (antMap) {// antMap={6:res=[true,false,null,,,null]}// the proposal to apply on other dev, if a intermediate var is found true
+  function applyIntermed(proposal) { // antMap : see anticInterm2VirtMap in model.js
+    if (antMap) {// antMap={gaspdcPref:[true,true,true,null,null,true,null]}/// the intermediate proposal to apply on other dev, if a intermediate var (gaspdcPref) is found true
       for (ant in antMap) {// ant is an itermediate var registered in antMap , ex ant=gaspdcPref
         let ind;
         if ((ind = state.app.plantconfig.relaisEv.indexOf(ant)) >= 0)
           if (proposal[ind])// intermediate is set, apply its consequences
           {
-            console.log('applyIntermed() found a intermed var  of index ', ant, ' so apply it on related dev ')
+            console.log('applyIntermed() found a intermed var  of name ', ant, ' so apply it on related dev ');
             antMap[ant].forEach((val, ind) => {
               if (val == true) proposal[ind] = true; else if (val == false) proposal[ind] = false;// fill virtual pump from intermediate virtual pumps
-
             });
             return ant
           }
@@ -4616,7 +4634,6 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
     return;
   }
 }
-
 
 
 function toeval(state,evstr){// preferred use :  '>>&&state.devmapping=[0,1,3,2,4];'   will fill the state.devmapping var !
@@ -4645,7 +4662,7 @@ function toeval(state,evstr){// preferred use :  '>>&&state.devmapping=[0,1,3,2,
 return null;
 
 }
-function checkval(lastUserAlgo){return true;}// todo
+function checkval(lastUserAlgo){return true;}// todo  return true if updatedate + defTo is < curdate, the pumps request is valid 
 
 function  valCorrection(value){// change 0 <> 1
   if(value==null||isNaN(value))return value ;

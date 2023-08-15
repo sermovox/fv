@@ -1,5 +1,6 @@
 let mqtt=require('../mqtt');// nb this module should be init by fv3 itself !!!  ceck it !
 let Gpio=false;
+const PRTLEV=5;// print log level 
 
  /*                               // >>> so in relaisEv there are the names !
 await getio(16, 'out'),
@@ -197,7 +198,7 @@ Promise.all(promises)
 .then((results) => {
 clearTimeout(myto);
 console.timeEnd('mqtt connection');
-console.log("All ctls done, the array of resolved ctl is", JSON.stringify(results,null,2));
+if(PRTLEV>5) console.log("All ctls done, the array of resolved ctl is", JSON.stringify(results,null,2));
 
 // resolve(resultsCtl);only the results[i].ctl
 // or , hopily all it has called :

@@ -89,6 +89,12 @@ const api={// see https://javascript.info/promise-chaining
             // UPDATE MODEL CFG . CAN BE DONE ?   todo: verify !!!!   otherwise delete scripts file then restart
               ctl.state.app.plantcfg=plantcfg;// add to new std state the plant cfg
               ctl.state.app.plantconfig=plantconfig;
+                            // if dim of relaisEv is increased add some dev in relays
+                                plantconfig.relaisEv.forEach((pump,ind) => {
+                                    if(ctl.state.relays[pump]==null)ctl.state.relays[pump]=false;// add some device to relays
+                                    });
+
+
 
 
 
@@ -99,7 +105,10 @@ const api={// see https://javascript.info/promise-chaining
               ctl.state.app.plantname=plantcfg.name;// rindondante , giusto per compatibilita vecchia versione !!!!
               ctl.state.app.plantcnt=plantcnt;// ex ejs context to generate pump list in browser
               ctl.state.app.plantconfig=plantconfig;
-  
+ 
+
+
+
               // was:
              // scripts=ctl.state;
             
@@ -137,9 +146,9 @@ const api={// see https://javascript.info/promise-chaining
       });
   },
   
-  writeScriptsToFile : function(fn,fromcaller) {// write to file_=fn.state.app.plantname  only on scripts and projects, fn=ctl
-                                                // send state to browser using socket :fn.socket.emit('status
-  
+  writeScriptsToFile : function(fn,fromcaller) {// - write fn.state to file_=fn.state.app.plantname , fn=ctl
+                                                // - send state to browser using socket :fn.socket.emit('status
+                                        // old:
                                       // piacerebe scrivere lo status su file a anche mandare via websoket, del ctl, lo status al browser
                                       // tuttavia se lo status esiste in file per un plant il ctl viene creato dopo ???? 
                                       // todo   for debug just add fromcaller in param !
@@ -160,7 +169,7 @@ const api={// see https://javascript.info/promise-chaining
   });
   if(PRTLEV>5) console.log('sendstatus() pretty is: ',prettyjson);
     fn.socket.emit('status',fn.state,prettyjson);// send the status to the browser too, also if the related plant section is not jet visible !
-    if(fn.socketNR)fn.socketNR.emit('state',fn.state);// in case a node-red is listening 
+    if(fn.socketNR)fn.socketNR.emit('state',fn.state);// in case a node-red is listening with websocket
 
     return new Promise(function(resolve, reject) {
           let bank,file;

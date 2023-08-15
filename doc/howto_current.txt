@@ -492,14 +492,25 @@ ssh luigi@192.168.1.79
 mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
 mosquitto_sub -t ctl_var_gas-pdc_4 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
 mosquitto_sub -t @MarsonLuigi_API@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
 
 
 setting var from external mqtt client : 
 mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/NReadUser/cmd   -m "off" -p 1883  -u sermovox -P sime01
 mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 8883 --capath /etc/ssl/certs/ -u sermovox -P sime01
 mosquitto_pub -h bot.sermovox.com -t Test -m "hello world" -p 8883 --capath /etc/ssl/certs/ -u sermovox -P sime01
 mosquitto_pub -h bot.sermovox.com -t @MarsonLuigi_API@ctl_var_gas-pdc_4 -m "off" -p 1883  -u sermovox -P sime01
-mosquitto_pub -h bot.sermovox.com -t @MarsonLuigi_API@ctl_var_gas-pdc_4 -m {\"payload\":\">ctlpresent\",\"sender\":{\"plant\":\"MarsonLuigi_API\",\"user\":55}} -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{\"payload\":1,\"sender\":{\"plant\":\"Casina_API\",\"user\":55}}' -p 1883  -u sermovox -P sime01  dont work , also without ''
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{"payload":3,"sender":{"plant":"Casina_API","user":55}}' -p 1883  -u sermovox -P sime01     works
+sent setManual/forceautoconsumo from openremote from remote object :
+	 Received message  {"payload":1,"sender":{"plant":"Casina_API","user":55},"url":"setMan","checked":1}    on topic  @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd
+		TODO : sender.user   > sender.device
+					sender.user must be the emitter : can be mainctl  or  OR  (openremote) !	
+					 
+	 
+
+mosquitto_pub -h bot.sermovox.com -t @MarsonLuigi_API@ctl_var_gas-pdc_4 -m '{\"payload\":\">ctlpresent\",\"sender\":{\"plant\":\"MarsonLuigi_API\",\"user\":55}}' -p 1883  -u sermovox -P sime01
 
 
 shelly cfg
@@ -2848,7 +2859,7 @@ nodered pubs and subscr
         	>>>>>>> cio è diverso per un var perche'... see AAQQWW
         	
         	
- *** di seguito alcuni commenti da mqtt.js che sintetizzano i concetti sopra studiati :
+ ************    di seguito alcuni commenti da mqtt.js che sintetizzano i concetti sopra studiati :
     
     - in message receiving :
           fromthisctl = true,// serve a capire nei msg contenenti il sender (var dev scrivono msg formatted ) se esso proviene da un pub di questo ctl, non sempre usato: di solito i var dev usano il meccanismo node-red quando un ext ctl vuole cambiare stato pubs un message con topic command topicNodeRed (il dev è un virt var dev, isCmdTopic=true )
@@ -2873,20 +2884,190 @@ nodered pubs and subscr
         topicNodeRed=topic+nodeRedp;// news : anche i shelly possono essere comandati con meccanismo virtual da un ext ctl come node red o openremote usando questo topic
  
     
-        // QUESTION : probe var dev , def in probSubscr() (a differenza dei numb var dev ) non ha meccanismo/topic topicNodeRed ? significa che gli ext ctl banalmente scrivono  anche loro sul topic base in cui si legge lo stato. infatti non c'e' un state.relais che raccoglie il dev status !!!!
-        // quindi i probe var dev , def in probSubscr() quando writeSync pubblicano  su topic che filla il dev queue cosi come pubblicano su topic anche i ext ctl !!!
+        // QUESTION : probe var dev (cioe var che non hanno state.relais e che impostano i subscription con probeSubscr() ) , def in probSubscr() (a differenza dei numb var dev ) non ha meccanismo/topic topicNodeRed ! significa che gli ext ctl banalmente scrivono  anche loro sul topic base in cui si legge lo stato. infatti non c'e' un state.relais che raccoglie il dev status , quindi non si puo chiamare un interrupt che simula un state.relais manual set  !!!!
+        // quindi i probe var dev , def in probSubscr() quando i algo chiamno writeSync pubblicano  su topic che filla il dev queue cosi come pubblicano su topic anche i ext ctl !!!
+        //	quindi per type 3 e 4 che non hanno il topicPub (ed e giusto che sia cosi di solito) fillano la queue anche se provengono dal device stesso sender=device
         //	quando necessito di conoscere il dev state, non essendo info su state.relais devono fare un readSync che tornano l'ultimo valoe del queue !
         // 	( a differenza dei numb var dev che , con writeSync, pubs  sul topic ma i msg  con topic non alimentano the dev queue se sono prodotti dal ctl stesso
         // 		addirittura nemmeno i ext ctl non scrivono su topic in quanto si basano sul meccanismo node-red (topicNodeRed)!  )
         // 		in altre parole lo stato determinato dagli writesync viene gestito da relais senza checcare il queue riempito (forse)  da msg su topic
         
-        todo verificare i var dove scrive il writeSync : ................. sembra che scrivano solo su topic mancando il caricamento di topicPub !!!!
+        todo verificare per questi  var dove pubblica il writeSync : ................. sembra che scrivano solo su topic mancando il caricamento di topicPub !!!!
         //		mentre lo update dello status di ext ctl viene gestito da topicNodeRed che impone un int per cambiare uno state di var tipo numb ( def in numbSubscr())
+           
+
+        //		***************   mng summary **************   :
+        // verifica di dove pubblicano i var dev:
+        // - i type 1 ,rele (numbSubscr()) hanno topicPub=.../command si comportano per il resto come i type 2. in pratica il ctl scrive su topicPub e riceve conferma su topic .
+        //		??:  gli ext ctl non scrivono su topicPub se vogliono cambiare lo state.relais con un interrupt handler=eM.iodev.relais_[ind].int (lancia setPump())scrivendo su pub topicNodeRed 
+        //			
+        //		UUGG invece se il ctl externo vuole direttamente cambiare il dev value puo scrivere sul topicPub che è il comandtopic del dev fisico
+        //				(mentre il cmdtopic del dev type 2 è )
+        //			cosi che poi viene emesso (da shelly rele) in topic il che  conferma del cambio stato 
+        //			ma a questo punto manca il check che verifica lo scostamento dallo state.relais e si dovrebbe (todo ) lanciare un int opportuno  dopo un delay di 5 sec che reimposta il consolidate che setta il state.relais 
+        //				consolidate() è la regola che assegna il state.relais del rele considerando sia le proposte dei fv3 (program algo ) che del ext ctl,
+        //				senza lasciare che essi si sovrappongono disordinatamente nel settare il state.relais.devx .
+        //				
+        // - i type 2 var (numbSubscr()) hanno topicPub=null quindi, in conseguenza di un writesync(), pubblicano su topic (quindi ricevibili dagli ext ctl che sub il topic ) e al ricevimento (su topic e non sul cmdtopic ) essendo sender=dev  ,
+        //			  fromthisctl = true e quindi non vengono caricati in dev queue in quanto lo state si basa piuttosto sul state.relais e non il dev queue !
+        //		to CHECK: oltre che non caricare i topic fromthisctl , tuttavia sembrava che nemmeno pubblicassimo ,i var type 2, sul topic , invece si !!! 
+        //		(per risparmiare una inutile operazione in quanto uso lo state.relais per leggere lo stato)
+        //		gli ext ctl scrivendo un pub potrebbero fillare il topic del dev x come si fà per i type 4 che usano il topic come state (daleggere con readsync() ma non in type 2 che usa state.relais come state 
+        //			quindi per il type 2 dobbiamo lanciare in interrupt che setta una oggetto temporaneo eM.state.lastUserAlgo ( che rappresenterà l'istanza del ctl esterno ) 
+        //			che poi viene usato dal master program algo per settare tutti gli state.relais , cmopreso lo stesso state.relais.x 
+        //				simulando un algo ( manual algo ) setta il manual algo result che assieme al normale interno anticipate algo, concorrerà in consolidate() (lanciato dal master program algo), a definire il next  state.relais  
+        //		
+        //					sarà quindi un pub  sul topicNodeRed lanciato come automation triggerato  dal cambio del select sul ext ctl 
+        //								(il select di home assistant rappresenta la proposta del ext ctl che trasmessa via cmdtopic lancera in message receive  il interrupt che lancia un  manual algo ()
+        //									che setta eM.state.lastUserAlgo ( che rappresenterà l'istanza del ctl esterno nel consolidate che settera il state.relais.devx )
+        //								 )
+        //							(in home assistant ho un menu/select manual force set che da istruzioni al fv3 di cambiare le regole di consolidate che poi in effetti setta tutti i numbSubscr dev compreso il dev stesso
+        //								. nb non si cambia solo il state.relais del dev perchepoi verrebbe a essere corretto dal consolidate dopo qualche minuto ? 
+        //									(nb  state.relais e' usato dai type 2 come state  al posto di dev queue ! )
+        //								  nb lo state del var device (che può comandare comunque anche un rele ) potrebbe essere copiato su un rele dev  da consolidate !
+        //								  nb il settaggio del state.relais (responsabilità di consolidate() ) viene registrato in ext ctl direttamente come property del select 
+        //									quando (comandato da chi lancia il writeSync (meglio da un consolidate che media le varie proposte proventienti dagli algo e ext interrupt(manual algo))
+        //									il writeSync srive sul dev topic (che in fv3 msg receive non  alimenta il dev queue per i type 2  , 
+        //									mentre nel msg receive del ext ctl che è il json_attributes_template del select imposta la property del select
+        //										nb la property del select puo essere copiata su un entity il cui stato rappresenta direttamente il settaggio del var dev (type 2) che è responsabilità del fv3 !
+        //								 ) 
+        //							)
+        //						che, essendo un cmdtopic in fv3 meggare receive, a lanciare un interrupt in base al .url che puo fare : 
+        //						- old not used now : fa manual update di state.relais () con setPump() ( not std)
+        //						- lancia un algo o direttamente aggiorna il suo lastresult eM.state.lastUserAlgo ( letto poi dal program algo in consolidate )
+        //						- anche i cmdtopic non vengono caricati in queue
         
-         
+        //		QUESTION : ma che senso ha un handler=eM.iodev.relais_[ind].int che lancia setPump() ???? dovrebbe lanciare un manual algo come fa il browser con evento manualAlgoProposal. 
+        //			infatti in consolidate i manulalgo setting sovrascrivono le indicazioni del algo anticipate
         
-        , solo quando vengono pubs su topic da ext ctl . quando ho bisogno di leggere lo status  non ho state.relais e devo chiamare readSync che legge l'ultimo valore in dev queue
-        //	 
+        // - i type 4 var (probSubscr()) hanno topicPub=null quindi,al lancio di writeSync (non fillano, come gli type2, lo state.relais che non ha item specificoper i probSubscr dev):
+        //			 pubblicano su topic e al ricevimento (su topic e non sul cmdtopic ) essendo controllabile sender=dev  ,  fromthisctl = false e COMUNQUE vengono caricati in dev queue 
+        //				( usato per mantenere lo stato(reperibile leggendo con readSync) )
+        //		gli ext ctl normali scrivono lo stesso sul topic e quindi fillano (direttamente senza lanciare un interrupt) il queue che funge da stato, 
+        //			nb :  ma potrebbero lanciare in futuro un cmd topic (=topic +  /NReadUser/cmd )  che comunque filla il dev queue ma anche potrebbero lanciare prima un loro interrupt ( cosi puo lanciare un algo prima di fillare il queue)
         
         
+        //	quando ho bisogno di leggere lo status  non ho state.relais e devo chiamare readSync che legge l'ultimo valore in dev queue indipendentemente che sia stato scritto da this ctl o ext ctl
+        //	
+ ____________________________________
  
+ browser after debug  pause can be  reload after delete cookies , works all event but not receiving only event :'pump'  ???????????????
+ 
+ _____________________________________________________________________
+
+
+sent setManual/forceautoconsumo from openremote from remote object :
+	 Received message  {"payload":1,"sender":{"plant":"Casina_API","user":55},"url":"setMan","checked":1}    on topic  @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd
+		TODO : sender.user   > sender.device
+					sender.user must be the emitter : can be mainctl  or  OR  (openremote) !	
+ quindi nel caso di un topic ../NReadUser/cmd  in case of type 2 var we fire url interrupt that will act on state.relais  and in any case will fill the dev queue ( different from when a algo with writeSyn just ?
+ 
+ _____________________________________________
+ osservazione sullo .state.relais 
+ - esso tiene lo state dei numbSubscr() , lo state dei pubSubscr() lo si ottiene con readSync ma come evento esterno! > se cambio (publico) un update di questi per poi usarlo in procedure interne devo creare uno stato interno che lo tenga, altrimenti 
+ 	i ritardi the un pub e un readSync mi falsano i valori appena impostati e scrtti/pub con writeSync 
+ ______________________________-
+ 
+ modifiche format x var :
+ {"payload":1,"sender":{"plant":"Casina_API","user":55},"url":"setMan","checked":1}   >> {"payload":1,"sender":{"plant":"Casina_API","dev":55,"user":'thisctl/nrctl'},"url":"setMan","checked":1} 
+ 
+_________________________________________
+
+idea : in openremote, a differenza di nodered, anche i socket emit  vengono emessi con mqtt pub che richiamano i handler di socketio. 
+
+ es x il start anticipate algo:       socket.emit("repeatcheckxSun", start, stop, interval, triggers); 
+  creeremo un topic 'socket' con format :  {"payload":{start,stop,interval,triggers:{},"sender":{"plant":"Casina_API","user":'thisctl/nrctl'},"url":"repeatcheckxSun","event":'repeatcheckxSun'}   
+  	. per i piu complessi ci sara la necessita di generare il algo come in:
+  		- prog_parmFact(sched) : return {procName, a,b,ev2run, asyncPoint, processAsync, dataArr:dataArr_,algo:'program'}; partendo dal event chain ev2run = {initProg:null,genZoneRele:"initProg"};
+  		- gi event come genZoneRele sono handler def con code in fv3 o importato da codice esterno caricato da un aatruto attributo ?
+  	- ma come passare un code (es program() ) ?, o meglio fare un webagent che carica il code ?
+  	tema come generare il template da attributi con le rules ? con i openremote webhook ?
+format : .......
+
+____________________________
+
+home assistant vs openremote 
+
+indagare se è piu semplice generare il template {"payload":{start,stop,interval,triggers:{},"sender":{"plant":"Casina_API","user":'thisctl/noderedctl'},"url":"repeatcheckxSun","event":'repeatcheckxSun'}   
+
+diff tra  usare/configurare  gli automation algo : 
+- prog_parmFact(sched) di fv3 con il 
+ - automation di https://www.home-assistant.io/getting-started/concepts-terminology/ 
+________________________________
+
+
+differenze between 
+  state.app.plantconfig.virt2realMap : //  iesimo virtual dev is mapped to index= map[i] of name: relaisEv[i], con state:relays[relaisEv[i]])  
+  e 
+  eM.state,triggers2.mapping : // mapping algo vars to plant devices !, input used when call last event genZoneRele of related exec created with prog_parmFact(sched)
+___________________________________________
+
+ termostati per ogni zona ha  formato : {"8:30":20,"17:00":22}   la zona notte/giorno ,,,,  e' mappata sul dev virtuale in program()
+ 
+ _____________________________
+  see https://indomus.it/formazione/le-automazioni-di-home-assistant-cosa-sono-e-come-si-usano/
+  	https://indomus.it/formazione/home-assistant-guida-rapida-ai-concetti-principali/
+ 
+ automazioni home assistant diferenze con fv3 :
+ 
+ event : interpretato come qualcosa che cambia lo stato
+  in fv3.js event si puo considderare tutto cio che cambia i device in web interface (numbSubscr() , ma non  pubSubscr() )
+  invece i listener che cambiamo i device state ( es i prob) non hanno impatto sui numbscript 
+  	mentre se ho un un topic ../NReadUser/cmd  in case of type 2 var we fire url interrupt that will act on state.relais  (and in any case will fill the dev queue) 
+  	mentre se ho un var normale ,come il preferred...  solitamente vengono usati dal algo anticipate per settare lo state del var che verra esaminato dal program algo 
+  	mentre se setto con writeSync il pub topic  associato al rele (usando setpump()) e' dopo aver settato il numbScript state (state.relais) quindi il device copia la transazione in topic da cui legge readsync 
+  		si otterra uno device state che e' già scontato su state.relais
+  		
+  	.....
+  	
+  >>> quindi il trigger di home assistant e' un listener di un event che cambia lo stato state.relais , (numbSubscr())
+  
+  - le entita sarebbero appunto state.relais e i servizi sono gli algo che li cambiano 
+  
+  
+ _________________________________
+ un modo per caricare i code e gli algo definition  e' usare un frame del browser !
+ _________________________________
+ 
+  home assistant test 
+  con rif a         		***************   mng summary **************   
+  si è testato che :
+  	- a fronte di un change del select, che rappresenta l'istanza del home assistant sulla var dev gaspdcPref, si lanci con un automation  un topic '@Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd'
+  		poi in message receive dei cmdtopic dei dev type 2 (topic topicNodeRed= '@Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd' )  lanci un interrupt che lancia il manual algo eM.state.lastUserAlgo che setta 
+  		eM.state.lastUserAlgo ( che rappresenterà l'istanza del ctl esterno nel consolidate che settera il state.relais.gaspdcPref  portid 55 in consolidate()  ) 
+  		
+  	- che quando in consolidate aggiornando i vari  state.relais.x  in particolare il state.relais.gaspdcPref si lancia writeSync che lancia il pub sul topic associato al var dev 
+  		(topic che non viene usato per fillare il deb queue in fv3/mqtt message receive in quanto inutile perchè si usa appunto lo stesso state.relais.gaspdcPrefcome come state e non serve leggere il dev mqtt queue  )
+  		tale topic corrisponda al select json_attributes_topic e che quindi imposti il attribute algoSuggested
+  		
+  		 nb in mqtt select manca il topic perche non ha senso un topic che da mqtt imposti il selected option perche questo è impostato solo via manuale in home assistant overview !! 
+  
+  	- mancano i  shelly (rele mqtt) impostati da fv3 che si possono aggiungere in home assistant per monitorare come fv3 agisce sui rele. non ha senso chiamare i cmdtopic perche colliderebbe con le azioni degli algo fv3
+  		se si vuole aggiungere un manual anche su tali rele bisognera fare :  (UUGG) 
+  		
+  	- se si vuole programmare gli algo 
+  		- todo : a livello alto bisogna impostare il code degli event e il code della procedura prog_parmFact(sched) antic_parmFact(sched){ usando un frame web sul browser)
+  		- poi a livello piu basico i param sched si possono settare usando il nomale interfaccia web oppure aggiungere un po di select (SS)  in overview di home assistance che settano i sched attributes ( trgger2,...) 
+			e poi come per il select NRInt creo un po di cmdrele (start_fv3-service stop_fv3-service) e al cambio stato lo si invia su un topic di comando mqtt  
+				che usa i parametri settati dai select (SS)
+				che fa le stesse cose del interfaccia websocket , evento  startprogrammer ma su topic mqtt !
+					- cosi come :  socket.on('startprogrammer',repeatHandler1);
+						>> repeatHandler1(starthour,stophour,dminutes,triggers2) {}
+								in  setanticipateflag({running:true,starthour,stophour,dminutes,triggers2},'program'); 
+								aggiunge a state.program : {running:true,starthour,stophour,dminutes,triggers2}
+						aggiungo allora in mqtt incoming :
+						
+				nb invece si pensava in nodered interface di usare sempre un websocket client che mima il websocket del browser 
+ ____________________________________________
+ 
+ start without pm2 :
+ 	ps -ef | grep node
+	kill   xxxx
+	nohup npm start &
+__________________________
+
+amazon : Home Automation Platform (Home-Assistant,openHAB,Node-RED,ioBroker,PVoutput) 
+_______________________________
+
+	
+______________________________
