@@ -777,7 +777,7 @@ nb relaisEv sono i nomi dei custom/real pump rele (inorout='out') dei relais_ ch
 		  	prog_parmFact(sched)
 		  	
 	 	  - quando in un event degli execute event list devo usare un probe allora 
-		  	o genero al volo il dev se e' un modbus (real index <1000) , see   parseFloat(await shellcmd('modbusRead',
+		  	o genero al volo il dev se e' un modbus (real index <1000) , see   parseFloat(await shellcmd('modbusRead',	(KKPPMM)
 		  	o lo recupero un dev index se è un mqtt probe (real index>1000) (nbnb index=0,1,2 not its id=110):
 		  			cerco il id nel cfg  mqttprob:{110:{topic:'gas-pdc ....
 		  					nb  non nei cfg dei rele/pump ; mqttnumb:[11,null,null,null,null,null,null,null]     !!!!!!!!!!!
@@ -2896,7 +2896,7 @@ nodered pubs and subscr
         //		mentre lo update dello status di ext ctl viene gestito da topicNodeRed che impone un int per cambiare uno state di var tipo numb ( def in numbSubscr())
            
 
-        //		***************   mng summary **************   :
+        //		***************   MNG SUMMARY **************   :
         // verifica di dove pubblicano i var dev:
         // - i type 1 ,rele (numbSubscr()) hanno topicPub=.../command si comportano per il resto come i type 2. in pratica il ctl scrive su topicPub e riceve conferma su topic .
         //		??:  gli ext ctl non scrivono su topicPub se vogliono cambiare lo state.relais con un interrupt handler=eM.iodev.relais_[ind].int (lancia setPump())scrivendo su pub topicNodeRed 
@@ -2910,29 +2910,29 @@ nodered pubs and subscr
         //				
         // - i type 2 var (numbSubscr()) hanno topicPub=null quindi, in conseguenza di un writesync(), pubblicano su topic (quindi ricevibili dagli ext ctl che sub il topic ) e al ricevimento (su topic e non sul cmdtopic ) essendo sender=dev  ,
         //			  fromthisctl = true e quindi non vengono caricati in dev queue in quanto lo state si basa piuttosto sul state.relais e non il dev queue !
-        //		to CHECK: oltre che non caricare i topic fromthisctl , tuttavia sembrava che nemmeno pubblicassimo ,i var type 2, sul topic , invece si !!! 
-        //		(per risparmiare una inutile operazione in quanto uso lo state.relais per leggere lo stato)
+        //		to CHECK: oltre che non caricare i topic fromthisctl sul dev queue, tuttavia sembrava che nemmeno pubblicassimo ,i var type 2, sul topic , invece si !!! 
+        //			(per risparmiare una inutile operazione in quanto uso lo state.relais per leggere lo stato)
         //		gli ext ctl scrivendo un pub potrebbero fillare il topic del dev x come si fà per i type 4 che usano il topic come state (daleggere con readsync() ma non in type 2 che usa state.relais come state 
-        //			quindi per il type 2 dobbiamo lanciare in interrupt che setta una oggetto temporaneo eM.state.lastUserAlgo ( che rappresenterà l'istanza del ctl esterno ) 
+        //			quindi per il type 2 dobbiamo lanciare in interrupt che setta una oggetto temporaneo eM.state.lastUserAlgo ( che rappresenta l'istanza di chi lo ha settato: il  ctl esterno NRed/HA o il anticipatealgo ) 
         //			che poi viene usato dal master program algo per settare tutti gli state.relais , cmopreso lo stesso state.relais.x 
-        //				simulando un algo ( manual algo ) setta il manual algo result che assieme al normale interno anticipate algo, concorrerà in consolidate() (lanciato dal master program algo), a definire il next  state.relais  
+        //				simulando un algo ( manual algo ) setta il manual algo result che assieme al normale (interno) anticipate algo, concorrerà in consolidate() (lanciato dal master program algo), a definire il next  state.relais  
         //		
-        //					sarà quindi un pub  sul topicNodeRed lanciato come automation triggerato  dal cambio del select sul ext ctl 
+        //					sarà quindi un pub  sul topicNodeRed lanciato dal ctl esterno HA (homeassistant) come automation triggerato  dal cambio del select sul ext ctl entity
         //								(il select di home assistant rappresenta la proposta del ext ctl che trasmessa via cmdtopic lancera in message receive  il interrupt che lancia un  manual algo ()
-        //									che setta eM.state.lastUserAlgo ( che rappresenterà l'istanza del ctl esterno nel consolidate che settera il state.relais.devx )
+        //									che setta eM.state.lastUserAlgo ( che rappresenterà l'istanza del ctl esterno nel consolidate() che settera il state.relais.devx )
         //								 )
         //							(in home assistant ho un menu/select manual force set che da istruzioni al fv3 di cambiare le regole di consolidate che poi in effetti setta tutti i numbSubscr dev compreso il dev stesso
         //								. nb non si cambia solo il state.relais del dev perchepoi verrebbe a essere corretto dal consolidate dopo qualche minuto ? 
         //									(nb  state.relais e' usato dai type 2 come state  al posto di dev queue ! )
-        //								  nb lo state del var device (che può comandare comunque anche un rele ) potrebbe essere copiato su un rele dev  da consolidate !
-        //								  nb il settaggio del state.relais (responsabilità di consolidate() ) viene registrato in ext ctl direttamente come property del select 
+        //								  nb lo state del var device (che  comanda di norma anche un rele ) potrebbe essere copiato su un rele dev  da consolidate !
+        //								  nb il settaggio complessivo del state.relais (responsabilità di consolidate() ) viene registrato in ext ctl direttamente come property del select 
         //									quando (comandato da chi lancia il writeSync (meglio da un consolidate che media le varie proposte proventienti dagli algo e ext interrupt(manual algo))
-        //									il writeSync srive sul dev topic (che in fv3 msg receive non  alimenta il dev queue per i type 2  , 
+        //									il writeSync srive sul dev topic (che processato (in fv3 msg receive) non  alimenta il dev queue per i type 2  , 
         //									mentre nel msg receive del ext ctl che è il json_attributes_template del select imposta la property del select
         //										nb la property del select puo essere copiata su un entity il cui stato rappresenta direttamente il settaggio del var dev (type 2) che è responsabilità del fv3 !
         //								 ) 
         //							)
-        //						che, essendo un cmdtopic in fv3 meggare receive, a lanciare un interrupt in base al .url che puo fare : 
+        //						che, essendo un cmdtopic in fv3 message receive, a lanciare un interrupt in base al .url che puo fare : 
         //						- old not used now : fa manual update di state.relais () con setPump() ( not std)
         //						- lancia un algo o direttamente aggiorna il suo lastresult eM.state.lastUserAlgo ( letto poi dal program algo in consolidate )
         //						- anche i cmdtopic non vengono caricati in queue
@@ -2940,15 +2940,30 @@ nodered pubs and subscr
         //		QUESTION : ma che senso ha un handler=eM.iodev.relais_[ind].int che lancia setPump() ???? dovrebbe lanciare un manual algo come fa il browser con evento manualAlgoProposal. 
         //			infatti in consolidate i manulalgo setting sovrascrivono le indicazioni del algo anticipate
         
-        // - i type 4 var (probSubscr()) hanno topicPub=null quindi,al lancio di writeSync (non fillano, come gli type2, lo state.relais che non ha item specificoper i probSubscr dev):
+        // - i type 4 var (probSubscr()) hanno topicPub=null quindi,al lancio di writeSync (nb non fillano, come gli type2, lo state.relais che non ha item specificoper i probSubscr dev):
         //			 pubblicano su topic e al ricevimento (su topic e non sul cmdtopic ) essendo controllabile sender=dev  ,  fromthisctl = false e COMUNQUE vengono caricati in dev queue 
         //				( usato per mantenere lo stato(reperibile leggendo con readSync) )
         //		gli ext ctl normali scrivono lo stesso sul topic e quindi fillano (direttamente senza lanciare un interrupt) il queue che funge da stato, 
         //			nb :  ma potrebbero lanciare in futuro un cmd topic (=topic +  /NReadUser/cmd )  che comunque filla il dev queue ma anche potrebbero lanciare prima un loro interrupt ( cosi puo lanciare un algo prima di fillare il queue)
         
+        //		added 27082023 :
+        //			si potrebbe anche settare il topicPub cosiccche potrebbero comandare anche un rele shelly senza usare uno state come fa il type1
+        //			essi possono essere writeSync da un qualsiasi dev di tipo 1 e 2 definendo l'uso del dev in getio() see ZZTTYY
+        
         
         //	quando ho bisogno di leggere lo status  non ho state.relais e devo chiamare readSync che legge l'ultimo valore in dev queue indipendentemente che sia stato scritto da this ctl o ext ctl
         //	
+        
+          // question what is difference among type 1 and 2 ? . add also a topicPub property ?????
+          		- a type 2 (var dev ) essenzialmente ha un format nel publicare e ricevere i msg, entrambi hanno la capability di node-red cmdtopic ( interrupt), entrambi hanno state.relais_
+          		-  type1 obbligatoriamente ha pubtopic diverso da topic e avendo un device fisico che ricopia poi il pubtopic in topic 
+                        //      so type 1 devono avere pubtopic diverso da topic ed è meglio che non facciano un readSync per ricvare lo state che puo avere ritardo 
+                        //		ma se lo state e' modificato da altri allora o gli altri usano i nodered topic ( e quindi si lanciano interrupt) o se no devo readSync ogni tanto per vederese qualcuno ha modificato il topic
+                        // 	mentre i type 2 possono pub anche su topic ma essendo formattati si puo capire dachi vengono, comunque e' meglio che gli ext ctl usino il nodered topic !! 
+          		- mentre i type 4 non hanno lo state.relais_ quindi devono essere letti con readSync()  per ricavare lo state
+          		- tutti type 1,2,4 hanno la possibilità di avere un pubtopc != topic
+          		
+          		// todo : aggiungere un protocollo generico per i shelly like con possibilita di indicare un pubtopic per i type 1 (rele)
  ____________________________________
  
  browser after debug  pause can be  reload after delete cookies , works all event but not receiving only event :'pump'  ???????????????
@@ -2960,7 +2975,7 @@ sent setManual/forceautoconsumo from openremote from remote object :
 	 Received message  {"payload":1,"sender":{"plant":"Casina_API","user":55},"url":"setMan","checked":1}    on topic  @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd
 		TODO : sender.user   > sender.device
 					sender.user must be the emitter : can be mainctl  or  OR  (openremote) !	
- quindi nel caso di un topic ../NReadUser/cmd  in case of type 2 var we fire url interrupt that will act on state.relais  and in any case will fill the dev queue ( different from when a algo with writeSyn just ?
+ quindi nel caso di un topic ../NReadUser/cmd  in case of type 2 var we fire url interrupt that will act on state.relais   and in any case will fill the dev queue ( different from when a algo with writeSyn just ?
  
  _____________________________________________
  osservazione sullo .state.relais 
@@ -3012,17 +3027,22 @@ ___________________________________________
  
  event : interpretato come qualcosa che cambia lo stato
   in fv3.js event si puo considderare tutto cio che cambia i device in web interface (numbSubscr() , ma non  pubSubscr() )
-  invece i listener che cambiamo i device state ( es i prob) non hanno impatto sui numbscript 
+  invece i listener che cambiamo i device state ( es i prob) non hanno impatto sui numbscript numbSubscr()
   	mentre se ho un un topic ../NReadUser/cmd  in case of type 2 var we fire url interrupt that will act on state.relais  (and in any case will fill the dev queue) 
   	mentre se ho un var normale ,come il preferred...  solitamente vengono usati dal algo anticipate per settare lo state del var che verra esaminato dal program algo 
   	mentre se setto con writeSync il pub topic  associato al rele (usando setpump()) e' dopo aver settato il numbScript state (state.relais) quindi il device copia la transazione in topic da cui legge readsync 
-  		si otterra uno device state che e' già scontato su state.relais
+  		si otterra uno device state che e' già scontato su state.relais  
   		
   	.....
   	
   >>> quindi il trigger di home assistant e' un listener di un event che cambia lo stato state.relais , (numbSubscr())
   
   - le entita sarebbero appunto state.relais e i servizi sono gli algo che li cambiano 
+  
+  
+  
+  ********     state.relais  o state.relais_ ?? 		*****************+
+  
   
   
  _________________________________
@@ -3047,27 +3067,745 @@ ___________________________________________
   		
   	- se si vuole programmare gli algo 
   		- todo : a livello alto bisogna impostare il code degli event e il code della procedura prog_parmFact(sched) antic_parmFact(sched){ usando un frame web sul browser)
-  		- poi a livello piu basico i param sched si possono settare usando il nomale interfaccia web oppure aggiungere un po di select (SS)  in overview di home assistance che settano i sched attributes ( trgger2,...) 
+  		- poi a livello piu basico i param sched si possono settare usando il nomale interfaccia web oppure aggiungere un po di select (SSS)  in overview di home assistance che settano i sched attributes ( trgger2,...) 
+  		
+  		- in hs lo user non usa l'interfaccia websocket come il browser ma si usa mqtt come rele : 
 			e poi come per il select NRInt creo un po di cmdrele (start_fv3-service stop_fv3-service) e al cambio stato lo si invia su un topic di comando mqtt  
-				che usa i parametri settati dai select (SS)
+				che usa i parametri settati dai select (SSS)
 				che fa le stesse cose del interfaccia websocket , evento  startprogrammer ma su topic mqtt !
 					- cosi come :  socket.on('startprogrammer',repeatHandler1);
 						>> repeatHandler1(starthour,stophour,dminutes,triggers2) {}
 								in  setanticipateflag({running:true,starthour,stophour,dminutes,triggers2},'program'); 
 								aggiunge a state.program : {running:true,starthour,stophour,dminutes,triggers2}
-						aggiungo allora in mqtt incoming :
+						aggiungo allora un ctl dev di type ctl.cl=0 ( simile a un type 2)
 						
+							in  goonP() {// goon with message processing :
+							  ctlpack.ctl.cl=0  nb ctlpack = adev.ctlpack  , adev = regTopic(topic)) = invTopic[topic] 
+								invTopic settato in  numbSubscr():
+									invTopic[topic]={portid,mqttInst:that,topic,topicNodeRed,cl_class,protocol,ctlpack} 
+									
+										cl_class =   rele/var/       >>>>>>>>  passato al termine di numbSubscr() al cb: subscred({topic,cl_class})
+										
+									ctlpack settato in .fact() ( chiamante di numbSubscr()) :
+								 		ctlpack= {ctl:new fc(gp,ind,inorout,cfg,that),devNumb:ind,type:'mqtt',,,,};
+								 		
+								 		nb 
+								 		.fact è factory che ritorna ctlpack  :
+								 		 	console.log(' **** dev factory mqttInst.fact() for plant ',that.plantName,' relaised/resolved the devid/portid ',gp,' after subscribing on topic ',resu.topic);
+            										console.log(' **** according model info: ',cfg,' \nfound  in ',infosrc,' a device of type: ',resu.cl_class,' protocol ',cfg.protocol);
+            										
+            									 .fact() che torna ctlpack , è chiamato in : getio(num, iotype, ind, ismqtt = false,mqttInst)  
+            									 
+            									 getio() è chiamato da :  doSomethingAsync(gpio,ind,ismqtt=false) 
+            									 				doSomethingAsync(), in getctls() 
+            									 					(getctls()  riceve due chiamate da  buildPlantDev() :  	getctls(mqttInst,gpionumb,mqtt=mqttnumb,isProb=false,mqttWebSock) e
+            									 					 					getctls(mqttInst,null,mqtt=mqttprob,isProb=true) 
+            									 					),
+				    									 	è chiamato :
+				    									 	- da fillctls() su tutti i dev (di mqtt/gpio) ind=index
+				    									 	            	fillctls() fill array of resolving device that when resolved ( all or after a max time) 
+				    									 	            		resolve the  SSSDD promise with the array of available devices ctl: resu[dev1ctl,,,]
+
+				    									 	- e, se isProb=false, anche da setMqttXWebsock() che chiama doSomethingAsync(0,-1,true)   portid=0   index =-1
+				    									 	
+				    									 		>> quindi in questo caso  doSomethingAsync(0,-1,true) chiama sul devid=0 getio(num=0, iotype='int', ind=-1, ismqtt =true,mqttInst)
+				    									 		che chiama  .fact(num,ind,iotype)sul dev dummy (num=0),che , come nei device normali, :
+				    									 			- torna ctlpack che oltre che settare le caratterisctiche dei dev 
+					    									 			torna anche il ctl ctl=new fc(gp,ind,inorout,cfg,that)
+					    									 				ctl={.......
+					    									 					intx
+					    									 					gpio
+					    									 					cl:0/1/2/3/4  dev type !!!!!!!!!!!!!
+					    									 					readSync
+					    									 					writeSync}
+					    									 			
+					    									 			che ha le sue proprietà e le chiamate readsync e writesync (simili a type 2 o 4 )
+					    									 			che pero non verranno mai chiamate essendo il dev dummy
+				    									 			- run subscription : numbSubscr(cfg,that,ctlpack,subscred) 
+				    									 				con cfg=mqttWebSock= {portid:0,subtopic:'mqtt_websock_',varx:0,isprobe:false,clas:'int',protocol:'mqttxwebsock'}
+				    									 						{ portid, varx, isprobe, clas, protocol, subtopic } = cfg , var used to build subscription in 
+				    									 						ingest (new values of dev val in topic and cmdtopic  subscription) ad pub topic when writesync
+				    									 							clas = int  . nb usual values can be:    out/var/probe/int
+				    									 				>>> subscriptions will be similar to  var device type 2	, but:
+				    									 						 register a subscription on topic = that.topPlantPrefix + 'interface_' + subtopic + varx;
+				    									 						 			ex @Casina_API@interface_mqtt_websock_0, usually not used 
+				    									 											msg= .....
+				    									 										e in cmdtopic, ex  @Casina_API@interface_mqtt_websock_0/NReadUser/cmd
+				    									 											msg= message='{"payload":1,"sender":{"plant":"Casina_API","user":xxx,"token":yyyy},"url":"mqttxwebsock","event":"repeatcheckxSun","data":{theeventhandlerparams=starthour,stophour,dminutes,triggers)}}' 
+
+				    									 				returns after call cb=subscred(topic,cl_class='var')
+				    									 				
+				    									 					nb values of cl_class can be generally: 'rele'/'var'/'probe'
+            									 						- cb from numbSubscr will just complete ctlpack with topic,cl_class,protocol and resolve mqttClass.fact  with ctlpack
+            									 						- then return ctlpack from getio() and doSomethingAsync() 
+            									 						
+            									 					>>> so  setMqttXWebsock() launch the promise pr=doSomethingAsync(0,-1,true) that resolve in above ctlpack 
+            									 					
+            									 					question :il promise pr , clas='int' e portid=0, viene aggiunto ai array   {ctls:resu,// ctls=[ctl1,,,,,] ctlx: see PIRLA in mqtt
+  																				devmap:resolved})
+  																 che risolvono il promise  ritornato da getctls()    ????????????
+  																 
+            									 							nb : il resolve di SSSDD getctls() viene usato in buildPlantDev()  :
+            									 									devices={	myctls:{
+																						ctls:[ctl1=new fc(gp,ind,inorout,cfg)= 	
+																							  {gpio=11,
+																							  devNumb=0,// array index 0,1,2
+																							  type=inorout,
+																							  cfg,
+																							  cl=0/1(clas='out')/2(a var)/3(clas='in'OR'prob'),
+																							  isOn,
+																							  readsync,
+																							  writesync,
+																							  lastwrite  // the last writeSync
+																							  }
+																							  ,,,],
+																						  devmap:[{devNumb,devType,portnumb},,,,]
+																						  }  
+            									 											
+            									 											
+            									 											myprobs:{...}} 
+            									 									
+            									 									
+            									 					     			e abilita().then() chiama abilita2 con devices={myctls,myprobs}
+            									 					     			
+            									 					     			abilita2() fills iodev.relais_ e iodev.relais_, con i ctls di myctls e myprobs
+            									 					     			 i dev vengono fillati col loro index assegnando il dev name dall'array relaisEv ,
+            									 					     			 	 index =0..relaisEv.length-1 (AAQZ)
+            									 					     			>>  relais_ contiene anche il dummy dev con portid=0 ma di index >=relaisEv.length
+            									 					     				cosicche non viene mai processato in genere, in quanto si readsync e writeSync solo i dev AAQZ
+            									 					     				tuttavia si  assegna il interrupt handler che risponderanno ai topic 
+            									 			
+															answer: sembra inutile . basta completare il ingest receive con
+																			 else {// isCmdTopic  , news now also rele dev can have cmdtopic !!. .....
+																			 
+																	dopo aver aggiunto il reference al interrupt in ctl.intx    abilita2  !!!!!!!!
+																	
+																	
+																	
+
+										 SSSDD : getctls:function(mqttInst,gpionumb,mqttnumb,isProbe=false) returns promise with the array of available devices ctl: resu[dev1ctl,,,]
+										 
+										 SSSDD, cioè getcts(),  is called in    buildPlantDev() (  chiamato da  abilita(state)  ):
+										 
+										 	myctls_= getio.getctls(mqttInst,gpionumb,mqttnumb);// get devices choosing from describing gpio and mqtt info array : these are the visible rele/var in browser
+											  // {ctls:[ctl1,,,,,],devmap:[{devNumb,devType,portnumb},,,,]}
+											  // get pump/relais r/w devices from preferred  mqtt or gpio arrays
+											myprobs_= getio.getctls(mqttInst,null,mqttprob,true);//   {ctls,devmap} , true = a probe/var device. invisible in browser
+											    // get probs  read only devices from  mqtt, true means is a probe type (type='in')
+											    // + get var, intermediate status / context to be used by other algo , connectable to red note
+
+
+										 
+										 
+						che avendo previsto un topic topic topicNodeRed lancera un interrupt che gestirà l'aggancio ai evet handler del websochet ! 
+						
+							che in mqtt incoming :
+								.......						
 				nb invece si pensava in nodered interface di usare sempre un websocket client che mima il websocket del browser 
  ____________________________________________
  
  start without pm2 :
  	ps -ef | grep node
 	kill   xxxx
-	nohup npm start &
+	nohup yyyy &     dont work !
 __________________________
 
 amazon : Home Automation Platform (Home-Assistant,openHAB,Node-RED,ioBroker,PVoutput) 
 _______________________________
 
+backup sistema do con tessarotto :
+
+		luigi@luigi-Vostro-3560:~$  ssh luigi@sermovox.com
+		Welcome to Ubuntu 18.04.3 LTS (GNU/Linux 4.15.0-65-generic x86_64)
+
+		 * Documentation:  https://help.ubuntu.com
+		 * Management:     https://landscape.canonical.com
+		 * Support:        https://ubuntu.com/advantage
+
+		  System information as of Wed Aug 16 18:30:34 UTC 2023
+
+		  System load:  0.09               Processes:           94
+		  Usage of /:   23.8% of 24.06GB   Users logged in:     0
+		  Memory usage: 34%                IP address for eth0: 46.101.180.15
+		  Swap usage:   0%                 IP address for eth1: 10.135.61.82
+
+		 * Canonical Livepatch is available for installation.
+		   - Reduce system reboots and improve kernel security. Activate at:
+		     https://ubuntu.com/livepatch
+
+		199 packages can be updated.
+		103 updates are security updates.
+
+
+		*** System restart required ***
+		Last login: Thu Dec 15 01:20:26 2022 from 95.251.38.146
+		luigi@demo1:~$ 
+		
+	so create tar : cd deploing_demo ;  tar -cvpzf demo1_cms.tar.gz demo1_cms
+	
+	>> see /Documents/savings
+
+________________________________________-
+
+testing var send to ha  :
+to ....
+  mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{"payload":"ciao","sender":{"plant":"Casina_API","user":55}}' -p 1883  -u sermovox -P sime01
+  
+to simulate a ha cmdtopic versus a type 2 var , protocol ....... :
+	mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd -m '{"payload":1,"sender":{"plant":"Casina_API","user":55},"url":"setMan","checked":1}' -p 1883  -u sermovox -P sime01
+	
+
+to simulate a ha cmdtopic versus a type 0 var , protocol ....... :
+	mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd -m ' message='{"payload":1,"sender":{"plant":"Casina_API","user":xxx,"token":yyy},"url":"mqttxwebsock","event":"repeatcheckxSun","data":{theeventhandlerparams=starthour,stophour,dminutes,triggers)}}' 
+' -p 1883  -u sermovox -P sime01
+	
+
+to check if is correcly send :
+ 	mosquitto_sub -t @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+
+___________________________________________
+
+  
+'repeatcheckxSun'
+'stopRepeat',stopRepeat);
+('startprogrammer',repeatHandler1);// start anticipating algo with setting and run an execute()
+function repeatHandler1(starthour,stophour,dminutes,triggers2) 
+
+
+socket.on('stopprogrammer',stopprogrammer);
+
+
+______________________________
+
+ha : bisognera aggiungere uno script che genera i entity in ha e il model.js corrispondente per fv3 per i device che saranno controllati da fv3 :
+
+pompa settore 1: ......  andra sul virtual dev x
+......
+
+_____________________________________
+
+function a(args){
+let mar=arguments[0].sender;
+//mar.push(arguments[0].sender);
+mar.push({type:'var',val:7});
+    b.apply(this, mar);
+    // b.apply(this, arguments);
+}
+
+function b(a1,a2,a3){
+   alert(JSON.stringify([a1,a2,a3]));
+}
+
+a(JSON.parse('{"payload":1,"sender":[{"plant":"Casina_API","user":55},3],"url":"setMan","checked":1}'));
+_________________________________
+state mng 
+ short lever , high level (will condition the param of algo that sets the low level)
+  ex of high level : preferred gas/fv (is a high level copied into state.relais_)
+  high level have its state : state.sysstate and its transition actions 
+  _________________________________________
+  
+  ******   howto program logic :
+  
+  
+  question   readwrite to modbus can be like a mqtt dev ? just is a different type of dev?
+   nb a mqtt dev is built on top of a numbmqtt state so the state  is the device state.  but can we add a device command after set a var state ????????
+   		>> see 	(KKPPMM)
+   		
+   		
+   spesso si scrive sui dev come si fa in un last event : 
+  	 es programming algo ha genZoneRele come last event :
+  	 	....
+  	 	aTT=program(state,inp,probes)
+  	 	....
+  	 	call await callattuators();
+  	 		result=await attuators(these);
+  	 			aTT=consolidate(state,'program'),
+  	 			promises.push(setPump(realind,aTT[i], fn));
+   		
+   quindi ,riassunto come scrivere sui device: 
+   - in attuators() , dopo consolidate() we write dev staff via:
+   	- via setpump()   if we use a numbSubscr device that can be rele or var (var device are written 
+   	
+   		that call 
+   			- onRelais()
+   			- fn.pumpsHandler[pumpnumber](0,on_)  (if cient/browser is connected will call watchparam(pumpName) that emit : socket.emit('pump',pumpName, lightvalue);
+   				the browser will handle setting the flag of device (display the new write value) 
+   					browser  will call  onRelais() after set the dev flag (this is usefull only if user set the flag, otherwise fv3 will discard the double onRelais(() call !!!!)
+   			
+   	
+   			in onRelais(pump,data,coming,fn)
+   				- call writesync to dev after recovered the dev index from relaisEv ( contains the index of all numbSubscr device ( the dev that has its state represented on browser flag and on state.relais[]) 
+  					fn.iodev.relais_[pump_].writeSync(valCorrection(data));
+  				- updates state :
+  					 api.writeScriptsToFile(fn)// upddate persistance and send status to browser
+  					 
+  					 
+  	
+  	
+  	
+  	
+  _____________________________
+  
+  idea : associare un dev fisico con un suo controller diverso da mqtt  a un dev (var o anche rele) aggiungendo :
+   se il fisical dev write aggiungere un ub su dev topic,
+   se il fisical dev read aggiungere un call al device fisico da public topic (o nedered topic ?) 
+   
+   cio ha senso se il dev fisico e0 strettamente associato al fv3 numbersubscr() dev ! 
+   ...........
+   
+   se invece voglio inviare senza controllare dei comandi a device fisici che dipendono da un fv3 dev def basta che mandi la chiamata tipo   
+   				parseFloat(await shellcmd('modbusRead',{addr:map[0],register:'temp',val:0})
+   	aggoingendola dopo aver scritto sul publictopic del fv3 dev 
+   	es il split dev comanda il rele dev che e' la valvola degli split .
+   		 però esso non è mqtt !!!!!! 
+   		 quindi il comando lo devo aggiungere direttamente in consolidate !!!!  ????    NO
+   		 >>> meglio personalizzare il writeSync di un gpio rele in 
+  	
+  	
+  	
+ ________________________________ 					 
+  come leggere da un device non registarto nello state direttamente in un  event di un procedure:
+  
+  
+    - probes.giorno=parseFloat(await shellcmd('modbusRead',{addr:map[0],register:'temp',val:0}).catch(error => { // val useless
+      console.error('  shellcmd catched ,error: ', error);
+      retry=true;
+    }));
+
+__________________________
+
+il havac install chiedera al utente di inserire i dati di tutti i param che saranno usati per generare :
+- i dev NRInt sono i var e i rele  che vengono impostati da fv3 . si monitora con le attributi e si comanda il manualAlgo settando il select  
 	
 ______________________________
+
+checcare input 0/anInt   o  '0'/'anInt' :
+
+function typeOfNaN(x) {
+let xx;
+  if (isNaN(x)) {
+    return ' not good';
+  }
+    if(x==0)return 0;
+    else return 1;
+  }
+console.log(typeOfNaN(7));
+
+
+console.log(typeOfNaN('8'));
+
+
+console.log(typeOfNaN('polo'));
+// Expected output: "Number NaN"
+
+
+or :
+
+function typeOfNaN(x) {
+let xx;
+  if (!isNaN(x)) {
+    if(x==0)return 0;
+    else return 1;
+  }
+  else{
+    return ' not good';
+  }}
+console.log(typeOfNaN(0));
+
+
+console.log(typeOfNaN('0'));
+
+
+console.log(typeOfNaN('polo'));
+
+or: 
+
+function typeOfNaN(x) {let val_;
+if(!Number.isNaN(val_=Number(x)))// // val is conveted to integer
+  
+{if(val_==0)return 0;else return 1;
+}else return 'not valid';
+}
+console.log(typeOfNaN(0));
+
+
+console.log(typeOfNaN('0'));
+
+
+console.log(typeOfNaN('polo'));
+// Expected output: "Number NaN"
+// Expected output: "Number NaN"
+
+>> donot use Number.isNaN() !
+____________________________________
+too much listener sent on :             console.error(' stlist() listener no ERROR. now adding a listener x dev : ', dev, 'in current mqttinst.statuslist: ', mqttInst.statusList);// 05052023   dev is the devid x debug only
+
+and setPump not called on browser !
+
+
+..........
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)],
+    ... 143 more items
+  ],
+  '110': []
+}
+ onRelais, find current pump  split  state different from current hw pump position thats:  null
+ onRelais, find current pump  gaspdcPref  state different from current hw pump position thats:  null
+  ?? attention that order in state.relays  {
+  heat: true,
+  pdc: true,
+  g: true,
+  n: false,
+  s: false,
+  split: true,
+  gaspdcPref: true,
+  acs: false
+}  same as fn.state.relays  {
+  heat: true,
+  pdc: true,
+  g: true,
+  n: false,
+  s: false,
+  split: true,
+  gaspdcPref: true,
+  acs: false
+}  can be different from fn.relaisEv  [ 'heat', 'pdc', 'g', 'n', 's', 'split', 'gaspdcPref', 'acs' ]
+ stlist() listener no ERROR. now adding a listener x dev :  66 in current mqttinst.statuslist:  {
+  '54': [],
+  '55': [
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)],
+    ... 139 more items
+  ],
+  '66': [
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)],
+    ... 143 more items
+  ],
+  '110': []
+}
+ stlist() listener no ERROR. now adding a listener x dev :  55 in current mqttinst.statuslist:  {
+  '54': [],
+  '55': [
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)],
+    ... 139 more items
+  ],
+  '66': [
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)], [Function (anonymous)], [Function (anonymous)],
+    [Function (anonymous)],
+    ... 144 more items
+  ],
+  '110': []
+}
+ onRelais, find current pump  split  state different from current hw pump position thats:  null
+ onRelais, find current pump  gaspdcPref  state different from current hw pump position thats:  null
+^Cluigi@raspberrypi:~/localdev/fv20 $ 
+
+
+_______________________________________
+
+todo : in  function program(state,inp__,probes)
+
+ modificare i valori di Att   null,false,true   in     0  -1  1   -10    10        10  o -10  se non voglio far modificare il valore da intermediate !!!
+ 
+ cio per decidere in consolidate se applicare un attivo intermediate : si se abs < 5
+
+
+
+
+
+______________________
+
+to download the yaml cfg see : https://developers.home-assistant.io/docs/api/rest/   using :  /api/services/<domain>/<service>
+
+			https://www.home-assistant.io/integrations/shell_command/
+			
+			https://community.home-assistant.io/t/state-to-file/483167
+			
+shell_command:
+   write_daily_rain: /bin/bash -c "echo {{ states.sensor.daily_rain.state }} > /run/weather/daily_rain"
+
+				automation:
+				 - alias: sensor_daily_rain_to_file
+				   trigger:
+				    - platform: state
+				      entity_id: sensor.daily_rain
+				    - platform: homeassistant
+				      event: start
+				   action:
+				    - service: shell_command.write_daily_rain
+				    
+		
+		
+		
+		so: 	
+					
+shell_command:	    		
+   write_yaml: /bin/bash -c "echo {{ yaml }} > {{ filename }}"
+
+curl \
+-H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" \
+-H "Content-Type: application/json" \
+-d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' \
+192.168.1.212:8123/api/services/shell_command/write_yaml
+
+cioe : curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.212:8123/api/services/shell_command/write_yaml
+
+
+
+*****
+
+
+
+returns :
+{"yaml":{"mqtt":{"switch":[{"name":"sunshine_startgenerator","qos":1,"state_topic":"£shellies/shelly1-34945475FE06/relay/0£","value_template":"\"{% if value == 'on' %} on {% else %} off {% endif %}\" ","payload_on":" \"on\"","payload_off":"\"off\"","state_on":"\"on\"","state_off":"\"off\"","command_topic":"£shellies/shelly1-34945475FE06/relay/0/command£","json_attributes_topic":"£shellies/shelly1-34945475FE06/relay/0£","json_attributes_template":"£{ \"jsonattr\": \"{{value}}\"}£"}],"select":[{"name":"sunshine_optimizing","command_topic":"£Node-Red-Register£","json_attributes_topic":"&@DefFVMng_API@var_gas-pdc_4&","json_attributes_template":"£{ \"jsonattr\": \"{{value}}\"}£","options":["0","1"]}]},"automation":{"automation":[{"alias":"fv3_optimize_sunshine_optimizing","id":"fv3_optimize_sunshine_optimizing","initial_state":true,"trigger":[{"platform":"£state£","entity_id":"£select.sunshine_optimizing£"}],"action":[{"service":"£mqtt.publish£","data":{"topic":"&@DefFVMng_API@var_gas-pdc_4/NReadUser/cmd&","payload":"£{\"payload\":{{ states.select.sunshine_optimizing.state }},\"sender\":{\"plant\":\"DefFVMng_API\",\"user\":55},\"url\":\"setMan\",\"checked\":1}£"}}]}]}},"data":{"some":["Flavio"]}}
+
+
+
+
+
+webhooks:  see https://www.home-assistant.io/docs/automation/trigger/#webhook-trigger
+
+curl -X POST -H "Content-Type: application/json" -d '{ "key": "value" }' https://192.168.1.212:8123/api/webhook/genyaml
+
+
+
+
+			
+curl \
+-d "user=user1&pass=abcd" \
+-X POST \
+https://example.com/login
+			
+curl \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" \
+  -H "Content-Type: application/json" http://localhost:8123/api/		
+			
+curl -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
+__________________________________________________
+
+created a long lved token , name fv3 :  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A
+
+____________www.anagrafenazionale.interno.it___________________________________
+
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A
+
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A
+____________________________________________________________________________________
+
+testing rest 
+curl -X POST -H "Content-Type: application/json" -d '{ "yaml": "value" }' https://echo.zuplo.io/
+{
+  "url": "https://echo.zuplo.io/",
+  "method": "POST",
+  "query": {},
+  "body": {
+    "yaml": "value"
+  },
+  "headers": {
+    "accept": "*/*",
+    "accept-encoding": "gzip",
+    "connection": "Keep-Alive",
+    "content-length": "19",
+    "content-type": "application/json",
+    "host": "echo.zuplo.io",
+    "true-client-ip": "79.20.9.207",
+    "user-agent": "curl/7.68.0",
+    "x-forwarded-proto": "https",
+    "x-real-ip": "79.20.9.207"
+  }
+
+
+
+curl -X POST -H "Content-Type: application/json" -d '{ "yaml": "value" }' http://postman-echo.com/post
+
+
+
+{
+  "args": {},
+  "data": {
+    "yaml": "value"
+  },
+  "files": {},
+  "form": {},
+  "headers": {
+    "x-forwarded-proto": "http",
+    "x-forwarded-port": "80",
+    "host": "postman-echo.com",
+    "x-amzn-trace-id": "Root=1-6500b628-77a5d3ec7179d1922de8a8cb",
+    "content-length": "19",
+    "user-agent": "curl/7.68.0",
+    "accept": "*/*",
+    "content-type": "application/json"
+  },
+  "json": {
+    "yaml": "value"
+  },
+  "url": "http://postman-echo.com/post"
+}
+
+
+from fv3 : for :
+
+  
+  body={ yaml: "value" };
+    url='http://postman-echo.com/post';
+
+
+returning a promise from echo resolving as :  {
+  "args": {},
+  "data": {
+    "yaml": "value"
+  },
+  "files": {},
+  "form": {},
+  "headers": {
+    "x-forwarded-proto": "http",
+    "x-forwarded-port": "80",
+    "host": "postman-echo.com",
+    "x-amzn-trace-id": "Root=1-6500b57a-7cc7c36c4a83929c4fef4f63",
+    "content-length": "16",
+    "content-type": "application/json"
+  },
+  "json": {
+    "yaml": "value"
+  },
+  "url": "http://postman-echo.com/post"
+}
+
+
+"{\"mqtt\":{\"switch\":[{\"name\":\"sunshine_startgenerator\",\"qos\":1,\"state_topic\":\"£shellies/shelly1-34945475FE06/relay/0£\",\"value_template\":\"\\\"{% if value == 'on' %} on {% else %} off {% endif %}\\\" \",\"payload_on\":\" \\\"on\\\"\",\"payload_off\":\"\\\"off\\\"\",\"state_on\":\"\\\"on\\\"\",\"state_off\":\"\\\"off\\\"\",\"command_topic\":\"£shellies/shelly1-34945475FE06/relay/0/command£\",\"json_attributes_topic\":\"£shellies/shelly1-34945475FE06/relay/0£\",\"json_attributes_template\":\"£{ \\\"jsonattr\\\": \\\"{{value}}\\\"}£\"}],\"select\":[{\"name\":\"sunshine_optimizing\",\"command_topic\":\"£Node-Red-Register£\",\"json_attributes_topic\":\"&@DefFVMng_API@var_gas-pdc_4&\",\"json_attributes_template\":\"£{ \\\"jsonattr\\\": \\\"{{value}}\\\"}£\",\"options\":[\"0\",\"1\"]}]},\"automation\":{\"automation\":[{\"alias\":\"fv3_optimize_sunshine_optimizing\",\"id\":\"fv3_optimize_sunshine_optimizing\",\"initial_state\":true,\"trigger\":[{\"platform\":\"£state£\",\"entity_id\":\"£select.sunshine_optimizing£\"}],\"action\":[{\"service\":\"£mqtt.publish£\",\"data\":{\"topic\":\"&@DefFVMng_API@var_gas-pdc_4/NReadUser/cmd&\",\"payload\":\"£{\\\"payload\\\":{{ states.select.sunshine_optimizing.state }},\\\"sender\\\":{\\\"plant\\\":\\\"DefFVMng_API\\\",\\\"user\\\":55},\\\"url\\\":\\\"setMan\\\",\\\"checked\\\":1}£\"}}]}]}}"
+________________________________________
+echo "£\"{\"data\":\"{{data.json}}\"}\"£ ££  £\"{\"data\":\"{{data.json}}\"}\"£"  | sed -e "s/££/\/n/g" | sed -e "s/£/\'/g"
+
+

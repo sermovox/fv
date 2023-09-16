@@ -57,7 +57,7 @@ test1=require("cors"),
 IsRaspberry=process.env.IsRaspberry != 'false',
 forceWrite=true,// in setPump, write to dev , also if present state is the same as new val , infact dev can change val in different way 
 Serv_='Srv';// debug only, to be sure not to forghet some changes in code
-     
+let rs485;if(IsRaspberry==false)rs485='rs485_simul.py';else rs485='rs485.py'
 console.log(' is raspberry: ',IsRaspberry,PersFold);
 
 let browUsers = process.env.USERS.split(","),
@@ -71,7 +71,11 @@ var https_ = require('https'); //require http server, and create server with fun
 var http_ = require('http'); //require http server, and create server with function handler()
 //console.log('http_.request:',http_.request);
 
-// following the expresss set up  to manage user auth using session , see 
+const YAML = require('yaml');// npm install yaml
+const console_ = require('console');
+const Stream = require('stream');
+
+// following the expresss set up  to manage user auth using session , see ..................
 const EXPRESS=true;
 const express = require("express");
 const app = express();
@@ -95,6 +99,7 @@ const http=server;// duplicate name
 let passport,sessionMiddleware;
 
 
+
  expresscfg();
 function expresscfg(){
 
@@ -109,7 +114,10 @@ const LocalStrategy = require("passport-local").Strategy;
 
 sessionMiddleware = session({ secret: "changeit", resave: false, saveUninitialized: false });
 app.use(sessionMiddleware);
-app.use(bodyParser.urlencoded({ extended: false }));
+//app.use(bodyParser.urlencoded({ extended: false }));
+// configure the app to use bodyParser()
+app.use(bodyParser.urlencoded({ extended: true}));
+app.use(bodyParser.json());
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -169,6 +177,168 @@ app.get("/", (req, res) => {
 
 });
 
+app.post("/registerPlant/", (req, res) => {// 11092023, this is called when ha register for a plant configuration passing json cfgdata or a sintesis of it
+
+                            // new :
+                            // user after registration pay and get a token in response , then he can register the plant sending info about is shelly relays :
+                            // call this url with a form in which says the shelly  with a autorization token in header
+                            // so , see moscow-city_guide_fullstackNodejs.pdf pag 164:
+                            // - the user with browser  got the token when after registration (user password added to authenticate user on next login )
+                            //    , he login and then will pay for the service the  token is created and returned to user browser 
+                            // -  save in browser var  the token that should contain the user and the url can call
+                            // -  after when wants to access to restricted url from browser, as this url,
+                            //         he will need to add token to auth header to access to url handler 
+                            //  - OR he can do the same using a http request from a different connection, but after a login if connects with browser to this 
+                            // - infact at next post call (browser or after from different http client (curl,,,)  the middleware try to get the token from sssion if exists  or from  header  
+                            //    then the middleware can :
+                            //    1: can check , depending from the url serving (unknowes user),  if token missing or invalid or expired to return a login  page to set the token
+                            //    2: if is a non unknowed user url  will recover the user from the token or cookies to see if can serve this url
+                            
+                            
+                            //    nb the token can also retrived from email instead of returned immediately after we generate it 
+                            //     instead of generate in service payed page  (.....) we can generate in different proces ( but using the same protocol and secret)
+                            //      and given to user with email so the user can add the token with its http call in any other http tool (curl,,) 
+
+
+
+                            //  after login only if in middleware  we check for auth user got from passport user retrival  from session cookies or token 
+                            //    , need to call this route need to add the token in authorization header 
+                            // old :
+                            // a button trigger a automation that call rest_command service whose payload is a text entity filled with cfg data
+                            // but first we must check the user is registered 
+                            // returns a yaml cfg , the mqtt credentials and will register the user to join a role 
+                            // the 
+  const isAuthenticated = !!req.user;// the auth middleware try to idetify the user fron cookies or header token
+  if (isAuthenticated) {
+    console.log('user ',req.user,', is authenticated, session is ',req.session.id);
+  } else {
+    console.log("unknown user");
+  }
+
+  // now following the handler 
+
+  // if user in () :
+const cfgdata={version:'stdFV',virtualdev: [{addr:'shelly1-34945475FE06',devType:'shelly1',},,,,,,{subtopic:'var_gas-pdc_',varx:4,devType:'mqttstate'},]};
+
+// 
+let plant,plantModel=  model.getplant(plant='DefFVMng_API'),
+yaml=genYaml( plantModel,cfgdata,plant); //  todo : create a new plant model updating the plantModel
+                              //  the user in ha will  download the blueprint with:
+                              //      - a webhook automation that calls a action :
+                              //            - a shellscript that will add to configure.yalm all the config to manage the fv3 service 
+
+                              // the user itself 
+                              //  - register a login es carlo in the fv3 with a verified mail and fill the cfgdata template (just a func updating the  the shelly address in template ! )
+                              //  - pay the fee 
+                              // then the haAdmin :
+                              //  - add a user carlo (to manage the associated plant carlo_API) and its connected plant copyng the std fv model from the template Casina_API  
+                              //  - after updated the shelly device given by user registration, cfg the std model  calling genYaml( plantModel,cfgdata)
+                              //  - and generate a token x the user aiax
+                              //        for future use in case the mqtt need a token to perform an action on devices 
+                              //  - try to aiax the ha webhook if available passing the yaml cfg
+                              //    if not available the  user itself connects and aiax the webhook
+                              // then the user will verify the yalm adds to add and restart the ha to load the updated yaml with the iterface to fv3
+
+
+                              // no more :
+                                            // then the ha user will download the blueprint fv3 made of just :
+                                            //    - a text tepmate that the user fills with cfgdata and the token 
+                                            //    -  button that trigger an automation that fire the action consisted by a rest_command sending the text template 
+                                            // so the /register or /hacfg route will be called and after verified the token x the user and got the associated plant template  plantModel
+                                            // calls genYaml( plantModel,cfgdata) that generate the yaml file  ad will call a webhook on the blueuprint that calls a action :
+                                            //  - a shellscript that will add to configure.yalm all the config to manage the fv3 service 
+
+
+                              // nb when the haAdmin  will finally start the ha user plant  all mqtt dev will be generated with specific role/user dinamically generated so 
+                              // no one cam emit pub on other mqtt devices , see : Understanding and Using the Mosquitto Dynamic Security Plugin
+
+
+
+
+                              //  old  : call when a identified user ask for a plant cfg, then the user/installer can manage the plant from browser or from ha
+                              //          the user can call the plant cfg by post rest sensor passing the config data (request) put in a json text entity or calc with a shell script from the 
+                              //          yalm cfg after the blueprint input resolution 
+                              //          the rest will fill another text entity with the yaml  to set with another shell script   
+
+                             // yaml=yaml.replace(/'/g, `yyy`);
+                              let myjsonstr=JSON.stringify(yaml);
+
+  // see https://www.geeksforgeeks.org/node-js-new-console-method/    https://nodesource.com/blog/understanding-streams-in-nodejs/ https://www.npmjs.com/package/stream-to-string
+
+// Node.js program to demonstrate the
+// new Console() method
+ 
+// Using require to access console module
+let stream2string;
+
+/*
+const writableStream = new Stream.Writable();
+
+writableStream._write = (chunk, encoding, next) => {// better use promise  see https://stackoverflow.com/questions/10623798/how-do-i-read-the-contents-of-a-node-js-stream-into-a-string-variable?rq=3
+stream2string=chunk.toString();
+  console.log('stream is writed with a chunk : ',stream2string);
+
+  next()
+}
+const outt = writableStream ;//fs.createWriteStream('./output.log');
+const err =  writableStream ;//fs.createWriteStream('./error.log');
+  
+// Another way to create console
+// (default values are passed to options)
+const logObject = new console_.Console(outt, err);                      
+
+logObject.log(yaml);// print yaml (formatting )in write stream  writableStream 
+ writableStream.end();
+ let myyaml=writableStream.toString();// dont work, use stream2string !
+*/
+
+    
+  //  let yaml1=JSON.parse(myjsonstr);let myjsonstr1=JSON.stringify(yaml1); if(myjsonstr==myjsonstr1) console.log(' thejson are the same ');
+  console.log('yaml file : \n',yaml)
+  // res.json({ yaml,data: stream2string});
+
+  
+
+  const repDQuote='£',repQuote=' ££ ',repLF=' £££ ';
+  yaml=yaml.replace(/'/g, repQuote);
+  stream2string=yaml;// stream2string  are useless
+if(stream2string){
+ 
+  stream2string=stream2string.replaceAll('\n', repLF);
+  stream2string=stream2string.replaceAll('"', repDQuote);
+   let body={
+      //"yaml":JSON.stringify(yaml) reeror using "yaml"
+  //  yaml:JSON.stringify(yaml)};
+      //yaml:myjsonstr};
+      //yaml:{pippo:'ciao'}};// ok 
+      //data:{pippo:'ciao'}// ok ma risolto
+      //data:'{"pippo":"ciaup"}'//
+       //data:'che cazzo  vuoi ç£^'//
+      data:stream2string//,filename:'pippo.txt'
+      ,shell:'/bin/sh\necho povero > generated.txt'//'#!/bin/sh\n cd /config \n git add .'
+      ,shellname:'fvshell.sh'
+    };
+
+   let   url='http://192.168.1.212:8123/api/webhook/genyaml',
+  head={"Content-Type": "application/json"};
+  
+  let ret=aiax(url,'POST',body,head);// a promise
+  ret.then((code)=>{
+    console.log('returning a promise from yaml resolving as : ',code.data)});
+ // /* just to debug :
+   // body={ yaml: "value" };
+    url='http://postman-echo.com/post';
+  // head={"Content-Type": "application/json"};
+  ret=aiax(url,'POST',body,head);// a promise
+  ret.then((code)=>{
+    console.log('returning a promise from echo resolving as : ',code.data)});
+  //*/
+
+ 
+  }else   console.log('returning a promise from yaml rejected');
+  res.json({ yaml,data: stream2string});
+
+});
 
 function index(res){// ejs debug
 
@@ -430,7 +600,7 @@ getctls(gpionumb,mqttnumb).then((cts)=>{
 */
 
   // async function getio(num, iotype, ind, ismqtt = false) {}
-const getio=require('./nat/io/getio.js').init(Gpio);// *****************************
+const getio=require('./nat/io/getio.js').init(Gpio,rs485);// *****************************
                                           //  getctls(gpionumb,mqttnumb) will call old getctls(gpionumb,mqttnumb) !! so in .on('',  ... call it !)
                                           // NNBB getctls+getio are now moved to  module getio. seems called only by getctls that now is moved . so why mantain getio here ?
                                           // getio will be called when browser select the plant to manage
@@ -469,7 +639,7 @@ new Gpio(17, 'in', 'both')
 
 
 jrest_=require('./nat/rest.js');jrest_.init(http_,https_);
- const aiax=jrest_.jrest;//  che fa ?
+ const aiax=jrest_.jrest;//  che fa ? probabilmente meglio cancellarla
 function aiax__(url,body,head){// relay to rest  .rest(uri, method,formObj,head) 
   // remember :  response = {data, token}=await  this.rest(uri, method,formObj,head) 
   //                                              .catch((err) => { console.error(' REST got ERROR : ',err); }); 
@@ -900,7 +1070,7 @@ state.program.triggers2.lastT=[date.toLocaleString(),probes];//JSON.stringify(pr
       */
 
       let changing=false;
-    if (activation)  {// some section is cool
+    if (activation)  {// some section is cooler than programmed in winter
       ret = [true, null, toactivate.indexOf('giorno')>=0,toactivate.indexOf('notte')>=0, false,null];// [heat,pdc,g,n,s,split]. program algo (specific) suggestion 
         // set pdc + split according to text + hour + fv power
         
@@ -1080,7 +1250,8 @@ return optimRet;
 }
 
 
-function optimize(res_,state){// now imagine optimize run only on program algo 
+function optimize(res_,state){// old not used , now we call consolidate, see  result=await attuators(these).
+                              //     was : now imagine optimize run only on program algo 
   
   let lastAnticAlgo=state.lastAnticAlgo,lastProgramAlgo=state.lastProgramAlgo;
   //res=[heat,pdc,g,n,s,split] . here we see last anticipated algo proposal relays values and merge them into a summary 
@@ -2548,7 +2719,7 @@ console.log('sendstatus() pretty is: ',prettyjson);
 
 
 // async function attuators(fn,session,clientDiscon){//},map_,aTT_){// 04062023  now aTT_ and map are null, so calc aTT using consolidate !!!!
-  async function attuators(fn){//},map_,aTT_){// 04062023  now aTT_ and map are null, so calc aTT using consolidate !!!!
+  async function attuators(fn){//},map_,aTT_){// 04062023  now aTT_ and map are null, so we'll calc aTT using consolidate !!!!
   
   
                                   // aTT: the program() algo resuts (after consolidating with anticipate algo and manual set)
@@ -2741,7 +2912,7 @@ function setPump(pumpnumber,on,fn){// 0,1,2,3    on : changing value (true/1 or 
 
   console.log(' setpump() just emitted socket  event x pumpnumber',pumpnumber,' asking to set: ',on,' blocking browser confirm ',fn.state.discFromBrow);
   //onRelais(pumpnumber,on_,'server',state);// anyway set directly the gpio relay, in case the browser is not connecte ! 
-  if(on)on_=1;else on_=0;// conver true > 1                                         // ERROR : pump not pumpnumber !
+  if(on)on_=1;else on_=0;// convert true > 1                                         // ERROR : pump not pumpnumber !
   onRelais(relaisEv[pumpnumber],on_,Serv_,fn);// dont wait, WARNING usually called before the duplicate call coming from browser as feedback of previous  pumpsHandler[pumpnumber] call !
   
  if(!clientDiscon)// when client disconnect it useless run function that will emit browser .emit , because no connection is available
@@ -3482,7 +3653,7 @@ session.save();// save socketid
                                       //    devid_shellyname:users[user].cfg.devid_shellyname
                                       //  }
                                       // 
-    let{gpionumb,mqttnumb,mqttprob,relaisEv,devid_shellyname}=plantconfig;
+    let{gpionumb,mqttnumb,mqttprob,relaisEv,devid_shellyname,mqttWebSock}=plantconfig;
     
 
 const keepDeviceDef=true;// is true, try false
@@ -3561,10 +3732,10 @@ eM.iodev={};
 // eM.iodev.relais_= await getio.getctls(gpionumb,mqttnumb).ctls;
 // let devices= await 
 let myctls,myprobs;
-myctls_= getio.getctls(mqttInst,gpionumb,mqttnumb);// get devices choosing from describing gpio and mqtt info array : these are the visible rele/var in browser
-                                          // {ctls:[ctl1,,,,,],devmap:[{devNumb,devType,portnumb},,,,]}
+myctls_= getio.getctls(mqttInst,gpionumb,mqttnumb,false,mqttWebSock);// get devices choosing from describing gpio and mqtt info array : these are the visible rele/var in browser
+                                          // promise resolving into : {ctls:[ctl1,,,,,],devmap:[{devNumb,devType,portnumb},,,,]}
                                           // get pump/relais r/w devices from preferred  mqtt or gpio arrays
-myprobs_= getio.getctls(mqttInst,null,mqttprob,true);//   {ctls,devmap} , true = a probe/var device. invisible in browser
+myprobs_= getio.getctls(mqttInst,null,mqttprob,true,null);// promise resolving into :   {ctls,devmap} , true = a probe/var device. invisible in browser
                                             // get probs  read only devices from  mqtt, true means is a probe type (type='in')
                                             // + get var, intermediate status / context to be used by other algo , connectable to red note
 
@@ -3584,17 +3755,18 @@ myctls_.then(
 
 function abilita2(devices_){// {myctls,myprobs} // DDQQAA
   let devices=devices_.myctls,// {ctls:[ctl1,,,],devmap:[{devNumb,devType,portnumb},,,,]}
-                                /* 	  	  	   	devices=devices_.myctls,// 	{ctls:[ctl1=new fc(gp,ind,inorout,cfg)= 	
+                                /* 	  	  	   	devices={
+                                                          ctls:[ctl1=new fc(gp,ind,inorout,cfg)= 	
                                                                   {gpio=11,
                                                                   devNumb=0,// array index 0,1,2
-                                                                  type=inout,
+                                                                  type=inorout,
                                                                   cfg,
                                                                   cl=1(clas='out')/2(a var)/3(clas='in'OR'prob'),
                                                                   isOn,
                                                                   readsync,
                                                                   writesync}
-                                                ,,,],
-                                              devmap:[{devNumb,devType,portnumb},,,,]}  
+                                                                  ,,,],
+                                                          devmap:[{devNumb,devType,portnumb},,,,]}  
                                 */
 //eM=socket.eM,
 
@@ -3616,7 +3788,9 @@ state.probMap=Array(probes.ctls.length).fill(null);
   }
 });*/
 builddev(devices,eM.iodev.relais_,state.devMap,0);  // reset pumpsHandler[ind], to call browser socket  emitters x pumps
-                                                    // transform devices={devmap,ctls} >>  state.devMap eM.iodev.relais_  : the action relays listed in browser
+                                                    // transform devices={devmap,ctls} >>  state.devMap eM.iodev.relais_  : the ctl of  relays listed in browser , whose name is in relaisEv , index 0..relaisEv.length-1
+                                                    //                                                                       and the ctl of dummy dev with portid=0 and index >=relaisEv.length 
+
 builddev(probes,eM.iodev.probs_,state.probMap,1); //                                      state.probMap eM.iodev.probs_   : will be used 
                                                 //                                                                        - in events like these.on("initProg", and these.on('genZoneRele',
                                                 //                                                                          looking at its input set in the exec  builder prog_parmFact(sched) :
@@ -3635,6 +3809,8 @@ builddev(probes,eM.iodev.probs_,state.probMap,1); //                            
                                                 //                                                                        - to store/write or get/read intermediate var status connectable to node red
 
 function builddev(devices,ct,map,type){// fill obj map with dev id/port (see models.js) + fill ctl  in ct[index of devices], ct can be  iodev.relais_ or iodev.probs_  
+                                        // copy dev ctl of devices e probs into  ct=iodev.relais_  e iodev.probs_
+                                        // fill map with the dev portid
 devices.ctls.forEach((mdev,index)=>{
   if(mdev){ct[index]=mdev;
     map[index]=devices.devmap[index].portnumb;// just to make easy the debug, for ever index we know the portnumber of the model assocated device
@@ -3655,19 +3831,22 @@ if(relaisEv.length>eM.iodev.relais_.length)console.error('buildPlantDev() : mana
   // GGTTFF
 let pumpsHandler=eM.pumpsHandler; 
 
-  relaisEv.forEach((pump,ind) => {// pump='pdc', ind=2// socket event to sync raspberry buttons and web button
-    // 'g','n','s']
+  relaisEv.forEach((pump,ind) => {// ex: pump='pdc', ind=2
+                                // will for each numbSubscr dev :
+                                // - add  socket event to sync raspberry buttons and web button
+                                // - set interrupts
     
 if(!eM)console.error('event connection setting hw button , eM is still null ');
 if(!eM)console.log('event connection setting hw button, eM is still null ');
 
 // to do check the relais are not alredy set to other plant/eM
 pumpsHandler[ind]=watchparam(pump);// handler for actuators, each (button )handler emit the socket.emit('pump' to browser to update the visibile relay flags 
+
 if(relais&&relais[ind])relais[ind].watch(pumpsHandler[ind]);// attach same handler watchparam(pump) to all gpio pump  buttons 
                           // that handler works also x algo handler called in attuators/setpump   ex pumpsHandler[0](err,value) 0 means pdc pump
 
 
-// now do the same for mqtt interrupts for var dev updating  and rele dev , cl = 1 e 2 , no cl 4
+// set interrups : now do the same for mqtt interrupts for var dev updating  and rele dev , cl = 1 e 2 , no cl 4
 
 if(eM.iodev.relais_[ind]&&eM.iodev.relais_[ind].cl&&(eM.iodev.relais_[ind].cl==2||eM.iodev.relais_[ind].cl==1)){// the dev is a mqtt var , see VVCC in howto
 
@@ -3706,11 +3885,11 @@ if(eM.iodev.relais_[ind]&&eM.iodev.relais_[ind].cl&&(eM.iodev.relais_[ind].cl==2
   
   let val_,checked_;
   //  if(!Number.isNaN(val_=Number(data.val))&&!Number.isNaN(checked_=Number(data.checked))&&data,val&&data.checked){// val='0','1'  . checked='0','1'
-  if(!Number.isNaN(val_=data.payload)&&!Number.isNaN(checked_=data.checked)){// payload is integer, so checked : 0/1
+  if(!isNaN(val_=data.payload)&&!isNaN(checked_=data.checked)){// payload is integer, so checked : if is not 0/1 or '0'/'1'
    
     console.log(' abilita2 interrupt Iter1 : receiving   var ',pump,', msg val (0/1) : ',val_,'  checked : ',checked_,'  , actual status is :',state.relays[pump],' , queue is :',queue,', data was ',data);
 
-      if(val_==0) ;else val_=1;
+      if(val_==0) ;else val_=1;// ok funzione sia con 0 che con '0'
 
 
   console.log(' abilita2 interrupt : fire interrupt to set/unset : ',checked_,' Manual Algo with value : ',val_,' , on dev ',pump);
@@ -3723,11 +3902,86 @@ if(eM.iodev.relais_[ind]&&eM.iodev.relais_[ind].cl&&(eM.iodev.relais_[ind].cl==2
   // set other int handler for different income msg :
   // eM.iodev.relais_[ind].int1= .....
 
+
+
 }
 
 
 
 });
+
+// now find and process the 'int' dummy dev to set a interrupt handler that map the topicNodeRed to websocket handler
+
+let mqtt2webS;
+for(let ii=relaisEv.length;ii<eM.iodev.relais_.length||!mqtt2webS;ii++){// relais_ contain the int dummy dev with index>=relaisEv.length (usually =)
+  if(eM.iodev.relais_[ii].gpio==0)mqtt2webS=eM.iodev.relais_[ii];// the ctl for 
+}
+if(mqtt2webS){
+  mqtt2webS.intWebSoc=intWebSock;// handler point to setManual()
+ 
+  
+}
+
+
+
+function intWebSock(val=0, devqueue, message){// val=0/1, the int handler of a formatted request serving url mqttxwebsock
+  // old : message='{"payload":1,"sender":{"plant":"Casina_API","user":xx,"token":yyy},"url":"mqttxwebsock","event":"repeatcheckxSun","data":{theeventhandlerparams=starthour,stophour,dminutes,triggers)}}' 
+  // message={"payload":1,"sender":{"plant":"Casina_API","user":77},"url":"mqttxwebsock","event":"repeatcheckxSun","data1":[1,23,2,{"FVPower":30}]} 
+  let mevent=message.event,param=message.param,startAnt=false,startPgm=false;
+  state=state;// TODO :  recover state for this active user plant that registered the mqtt dev topic , 
+  //                    better validate the token to avoid a different user having the mqtt broker access send a mqtt pub to a different user topic dev 
+  // the user auth staff is in ..........................
+  let xstart,xstop,xmin,data=message.data;
+  if((mevent))
+
+  if(mevent=="stopcheckxSun"){
+    console.log('intWebSock() stopping program and anticipate Algos');
+    stopRepeat();
+      stopprogrammer();
+  
+    }else  if(mevent=='repeatcheckxSun'&&(data)&&(xstart=data[0])&&(xstop=data[1])&&(xmin=data[2])){
+      if(param=='on'){startAnt=startPgm=true;
+
+      }
+      else{startPgm=true;
+      }
+
+        if(startAnt){
+          if(state.anticipate==null||!state.anticipate)// dont run alredy
+        {
+          console.log('intWebSock() starting anticipate  Algos');
+          repeatHandler.apply(this,data);// pass data array as params
+        }
+      }
+      if(startPgm){
+        if(state.program==null||!state.program)// dont run alredy
+        {
+          let triggers2=message.data1;// only "PGMgiorno" : { "8:30" : 27, "17:00" : 30 },
+          // recover using previous sets and recoverd in .data
+/*
+                                                                        "triggers2" : {
+                                                                          "Tgiorno" : true,
+                                                                          "PGMgiorno" : { "8:30" : 27, "17:00" : 30 },
+                                                                          "Tnotte" : false,
+                                                                          "PGMnotte" : { "notte" : { "8:30" : 20, "17:00" : 22 } },
+                                                                          "lastT" : ["21/08/2023, 09:33:23", { "notte" : 23.8, "giorno" : 24.3 }],
+                                                                          "mapping" : "==&&state.devmapping=[0,1,2,3,-1,5]",
+                                                                          "probMapping" : "==&&state.probmapping=[2,4,0,3,1,5]",
+                                                                          "ei" : "S"
+                                                                      }
+*/   
+if(triggers2){ 
+  triggers2.mapping="==&&state.devmapping=[0,1,2,3,-1,5]";
+  triggers2.probMapping="==&&state.probmapping=[2,4,0,3,1,5]";triggers2.ei="S";triggers2.Tgiorno=true; 
+  console.log('intWebSock() starting program  Algos');                                              
+setTimeout(()=>{ repeatHandler1(xstart,xstop,xmin,triggers2);},1500);
+
+        }}
+      }
+
+}else console.log(' intWebSock() cant find a handler for mevent ',mevent);
+  else console.log(' intWebSock() cant find a handler for mevent ',mevent);
+}
 
 // moved : displayView(relaisEv,state);
 
@@ -3898,7 +4152,7 @@ if(eM.iodev.relais_[ind]&&eM.iodev.relais_[ind].cl&&(eM.iodev.relais_[ind].cl==2
 
 function setanticipateflag(set_,algo,activeAlgoRes=null){ //  AAQQOO  
                                                           // store in state the algo launch params (ex: triggers), update state store :
-                                                          // state[algo]=.... ex state.anticipate={....}  .
+                                                          // state[algo]=set_ ex state.anticipate={....}  .
                                                           // if set_=null :  state.anticipate=false
                                                           //    state[algo]=false     the algo init parm are false because the algo is not active
                                                           //    and
@@ -3926,6 +4180,16 @@ function setanticipateflag(set_,algo,activeAlgoRes=null){ //  AAQQOO
 
 socket.on('repeatcheckxSun',repeatHandler);// start anticipating algo with setting and run an execute()
 function repeatHandler(starthour,stophour,dminutes,triggers) {// called also by ....
+                                                                /*      "triggers" : {
+                                                                                      "PdCTrig" : false,
+                                                                                      "temp" : "",
+                                                                                      "PdCTrig1" : true,
+                                                                                      "FVPower" : "35",
+                                                                                      "Tmax" : "",
+                                                                                      "Psav" : "",
+                                                                                      "Bsav" : ""
+                                                                                  }
+                                                                */
   if(!eM)console.error(' repeatHandler(), eM is null ');
   if(!eM)console.log(' repeatHandler(), eM is null ');else console.log(' repeatHandler(), eM is found '); 
     repeat=repeat||checkFactory(eM);// could be find null ???
@@ -3937,7 +4201,8 @@ function repeatHandler(starthour,stophour,dminutes,triggers) {// called also by 
   }
 
 
-socket.on('stopRepeat',() => {
+socket.on('stopRepeat',stopRepeat);
+function stopRepeat()  {
   repeat=repeat||checkFactory(eM);// could be find null ???
   console.log(' stopRepeat event fired');
   if(repeat){
@@ -3945,7 +4210,7 @@ socket.on('stopRepeat',() => {
   setanticipateflag(false,'anticipate','lastAnticAlgo');//// reset in state the algo launch params (ex: triggers), ex : state.anticipate=false
                                                           //  update state.lastAnticAlgo
   }
-  });// 
+  }
 
 
 // now the same x programming temperature x many zones
@@ -3956,11 +4221,23 @@ function repeatHandler1(starthour,stophour,dminutes,triggers2) {// sched trigger
                                                                   PGMgiorno: {    "8:30": 15, "17:00": 19, },
                                                                   Tnotte: false,
                                                                   PGMnotte: { notte: {"8:30": 20,"17:00": 22,},},
-                                                                  lastT: ["5/31/2023, 10:53:20 AM", { notte: 20, giorno: 20,},],
+                                                                  lastT: ["5/31/2023, 10:53:20 AM", { notte: 20, giorno: 20,},],  // todo: what is this ?????????
                                                                   mapping: "==&&state.devmapping=[0,1,2,3,-1,5]",
                                                                   probMapping: "==&&state.probmapping=[2,4,0,3,1,5]",
                                                                   ei: "S",
                                                                 }
+                                                                */
+
+                                                                /*        "triggers2" : {
+                                                                          "Tgiorno" : true,
+                                                                          "PGMgiorno" : { "8:30" : 27, "17:00" : 30 }, // associato al virtual rele g ( index 2)
+                                                                          "Tnotte" : false,
+                                                                          "PGMnotte" : { "notte" : { "8:30" : 20, "17:00" : 22 } },
+                                                                          "lastT" : ["21/08/2023, 09:33:23", { "notte" : 23.8, "giorno" : 24.3 }], // NOT used to start programalgo !, just x info
+                                                                          "mapping" : "==&&state.devmapping=[0,1,2,3,-1,5]",  // serve solo a mappare diversamente i dev mostrati nel browser con gli index che sono associati a rele con ruolo specifico negli Algo
+                                                                          "probMapping" : "==&&state.probmapping=[2,4,0,3,1,5]",
+                                                                          "ei" : "S"
+                                                                      }
                                                                 */
   console.log(' startprogrammer socket event handler repeatHandler1() called with triggers2: ',triggers2 )   ;                                                            // sched={'giorno':['8:30':t1,"17:00":t2]} see initProg event x keys definitions
   let sched={programs:{}};// sched={programs:{giorno:{'16:10':-3,,,,},notte:{}},probMapping:[],mapping:[]} 
@@ -4005,7 +4282,8 @@ function repeatHandler1(starthour,stophour,dminutes,triggers2) {// sched trigger
   }
 
 
-socket.on('stopprogrammer',() => {
+socket.on('stopprogrammer',stopprogrammer);
+function stopprogrammer() {
   repeat1=repeat1||checkFactory(eM);// could be find null ???
   console.log(' stopprogrammer event fired');
   if(repeat1){
@@ -4014,7 +4292,7 @@ socket.on('stopprogrammer',() => {
                                                         //// store in state the algo launch params (ex: triggers),  update state.lastAnticAlgo
   
   }
-  });// 
+  }
 
 
 
@@ -4171,18 +4449,18 @@ async function onRelais(pump,data,coming,fn) { //pumps unique handlerget pumps s
  
 
     let ctl=fn.iodev.relais_[pump_];// pump_= ctl.devNumb
-  if(ctl){
-   
-  console.log('OnRelais  accept processing pump/devName: ',pump, ', found with index ',ctl.devNumb,', devid/portid ',ctl.gpio,', is a mqttdev?: ',!!ctl.cfg);
-  console.log('......, plantname ',fn.state.app.plantname,' , session id ',sessionid,', socket id ',socketid,', to set ',data,',  coming from ',coming);
- 
-  if(!!ctl.cfg)console.log('.......  mqtt dev feature from model mqttnumb : cl_class (mqttnumb:1rele/2var mqttprob:3probe/4var) ',ctl.cl,', plant ',ctl.mqttInst.plantName,' class ',ctl.cfg.clas,', protocol ',ctl.cfg.protocol);
-    curval=valCorrection(await ctl.readSync());// 0/anynumber or null  present value of gpio register   now better 0/1 or null(cant know)
-   //  if(curval==null)curval=0;// std out 
-   if(isNaN(curval))curval=null;// must be a number 
-  }
-  else // if the device is not available read a dummy 0
-    curval=null;// 0;
+    if (ctl) {
+
+      console.log('OnRelais  accept processing pump/devName: ', pump, ', found with index ', ctl.devNumb, ', devid/portid ', ctl.gpio, ', is a mqttdev?: ', !!ctl.cfg);
+      console.log('......, plantname ', fn.state.app.plantname, ' , session id ', sessionid, ', socket id ', socketid, ', to set ', data, ',  coming from ', coming);
+
+      if (!!ctl.cfg) console.log('.......  mqtt dev feature from model mqttnumb : cl_class (mqttnumb:1rele/2var mqttprob:3probe/4var) ', ctl.cl, ', plant ', ctl.mqttInst.plantName, ' class ', ctl.cfg.clas, ', protocol ', ctl.cfg.protocol);
+      curval = valCorrection(await ctl.readSync());// 0/anynumber or null  present value of gpio register   now better 0/1 or null(cant know)
+      //  if(curval==null)curval=0;// std out 
+      if (isNaN(curval)) curval = null;// must be a number 
+    }
+    else // if the device is not available read a dummy 0
+      curval = null;// 0;
   console.log(' onRelais, coming from: ',coming,', current rele position x dev name ',pump,', is ',curval,' asking to set : ',data); 
   // console.log('              onRelais, state: ',state); 
     let lchange=false; //  >>>>>>>  TODO : gestire le incongruenze tra state.relays  e current relay value : curval
@@ -4425,13 +4703,8 @@ return {procName, a,b,ev2run, asyncPoint, processAsync, dataArr:dataArr_,algo:'p
 }
 
 
-
-
-
-
-
-
   const { exec } = require('child_process');
+
   async function shellcmd(sh,param){// param={addr:'notte',val:18}
     console.log(' executing shellcmd() param: ',param);
     let val=param.val,reg=4098,addr;
@@ -4439,7 +4712,7 @@ return {procName, a,b,ev2run, asyncPoint, processAsync, dataArr:dataArr_,algo:'p
       // if(param.addr=='notte')addr=4;else if(param.addr=='giorno')addr=2;else if(param.addr=='taverna')addr=9;else if(param.addr=='studio')addr=5;else;
       addr=param.addr;// 1-999
       if(param.register=='temp')reg=4098;else if(param.register=='active')reg=4188;else;
-      let myexec='python3 rs485.py r '+addr+' '+reg+' 0';
+      let myexec='python3 '+rs485+' r '+addr+' '+reg+' 0';
       console.log(' executing cmd: ',myexec);
     return new Promise(function(resolve, reject) {
 
@@ -4451,7 +4724,7 @@ return {procName, a,b,ev2run, asyncPoint, processAsync, dataArr:dataArr_,algo:'p
             console.log(`exec error: ${error}`);
               reject(error);
         }
-          else {resolve(stderr);
+          else {resolve(stderr);// pass std error results
             console.log(' shellcmd returned : ',stderr,' cioe ${stderr}');
           }
         });
@@ -4468,7 +4741,7 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
   // >>>  torna il valori dei rele , ricalcolati tenuto conto di 3 calcoli degli algo , il piu recente e i due precedenti  set !!! 
 
 
-  // 04062023 >>>>>>>>>>>>>>>>><
+  // news : 04062023 >>>>>>>>>>>>>>>>><
   // works on virtual dev  , now will also map virtual anticipate intermediate res : see MMNN
 
 
@@ -4524,8 +4797,10 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
 
   let antMap = state.app.plantconfig.anticInterm2VirtMap,// update of virtual dev to apply if a intermediate is set true by anticipate. {gaspdcPref:[true,true,true,null,null,true,null]}/
    apply;
-  const sol = 1;// scelta implementativa , 0: apply intermedate then merge with program and user 
-  // 1: merge , then apply intermediate 
+  const sol = 1;// scelta implementativa , 
+  // 0: apply intermedate then merge with program and user 
+  // 1: merge , then apply intermediate .thats the preferred choice
+
   // a: process antic + program
   if (antic) {
 
@@ -4559,7 +4834,7 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
         //  and we can move that map from browser to model.js , see LLGGYY
 
         antic.forEach((val, ind) => { if (val == null) {if(program[ind]!=null)res[ind] = program[ind];} else res[ind] = val });// prog e antic active, settings result:
-                                                                                                      // take antic values if not null, otherwise take not null program values !
+                                                                                                      // take antic values (val) if not null, otherwise take not null program values !
       }
       // save 
 
@@ -4616,7 +4891,7 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
   }
 
 
-  function applyIntermed(proposal) { // antMap : see anticInterm2VirtMap in model.js
+  function applyIntermed(proposal) { // antMap : see anticInterm2VirtMap in model.js. proposal is current proposed relays to update if intermediate is set 
     if (antMap) {// antMap={gaspdcPref:[true,true,true,null,null,true,null]}/// the intermediate proposal to apply on other dev, if a intermediate var (gaspdcPref) is found true
       for (ant in antMap) {// ant is an itermediate var registered in antMap , ex ant=gaspdcPref
         let ind;
@@ -4668,4 +4943,151 @@ function  valCorrection(value){// change 0 <> 1
   if(value==null||isNaN(value))return value ;
   if(INVERTONOFF_RELAY)if(value==0)return 1; else return 0;
   
+  }
+  function genYaml(model,cfgdata,plant){// edit models.js template with user devices , generate yalm
+    // nothing   mystring    >     "mystring"
+    //    "mystring"          >    "£mystring£"   
+    // &  is  : '
+    // to ee how to convert a valid current yalm to json and opposite see . https://onlineyamltools.com/convert-yaml-to-json
+
+
+    // 
+
+
+    // std : "....."
+    // cfgdata={version:'stdFV',virtualdev:[]}
+  const FV3='fv3_optimize_'
+  let version,virtual,addr,
+  yaml_automation=[],
+      yaml_mqtt={mqtt:[],automation:yaml_automation};
+
+
+            
+  if(cfgdata)
+  if(version=cfgdata.version){
+    if(version=='stdFV'&&(!model.version||model.version=='stdFV')){
+      virtual=cfgdata.virtualdev;// [{addr:'shelly1-34945475FE06',devType:'shelly1',},,,,,,{subtopic:'var_gas-pdc_',varx:4,devType:'mqttstate'},] , a std FV optimizator process with its  std virtual devices indexing 0,,7 
+      // relaisEv:['heat','pdc','g','n','s','split','gaspdcPref','block acs']
+      if(virtual&&virtual.length&&virtual.length>=7&&virtual[0]&&virtual[6]){
+
+        let mqttnumb=model.cfg.mqttnumb;
+
+        // ind=0 dev 
+        addr=virtual[0].addr;// = shelly1-34945475FE06
+        //{portid:11,clas:'out',protocol:'shelly',subtopic:'shelly1-34945475FE06'},// clas 'out' or 'var' , same dim than gpionumb 
+        
+        if (virtual[0].devType='shelly1'){// mandatory virtual[0]={devType:'shelly1',addr:'shelly1-34945475FE06'}
+        mqttnumb[0].subtopic=addr;// update devo 0 model on numbmqtt
+      
+        // set yaml entity
+        yaml_mqtt.mqtt.push({switch:yaml_dev_shelly_rele_def("sunshine_startgenerator",addr)});
+
+
+
+
+        // mandatory : index 6 : preferred gas/fv var dev 
+        if(addr=virtual[6].subtopic)// virtual=[{devType:'shelly1',addr:'shelly1-34945475FE06'},,,,,,{subtopic:'var_gas-pdc_',varx:4,devType:'mqttstate'},]
+        //  {portid:55,subtopic:'var_gas-pdc_',varx:4,isprobe:false,clas:'var',protocol:'mqttstate'}
+        if (virtual[6].devType='mqttstate'){// mandatory virtual[0]={devType:'shelly1',addr:'shelly1-34945475FE06'}
+          mqttnumb[6].subtopic=addr;// update dev 1 model on numbmqtt
+          mqttnumb[6].varx=virtual[6].varx;
+          let varTopic='@'+plant+'@'+addr+virtual[6].varx,// '@Casina_API@ctl_var_gas-pdc_4'
+          name_="sunshine_optimizing";
+        // set yaml entity
+        yaml_mqtt.mqtt.push({select:yaml_dev_mqtt_var_def(name_,varTopic)});// varTopic is yaml attribute_topic
+        yaml_automation.push(yaml_dev_shelly_automation_def(name_,varTopic,plant,mqttnumb[6].portid));          
+
+        
+          return YAML.stringify(yaml_mqtt,{lineWidth:200});
+
+        }else return;
+        }  else return;
+      }else return;
+
+    }
+  }
+  function yaml_dev_shelly_automation_def(name,topic,plant,user){
+    const topic2snd=topic+'/NReadUser/cmd';
+    return{alias: FV3+name,
+                      id:FV3+name,
+                      initial_state:true,
+                      trigger:[{platform:"state",entity_id:"select."+name}],
+                   //   action:[{service:"mqtt.publish",data:{topic:topic2snd,payload:'{"payload_":{{ states.select.'+name+'.state }},"sender":{"plant":"'+plant+'","user":'+user+'},"url":"setMan","checked":1}'}}]
+                      action:[{service:"mqtt.publish",data:{topic:topic2snd,payload:'{"payload_":"{{ states.select.'+name+'.state }}","sender":{"plant":"'+plant+'","user":'+user+'},"url":"setMan","checked":1}'}}]
+
+                    };// 
+
+    
+    /*id: "optimize"
+    initial_state: true
+    trigger:
+      - platform: state
+        entity_id: select.NRInt
+    condition:
+    action:
+      - service: mqtt.publish
+        data:
+          topic: '@Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd'
+          payload: .....
+           */
+
+    }
+    function yaml_dev_shelly_rele_def(name,name_){// a switch  name= shelly1-34945475FE06
+    
+      return{ 
+                        // id:FV3+"_"+name,
+      name:name,
+      qos:1,
+      state_topic:"shellies/"+name_+"/relay/0",
+      // value_template: '"{% if value == 'on' %} on {% else %} off {% endif %}" ', how  to code ' ?
+
+      payload_on: ' "on"',
+    payload_off: '"off"',
+    state_on: '"on"',
+    state_off: '"off"',
+    command_topic: "shellies/"+name_+"/relay/0/command",
+    json_attributes_topic: "shellies/"+name_+"/relay/0",
+    json_attributes_template: '{ "jsonattr": "{{value}}"}'
+                      };// £ means leave ""
+                      /*
+- switch:
+    name: "RSSI"
+    qos: 1
+    state_topic: shellies/shelly1-34945475FE06/relay/0
+#      value_template: "{% if value == 'on' %} on {% else %} off {% endif %}" only x sensor ?
+    payload_on: "on"
+    payload_off: "off"
+    state_on: "on"
+    state_off: "off"
+    command_topic: shellies/shelly1-34945475FE06/relay/0/command
+    json_attributes_topic: shellies/shelly1-34945475FE06/relay/0
+    json_attributes_template: >
+      { "jsonattr": "{{value}}"}
+                      */
+ }
+
+ function yaml_dev_mqtt_var_def(name,attTopic){// a select  attTopic=  '@Casina_API@ctl_var_gas-pdc_4', to add  with starting and ending &
+  return{ 
+                    // id:FV3+"_"+name,
+  name:name,
+
+command_topic: "Node-Red-Register",
+json_attributes_topic:attTopic,
+json_attributes_template: ' { "algoSuggested": "{{value_json.payload}}"}',
+options:['"0"','"1"']
+
+                  };// £ means leave ""
+                  /*
+-   - select:
+    command_topic: Node-Red-Register
+    json_attributes_topic: '@Casina_API@ctl_var_gas-pdc_4'
+    json_attributes_template: >
+      { "algoSuggested": "{{value_json.payload}}"}
+    name: "NRInt"
+    options:
+      - "0"
+      - "1"
+                  */
+}
+
   }
