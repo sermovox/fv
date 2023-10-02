@@ -192,7 +192,7 @@ sequenza di init al press del button: load a plant
 							in alternativa si potrebbe forzare il current state allo stato dei rele , ma non dovrebbe succedere  
 		  				relaisEv.forEach((pump,ind) => { setPump(ind,eM.state.relays[pump],eM)
 		  				
-		  					setPump will:
+		  					setPump will:  AASSWW
 			  					-pumpsHandler[pumpnumber](0,on_)=watchparam(pump);// called also by anticipating algo in attuators to set the pump relay in browser that call back to event pump calling 
 			  						onRelais(relaisEv[pumpnumber],on_,'browser....',fn);
 			  					
@@ -516,7 +516,8 @@ mosquitto_pub -h bot.sermovox.com -t @MarsonLuigi_API@ctl_var_gas-pdc_4 -m '{\"p
 shelly cfg
 
  al reset è access poimt wifi e il suo address e   192.168.33.1  ??????
- poi setti il wifi mode client e dai un indirizzo statico e il nome del wifi acess poin del router per cui poi lo accedi con quello indirizzo statico es 192.168.1.150 
+ poi setti il wifi mode client e dai un indirizzo statico e il nome del wifi acess poin del router per cui poi lo accedi con quello indirizzo statico es 192.168.1.150 (shelly in casina ? )
+ ht : 192.168.1.151
 
 poi setti in advnced dev setting mqtt con   server bot.sermovox.com:1883  user sermovox e pass sime01
 
@@ -1301,7 +1302,7 @@ now anticipate()/program() :
 	
 	0			termostato bt		map[0]		relaisEv[map[i]]		si
 	1			attivazione pdc		map[1]			"			si
- 	2			preferred zone		map[1]			"			no	
+ 	2			preferred zone		map[2]			"			no	
  	3			second zone								no
  	5			split valve								si
  	
@@ -3298,8 +3299,8 @@ function b(a1,a2,a3){
 
 a(JSON.parse('{"payload":1,"sender":[{"plant":"Casina_API","user":55},3],"url":"setMan","checked":1}'));
 _________________________________
-state mng 
- short lever , high level (will condition the param of algo that sets the low level)
+state mng  : idea strutturare gli state il level , ......
+ short level , high level (will condition the param of algo that sets the low level)
   ex of high level : preferred gas/fv (is a high level copied into state.relais_)
   high level have its state : state.sysstate and its transition actions 
   _________________________________________
@@ -3364,7 +3365,7 @@ state mng
   	
   	
  ________________________________ 					 
-  come leggere da un device non registarto nello state direttamente in un  event di un procedure:
+  come leggere da un device, non registato in mqttnumb o mqttprob,  nello state direttamente in un  event di un procedure:
   
   
     - probes.giorno=parseFloat(await shellcmd('modbusRead',{addr:map[0],register:'temp',val:0}).catch(error => { // val useless
@@ -3808,4 +3809,810 @@ returning a promise from echo resolving as :  {
 ________________________________________
 echo "£\"{\"data\":\"{{data.json}}\"}\"£ ££  £\"{\"data\":\"{{data.json}}\"}\"£"  | sed -e "s/££/\/n/g" | sed -e "s/£/\'/g"
 
+____________________________________________
 
+riassunto difficolta nel download del yaml:
+- i webhook con chiamata aiax jsno no possono portare string con segni speciali 
+- necesssita la codifica di " ' e \n e #
+- nel ricostruire il file nei action dei automation si richiamano shell_command 
+- i shell cmd se leggono il data devono essere "" e quindi non e' possibile usare cmd con parametro  ""
+- non posso oncatenare cmd con &&
+- non riesco a eseguire .sh nei shell_command 
+
+>> quindi i sed non possono leggere i json data quindi il filename del yaml scaricato
+__________________________________________________________
+
+
+____________________________________________
+
+ /bin/bash -c " myFVdata="£\"{\"data\":\"{{data.json}}\"}\"£ ££  £\"{\"data\":\"{{data.json}}\"}\"£"  && 
+ _____________________________________________
+ todo 
+ inserire i ok al anticipate solo se cur temp < 1.5 gradi rispetto desidered 
+ provare  a bloccare qualche pump per 1 giorno in manuale
+ combiare ora legale in raspberry
+ cambiare lo stato dei dev mqttnumb da false ( unkwown)  / false/ true  in integer / object   to qualify the temperature gap per tener conto della soglia TgiornoTollerance . idea aggiungere un qualify a 
+ ________________________________
+ 
+ 
+ 
+ 	 	// **** MNG SUMMARY mappings of probe and pump (devices shown  on pump list) devices :
+		// algo (exec procedure and its event manager) works on device using virtual index refearring to gpionumb/mqttnumb pump/var e mqttprob/pythonprob probs/var.
+		// 	- gpionumb/mqttnumb
+		//	 	name can be used instead of virtual index on gpionumb/mqttnumb using the corrispondence relaisEv
+		//		ex state of gpionumb/mqttnumb dev ( state.relays) uses name keys according to  relaisEv  
+		// ...................
+ 
+ so virtual index are used by exec events program for ex used when call event genZoneRele (input : dataArr(=sched)) , a event of a exec procedure created with prog_parmFact(sched)
+ 
+ genZoneRele :
+ - it uses program() that works on   probs dev described in  mqttprob/pythonprob   
+ 
+ 		program()  write a proposal ( pumps + tollerance ) for virtual indexed  in lastProgramAlgo using virtual index
+ - then calls callattuators() that 
+ 	calls consolidate , // works on virtual dev  [false, false, false, false,false,false,,,]= [heat,pdc,g,n,s,split,,,], 
+ 	
+ - then using  map=state.app.plantconfig.virt2realMap;//
+ 	call setPumps(virtualindex=pumpnumber,val,))
+ 		setPump calls :
+ 			onRelais(relaisEv[pumpnumber] 	>>  so works on dev name to set state.relais[name]  
+ 			fn.pumpsHandler[pumpnumber](0,on_)  >> so call a socket event to browser to set a pump of index pumpnumber
+ 					the browser sets the pump of index ....
+ 					
+ 					nb when we manual set a pump will be called a server event :  socket.emit('pump', pump= browserpumpindex ????????   , data, 'browser_pump_Handler'); //  HYN send push button status to back to server  
+ 						the server will set the manual of pump .............
+		
+ 			nb also when browser receiving the state event pumps are filling still using virtual index !!
+ 	
+ 	
+  >>>   quindi il mapping dei dev output  non funziona . per ora usare solo virt2realMap =[0,1,2,3,4,5,6,7] . probabilamnte bisogna updatare il browser usando i nomi e eventualmente un locale index
+  // invece e' da considerare il probmapping , see .....
+ 	
+ 	
+ 	
+ 	
+ 	
+old comment to review :
+ 	
+   when they wants to write values on browser the virtual index are mapped to real index:
+		promises.push(setPump(realind,aTT[i], fn));
+	 using:
+		- old : state.devmapping ( per i prob : state.probmaping )
+
+		- new : virt2realMap di models.js
+	
+	
+	 who write to dev state ?   we keep real or virtual on state  or just we associate state with the dev descripion ? 
+	 
+	  >>>  lo stato dei dev lo teniamo in   relays con key devname ( see AASSWW) 
+	  NB    relaisEv [heat,pdc,g,n,s,split,gaspcdPrefer,bloccoacs]da la corrispondenza    devname <> virtual index   cioe gli index in mqttnumb/gpionumb array
+	  quindi ......
+	 
+	 nb seems devmapping no more used but virt2realMap  
+	 
+	 
+	 
+	 completare : // **** MNG SUMMARY mappings of probe and pump (devices shown  on pump list) devices :
+	 
+	 
+	 
+	 
+	 	// **** MNG SUMMARY mappings of probe and pump (devices shown  on pump list) devices :
+		// algo (exec procedure and its event manager) works on device using virtual index refearring to gpionumb/mqttnumb pump/var e mqttprob/pythonprob probs/var.
+		// 	- gpionumb/mqttnumb
+		//	 	name can be used instead of virtual index on gpionumb/mqttnumb using the corrispondence relaisEv
+		//		ex state of gpionumb/mqttnumb dev ( state.relays) uses name keys according to  relaisEv  
+		
+		// some of pump/var are diplayed on browser as pump list with real index refearring to map[i] virtual index , map filled as 
+
+	 
+	 
+	 
+	 
+	 
+	 
+	 stavamo guardando il mapping dei prob in : probes.notte=getPyProb(pyInd);
+	 
+_____________________
+todo error in   if(eM.iodev.relais_[ii].gpio==0)mqtt2webS=eM.iodev.relais_[ii];// the ctl for     >>> probabilmente perche bloccato nel debug : controllare senza fermare in debug ! 
+
+__________________________________________
+riassunto pgm tollerance in browser 
+
+in startprog() called x firare l'event "startprogrammer" :
+	- crea TgiornoToll riformattando il PGMgiorno= {'8:30':0,"10:50":1022} >  {'8:30':0,"10:50":22}
+		e aggiungendo triggers2.TgiornoToll[x]=0; o triggers2.TgiornoToll["10:50":]=triggers2_.TgiornoTollerance , il valore della tolleranza nel input TgiornoTollerance
+		
+		TgiornoToll viene poi raccolto nel event handler e filla il sched con cui chiama prog_parmFact(sched):
+		{
+				  programs: {
+				    giorno: {sched: {"8:30": 27,"17:00": 30,},
+                                         	toll: {"8:30": 0,"17:00": 0,},
+                                         	TgiornoTollerance: 0},
+				   notte:{},                                                 },    
+				  probMapping: [   2,   4,   0,   3,   1,  5,  ],
+				  mapping: [ 0, 1,2, 3,-1,  5, ],
+				  ei: "S",
+				}
+				
+	prog_parmFact(sched) setta il
+	 let dataArr_=	{
+			  initProg:{dataArr:sched},// std input dataArr coming from sched
+			  genZoneRele:{dataArr:sched}};
+			  
+	che mi ritrovo nel input degli event , ex 
+	
+	these.on('genZoneRele', async function ( inp_, cb) {// the fsm ask state updates (we use openapi) : will set input of 'startcheck' , best to set also corresponding state ( last data gathered from fusionsolar)
+
+                                        /*
+                                           inp_={
+                                              dataArr: {
+                                                programs: { giorno: [Object], ei: 'W' },
+                                                probMapping: [ 2, 4, 0, 3, 1, 5 ],
+                                                mapping: [ 0, 1, 2, 3, -1, 5 ]
+                                              },
+                                              initProg: { notte: 20, giorno: 20 }
+                                            } 
+________________________________________
+
+il protocollo shellyht  legge temp as string , !!!
+__________________________________
+controllare che, come  e quando : se cambio uno state.x.y.z   allora viene scritto in persistant as json 
+____________________________
+test if string is float or integer : console.log((!Number.isNaN(val_=Number(test))),but Number()  is 0  with "",undefined and null !!!
+test if a integer :
+- Number.isInteger(Number.parseInt(test)),test); 
+or better :
+- (Number.isInteger(Number(val)))   but 0=Number()  is got with "",undefined and null !!!
+
+__________________________________________________
+
+ setManual (pump_, val, coming,checked,eM) 
+   console.log(' abilita2 interrupt Iter1 : receiving   var ',pump,', msg val (0/1) : ',val_,'  checked : ',checked_,'  , actual status is :',state.relays[pump],' , queue is :',queue,', data was ',data);
+	 console.log(' socket.on(manualAlgoProposal  handle set manual proposal');  
+	 1695413982434,
+	 mosquitto_sub -t   @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd   -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+	 Subscribed successfully in plant
+	 
+	 
+	 
+	 onRelais,  changing/confirm current rele hw position/value x  gaspdcPref  , index  6  ,  to new value:  1
+writeSync() , using instance  1695343770933  Published on device  55  , a var msg  {"payload":1,"sender":{"plant":"Casina_API","user":55}} ,successfully to @Casina_API@ctl_var_gas-pdc_4
+ ** writesync , using instance  1695343770933  for portid  55 , cl   2 , is ending writinging val:  1 , now current dev queue is :  []  returning code {"payload":1,"sender":{"plant":"Casina_API","user":55}}
+ onRelais,  todo : verifying current rele  position/value changing  x  gaspdcPref  now is:  1
+ stlist() : listener x dev :  55 , registered to wait for next message, in request ts # 1695343831258 , in listener position #  0  is timeout.  so cb with void message
+ executing shell:    cioe ${stdout}
+ std error is  ok
+ getio() , shellcmd  n.  1  returned :  ok  cioe ${stderr}
+ executing cmd:  python3 rs485_simul.py w 4 4188 0 >> resultrs384.txt
+ mqtt income. Received message  {"payload":1,"sender":{"plant":"Casina_API","user":55}}  on topic  @Casina_API@ctl_var_gas-pdc_4
+ mqtt Received message x dev  55  thats a var , coming from itself
+ mqtt income. Received message  {"payload":0,"sender":{"plant":"Casina_API","user":55},"url":"setMan","checked":1}  on topic  @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd
+ mqtt Received message x dev  55  thats a var , coming from itself
+  message  with cmd topic x device  55 , of type  2  , so  interrupt to update the value. after update this dev will writesync the value x confirmation
+ abilita2 interrupt Iter1 : receiving   var  gaspdcPref , msg val (0/1) :  0   checked :  1   , actual status is : true  , queue is : [] , data was  {
+_______________________________________________________
+si ribadisce che e' meglio creare automation scegliere il rele e poi aggiungere automation che al change ( o via una sua copia template) triggery un dev noto di fv3
+_________________________________________ 
+spiega attuale cfg al 22092023
+# "data":[1,23,2,{"power":{{ states.input_number.box1.state }}}]   ,"data1":{{ states.sensor.pippo.state }}  "data":{{ states.input_text.text1.state }},
+# Loads default set of integrations. Do not remove.
+default_config:
+
+# Load frontend themes from the themes folder
+frontend:
+  themes: !include_dir_merge_named themes
+"fv3_cmd_startAnticipate" (sostituito dal   "fv3_cmd_start" ) 
+automation:
+  - alias: "fv3_mnged_state_optimize"
+    id: "optimize"
+    initial_state: true
+    trigger:
+      - platform: state
+        entity_id: select.NRInt
+    condition:
+    action:
+      - service: mqtt.publish
+        data:
+          topic: '@Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd'
+          payload: >
+            {"payload":{{ states.select.NRInt.state }},"sender":{"plant":"Casina_API","user":55},"url":"setMan","checked":1}
+  - alias: "fv3_cmd_startAnticipate"
+    id: "anticipate"
+    initial_state: true
+    trigger:
+      - platform: state
+        entity_id: input_button.start_ensavings
+    condition:
+    action:
+      - service: mqtt.publish
+        data:
+          topic: '@Casina_API@interface_mqtt_websock_0/NReadUser/cmd'
+          payload: >
+            {"payload":{{ states.select.NRInt.state }},"sender":{"plant":"Casina_API","user":77},"url":"mqttxwebsock","event":"repeatcheckxSun","data":{{ states.sensor.pippo.state }},"param":"{{ states('input_select.savingsservice') }}"}
+  - alias: "fv3_cmd_start"
+    id: "startEM"
+    initial_state: true
+    trigger:
+      - platform: state
+        entity_id: input_boolean.savingsservice
+    condition:
+    action:
+      - if:
+         - condition: state
+           entity_id: input_boolean.savingsservice
+           state: 'on'
+           
+        then:
+         - service: mqtt.publish
+           data:
+             topic: '@Casina_API@interface_mqtt_websock_0/NReadUser/cmd'
+             payload: >
+               {"payload":{{ states.select.NRInt.state }},"sender":{"plant":"Casina_API","user":77},"url":"mqttxwebsock","event":"repeatcheckxSun","data":{{ states.sensor.pippo.state }},"data1":{{ states.input_text.text1.state }},"param":"{{ states('input_boolean.savingsservice') }}"}
+        else:
+         - service: mqtt.publish
+           data:
+             topic: '@Casina_API@interface_mqtt_websock_0/NReadUser/cmd'
+             payload: >
+                 {"payload":0,"sender":{"plant":"Casina_API","user":77},"url":"mqttxwebsock","event":"stopcheckxSun"}
+
+  - alias: "yaml_generator"
+    id: "yaml_gen"
+    initial_state: true
+    trigger:
+      - platform: webhook
+        webhook_id: "genyaml"
+        allowed_methods:
+          - POST
+          - PUT
+        local_only: false    
+    condition:
+    action:
+      - service: shell_command.write_yaml23
+        data:
+          filename: pippo.txt
+          shellname: "{{ trigger.json.shellname}}"
+          myjson: "{{ trigger.json}}"
+          yaml: "{{ trigger.json.data}}"
+          shell: "{{ trigger.json.shell}}"
+      - service: shell_command.write_yaml22
+        data:
+          filename: pippo.txt
+          shellname: "{{ trigger.json.shellname}}"
+          myjson: "{{ trigger.json}}"
+          yaml: "{{ trigger.json.data}}"
+      - service: shell_command.subst2
+      - service: shell_command.write_yaml24
+        data:
+          filename: pippo.txt
+script: !include scripts.yaml
+scene: !include scenes.yaml
+mqtt:
+# esempio di rele dev . i state del rele sono pub su state_topic che switchano i on e off state del entity  monitorando cosi il settaggio dei rele da parte del fv3. 
+# quando switchato emette un comandtopic che e' l'input del rele o meglio potrà essere, come per i var, un nodered command topic che lancia un interrupt per settare un Manual Algo request
+  - switch:
+      name: "RSSI"
+      qos: 1
+      state_topic: shellies/shelly1-34945475FE06/relay/0
+#      value_template: "{% if value == 'on' %} on {% else %} off {% endif %}" only x sensor ?
+      payload_on: "on"
+      payload_off: "off"
+      state_on: "on"
+      state_off: "off"
+      command_topic: shellies/shelly1-34945475FE06/relay/0/command
+      json_attributes_topic: shellies/shelly1-34945475FE06/relay/0
+      json_attributes_template: >
+        { "jsonattr": "{{value}}"}
+        
+# Example configuration.yaml entry  ??
+  - text:
+      name: "node-red_pub"
+      icon: mdi:ab-testing
+      mode: "text"
+      command_template: '{"payload":{{states.sun.sun.attributes.friendly_name}},"sender":{"plant":"Casina_API","user":55},"url":"setMan","checked":1}'  
+#     command_template: 'pippo'  
+      command_topic: "@Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd"
+      state_topic: "@Casina_API@ctl_var_gas-pdc_4"
+      min: 2
+      max: 20
+      
+# Example configuration.yaml entry , x numbSubscr var dev. command_topic is just a info topic (Node-Red-Register)  published with option when selected in overview 
+# when selected it will launch also automation that will fire on cmdtopic=@Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd a formatted json to lauch a interrupt to set a ManualAlgo . 
+#  nb when fv3 works with some algo on this attribute it will emit a writesync() , and  also pub on json_attributes_topic a formatted value,  value.payload ='0/1' will set the algoSuggested property of the select entity
+  - select:
+      command_topic: Node-Red-Register
+      json_attributes_topic: '@Casina_API@ctl_var_gas-pdc_4'
+      json_attributes_template: >
+        { "algoSuggested": "{{value_json.payload}}"}
+      name: "NRInt"
+      options:
+        - "0"
+        - "1"
+input_number:
+  box1:
+    name: "minPower"
+    initial: 30
+    min: -20
+    max: 35
+    step: 1
+    mode: box
+input_button:
+  start_ensavings:
+    name: "Energy_Savings"
+    icon: mdi:bell
+# savings service on
+input_boolean:
+  savingsservice:
+    name: use ai to savings energy
+    icon: mdi:tools
+# donot resolve state, so use as programmer input
+input_text:
+  text1:
+    name: Text 1
+    initial: '{"PGMgiorno" : { "8:30" : 27, "17:00" : 30 }}'
+template:
+  - sensor:
+      - name: "pippo"
+        state:  "[1,23,2,{\"FVPower\":{{ states.input_number.box1.state|int }}}]"
+        icon: mdi:tools
+# API
+api:
+shell_command:	    		
+   write_yaml: /bin/bash -c "echo {{ yaml }} > {{ filename }}"
+   write_yaml2: /bin/bash -c "echo '{{myjson.data}}'  >{{ filename }}"
+   write_yaml22: /bin/bash -c " echo '{{myjson.data}}'  > {{ filename }}  "
+   write_yaml23: /bin/bash -c "echo '#!{{shell}}'  > {{ shellname }} "
+   write_yaml24: fvshell.sh
+   write_yaml3: /bin/bash -c "echo '{{myjson}}'  >{{ filename }}"
+   write_yaml4: /bin/bash -c " mydata='{{myjson.data}}' && echo $mydata  >{{ filename }}"  perde blanks
+   subst: " cat {{ filename }} >  fv3.txt "
+   subst1: cat pippo.txt | sed -e "s/£££/\\n/g" | sed -e "s/££/\'/g" | sed -e "s/£/\"/g" >{{ filename }}
+   subst2:  sed -i "s/£££/\\n/g" pippo.txt&& sed -i "s/££/\'/g" pippo.txt && sed -i "s/£/\"/g" pippo.txt
+   
+   spiega:
+   
+   il nrint riceve da fv3 il update del rele associato a  anticipate attivo , lo posso anchemodificare ma non deve lanciare nessun comando topic (@Casina_API@interface_mqtt_websock_0/NReadUser/cmd')associato al anticipate var dev  al anticipate algo. 
+   	>> todo 
+   		quindi modifico  lo automation "fv3_mnged_state_optimize sul configuration.yaml di sopra :
+   				modificando il trigger con :
+   				
+   				      - platform: state
+        				  entity_id: select.NRInt
+   				
+   				
+   				
+   		cancello  il "fv3_cmd_startAnticipate" (sostituito dal   "fv3_cmd_start" )
+   	
+   - solo quando modifico il nrint e lancio il button  input_button.start_ensavings allora pubs sul cmdtopic del anticipate cmd topic '@Casina_API@interface_mqtt_websock_0/NReadUser/cmd' , il che triggera un interrupt per settare una richiesta di useralgo per il var dev anticipate 
+   	dettaglio auth : 
+   		usare uno user 1055 per dire al dev 55 che sono il ha associato  da cui arriva un cmdtopic (il mqtt auth tuttavia deve impedire che un client possa inviare un pub su un topic non previsto per il client autorizzato  ) 
+   		>>  in sostanza il brocker deve capire che quando il client hs chiede un connection il client deve avere le auth per publicare sul client fv3 che e' associato al client che e' autorizzato a lavorare sul plant in questione
+   		
+   		
+      value_template:  >
+        {% if value_json.payload == 0 %}
+          "0"
+        {% elif value_json.payload == 1 %}
+          "1"
+        {% endif %}"
+        
+              value_template:  "{% if value == 'on' %} 1 {% else %} 0 {% endif %}"
+              
+      value_template:  |-
+        {% if value_json.payload == 0 %}
+          "0"
+        {% elif value_json.payload == 1 %}
+          "1"
+        {% endif %}" 
+        
+        
+ok :
+  - select:
+      command_topic: 'Node-Red-Register'
+      state_topic: 'Node-Red-Register1'
+      json_attributes_topic: '@Casina_API@ctl_var_gas-pdc_4'
+      json_attributes_template: >
+        { "algoSuggested": "{{value_json.payload}}"}
+      name: "NRInt"
+      options:
+        - "giallo"
+        - "verde"
+      value_template:  '{% if value_json.payload == "giallo" %} giallo {% elif value_json.payload == "verde" %} verde {% endif %}'
+      
+ ok:
+ 
+   - select:
+      command_topic: 'Node-Red-Register'
+      state_topic: 'Node-Red-Register1'
+      json_attributes_topic: '@Casina_API@ctl_var_gas-pdc_4'
+      json_attributes_template: >
+        { "algoSuggested": "{{value_json.payload}}"}
+      name: "NRInt"
+      options:
+        - "0"
+        - "1"
+      value_template:  '{% if value_json.payload == "0" %} 0 {% elif value_json.payload == "1" %} 1 {% endif %}'   
+ _____________________________
+ provato con ma non va (in configuration_ok11092023 (copy)):
+   - alias: "relay2fv3"
+    id: "relaytemp"
+    trigger:
+      - platform: state
+        entity_id: select.NRInt
+    condition:
+    action:
+      - service: mqtt.publish
+        data:
+          topic: 'xshellies/shellyht-1E6C54/sensor/temperature'
+          payload: >
+            {"payload":{{ states.select.NRInt.state }},"sender":{"plant":"Casina_API","user":69},"url":"setMan","checked":1}
+ 
+ 
+ infatti riprovato il vecchio configuration_ok11092023.yaml e va !!!
+  cio perche/quando si aggiunge a NRInt il : 
+  	state_topic: 'Node-Red-Register' 
+  	
+  	il problema si è poi risolto perche si triggera in effetty lo shelly rssi !!!!!
+  	
+  	
+  	nb to publish  select options  see : https://community.home-assistant.io/t/mqtt-select-wont-publish-the-new-selected-value/405056/2
+ _________________-
+ Setup is at the moment:
+config.yaml
+
+select: !include select.yaml
+
+select.yaml
+
+- platform: mqtt
+  name: "Husmodus"
+  state_topic: "custom/select/husmodus/01"
+  command_topic: "custom/select/husmodus/01/set"
+  options: 
+    -"Normal"
+    -"Borte"
+    -"Ferie"
+    -"Natt"
+    _____________________________________
+    
+    evaluate also the possibilita di settare i device con le api , see https://stevessmarthomeguide.com/adding-an-mqtt-device-to-home-assistant/   https://i3engineering.com/an-example-of-setting-up-devices-in-home-assistant-using-mqtt-discovery/en
+    	>>> https://community.home-assistant.io/t/solved-how-to-get-mqtt-select-in-discovery/349328
+ ________________________________
+ todo : fare anche il var dev nrint con switch al posto del select !
+    value_template: >- 
+  {% if value_json.switchType == 1 %}
+    on
+  {% else %}
+    off
+  {% endif %}
+  see https://community.home-assistant.io/t/mqtt-switch-help-with-value-template/290572
+  _____________________________
+  
+  riassunto situazione casina 10092023
+  
+  logica  PPKK: scegliere i dev con blueprint e poi con i relay automation faccio il relay dei device scelti o dei loro estratti template (nome fisso) verso i dev fissi di fv3 	
+  il modello proposto per una nuova versione ha: 
+  -  device :
+  
+  	- shelly x caldaia , ora rssi
+  		al cambio stato alimenta il dev heat consence di fv3 : il relay automation emette un pub mqtt con devid con un: carattere in piu del attuale . es  : shellies/shelly1-34945475FE06/relay/0  >  shellies/shelly1-34945475FE06_/relay/0
+  		esso non va usato qundo lancio il anticipate o il program , 
+  		 recupera il modo di operare per settare eventualmente un manual con un command topic che lanci un interrupt (come i var type2) 
+  		 	> ma qui ho un type 1 con gia un command per settare il dev! mntre avrei bisogno (anche ) di un set del manual che il dev type 2 settano con il cmd topic che lancia un interrupt
+  		 		no non serve mandare un cmd topic sul heath , basta mandare un cmd topic sul intermediate nrint , il itermediate è fatto per questo !!!
+  		 				rivedi la teoria piu sopra !
+  		
+  	- shelly da aggiungere per un rele acs che per praticita puo essere un rele di  on/off impianto , in || con int nero/bianco
+  	
+  	- shelly ht , anche lui con relay al probe di fv3
+  	
+  	- var dev anticipaterunning, nrint,  ma realizzato come sensor o switch perche il select non ha uno state disponibile 
+  		nb      - command_topic: 'Node-Red-Register1'  si manda a un topic di info
+      			- state_topic: 'Node-Red-Register' > dovrebbe essere invece il '@Casina_API@ctl_var_gas-pdc_4'   !!!
+      			- per inviare il fv3 com topic (@Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd) (x settare il lastusermanual proposal) si usa un button input_button.start_ensavings !
+  	
+  	- input_boolean.savingsservice fire il cmd x fv3 , es start/stop  algos
+  		alcuni param sono estratti da pippo(template che formatta il power estratto dal  states.input_number.box1) e input_text (text 1 x temp program )  : states.sensor.pippo.state }},"data1":{{ states.input_text.text1.state
+  		
+	- il webhook "genyaml" permettere invece di scaricare il yaml che poi viene added dal user al yalm config as added file  
+	
+	nb al posto di scaricare il yaml (con webhook) posso usare i native device (configurati con blueprint?) di ha su cui fare il relay verso i corrispondenti in fv3
+	
+	nb il mqtt broker se uso quello di fv3 devo passargli user e password (sempre via webhook come per il file yaml ? ),
+	invece se il broker è del user (es sempre dentro il container magari con anche nodered) 
+	- forse devo aprire una websocket per collegare il fv3 al posto di fare il relay su broker fv3 verso il device ombra fv3 ? 
+	- o metto una app nel container che intercetta il relay fatta sul broker interno e lo rigira verso fv3 usando un websocket ?
+	-o banalmente collego in ws con il package fornito ws e poi chiamo quando scrivo sui device , in writesync oltre che scrivere/pub posso anche chiamare il ws verso ha e lanciare un service che setta il state di un local sensor/wswitch e il command template si arrangia a mandare il cmd topic al shelly pump , vedi service di prova, invece i sensor locali al cambio stato possono inviare un msg sul ws conection che provvede a inserire il msg sul queue del device sensor  mqtt . esso sara letto da readSync  !!
+	 vedi :  https://jeroenboumans.medium.com/listening-to-the-home-assistent-websocket-api-with-python-7a074f8c81ea che copia lo state dei sensori su un file di log (noi faremo banalmente copia in mqtt dev queue !) 
+	
+invece la versione attuale continua ad avere i device definiti da uno scaricamento via webhook del confg_fv3.yaml
+ in pratica uso direttamente configurare  device coi indirizzi reali di fv3 che scarico via config_fv3.yaml
+ al posto di quello di sopra PPKK
+ ___________________________________
+ 
+    using script in mqtt service : https://www.home-assistant.io/integrations/mqtt
+    Automations
+
+Use as script in automations.
+
+automation:
+  alias: "Send me a message when I get home"
+  trigger:
+    platform: state
+    entity_id: device_tracker.me
+    to: "home"
+  action:
+    service: script.notify_mqtt
+    data:
+      target: "me"
+      message: "I'm home"
+
+script:
+  notify_mqtt:
+    sequence:
+      - service: mqtt.publish
+        data:
+          payload: "{{ message }}"
+          topic: home/"{{ target }}"
+          retain: true
+ ________________________________
+ 
+ https://www.home-assistant.io/docs/scripts/service-calls/
+ the basics
+
+Call the service homeassistant.turn_on on the entity group.living_room. This will turn all members of group.living_room on. You can also use entity_id: all and it will turn on all possible entities.
+
+service: homeassistant.turn_on
+entity_id: group.living_room
+
+YAML
+Targeting areas and devices
+
+Instead of targeting an entity, you can also target an area or device. Or a combination of these. This is done with the target key.
+
+A target is a map that contains at least one of the following: area_id, device_id, entity_id. Each of these can be a list.
+
+The following example uses a single service call to turn on the lights in the living room area, 2 additional light devices and 2 additional light entities:
+
+service: light.turn_on
+target:
+  area_id: living_room
+  device_id:
+    - ff22a1889a6149c5ab6327a8236ae704
+    - 52c050ca1a744e238ad94d170651f96b
+  entity_id:
+    - light.hallway
+    - light.landing
+
+YAML
+Passing data to the service call
+
+You can also specify other parameters beside the entity to target. For example, the light.turn_on service allows specifying the brightness.
+
+service: light.turn_on
+entity_id: group.living_room
+data:
+  brightness: 120
+  rgb_color: [255, 0, 0]
+
+YAML
+
+A full list of the parameters for a service can be found on the documentation page of each integration, in the same way as it’s done for the light.turn_on service.
+Use templates to decide which service to call
+
+You can use templating support to dynamically choose which service to call. For example, you can call a certain service based on if a light is on.
+
+service: >
+  {% if states('sensor.temperature') | float > 15 %}
+    switch.turn_on
+  {% else %}
+    switch.turn_off
+  {% endif %}
+entity_id: switch.ac
+
+YAML
+Using the Services Developer Tool
+___________________________________
+ 82.60.170.209:8123/lovelace/0
+
+You can use the Services Developer Tool to test data to pass in a service call. For example, you may test turning on or off a ‘group’ (See [groups] for more info)
+
+To turn a group on or off, pass the following info:
+
+    Domain: homeassistant
+    Service: turn_on
+    Service Data: { "entity_id": "group.kitchen" }
+
+Use templates to determine the attributes
+
+Templates can also be used for the data that you pass to the service call.
+
+service: thermostat.set_temperature
+target:
+  entity_id: >
+    {% if is_state('device_tracker.paulus', 'home') %}
+      thermostat.upstairs
+    {% else %}
+      thermostat.downstairs
+    {% endif %}
+data:
+  temperature: "{{ 22 - distance(states.device_tracker.paulus) }}"
+
+YAML
+You can use a template returning a native dictionary as well, which is useful if the attributes to be set depend on the situation.
+_________________________
+attenzione cambiare nrint in sensor che non ho disponibile lo state x i action degli automate .
+________________________
+todo 
+prova cambiare preferredgasfv  alcune volte specchia in nrint (anticipo attivo 2) a volte no !
+	cancellare anticipo attivo
+manca il flag anticipate algo active/not active
+	e ralativa sincro con il use ai to saving, quando si switcha da browser il anticipate algo
+		ma questo non e' banale perche il anticipate algo flag del browser non e' uno status dei dev ma in state. che il flag si attiva da data.anticipate null/notnull !  , che non è copiato da nessun writesync e relativo mqtt pub !!!!
+	
+prova : - setta anticipo attivo 1 da ha con use ai to saving,
+	- spegni browser,
+	- switcha a 0 anticipo con use ai to saving,
+	- riapro il browser e devo vedere in anticipate flag spento
+
+____________________________________________________
+092023
+
+dev mapping 
+
+algo works on virtual device on mqttnumb e mqttprob, each specific device has a virtual index,
+now:
+- virt2realMap:[0,1,2,3,4,5,6,7],// std virtual group , map only if >=0 , some bugs: so use identity only
+  it should map virtual dev to mqttnumb devices , that has associated state management (state.relays?) that are represented in order in web browser
+  
+- virt2realProbMap:[0,1,-1,-1,-1,-1],
+  that map the virtual index into the real index on mqttprob and pythonprob devices has the type3 and 4 dev type
+  il meccanismo per recuperare i device prob e' quello usato negli event ,es see : these.on("initProg",//
+  	recuper il plant cfg con : state.app.plantconfig.virt2realProbMap;
+  	e usando le funzioni getPyProb(pyInd) e getMqttProb si recuperano i index(ind= map[ilvirtualindex del device su cui si vuole operare]) con cui accedere al ctl dei dev 
+  		es : 
+  		dev= these.iodev.probs_[ind])!=null){
+    		curval=await dev.readSync();// 0/1
+  }
+
+news : si introdice il dev state, dummy, al virtual index 0 che rappresenta un var dev , type 4 , che contiene specifiche var dello state :
+	{statevar1,statevar2,,,} in json string format
+	usually are only writeSync to subtopic:'var_state_' 
+____________________________________
+
+error in event , cant find triggers2 :
+
+ handler fired by event genZoneRele , with input data:  {
+  "dataArr": {
+    "programs": {
+      "giorno": {
+        "sched": {
+          "8:30": 28,
+          "17:00": 30
+        },
+        "toll": {
+          "8:30": 0,
+          "17:00": 0
+        },
+        "TgiornoTollerance": 0
+      }
+    },
+    "probMapping": [
+      2,
+      4,
+      0,
+      3,
+      1,
+      5
+    ],
+    "mapping": [
+      0,
+      1,
+      2,
+      3,
+      -1,
+      5
+    ],
+    "ei": "S"
+  },
+  "initProg": {
+    "giorno": "24.12",
+    "notte": 21
+  }
+}
+program() called with programming/scheduling data inp:  {
+  "programs": {
+    "giorno": {
+      "sched": {
+        "8:30": 28,
+        "17:00": 30
+      },
+      "toll": {
+        "8:30": 0,
+        "17:00": 0
+      },
+      "TgiornoTollerance": 0
+    }
+  },
+  "probMapping": [
+    2,
+    4,
+    0,
+    3,
+    1,
+    5
+  ],
+  "mapping": [
+    0,
+    1,
+    2,
+    3,
+    -1,
+    5
+  ],
+  "ei": "S"
+}  and current probs:  { giorno: '24.12', notte: 21 }
+program() NB before call consolidate ret=optimize(ret) can have any null value!
+ runEvent(): promise was started ( probably terminated)  , event  genZoneRele , ev2run is: { initProg: null, genZoneRele: 'initProg' }  con input dataCon:  {
+  initProg: {
+    dataArr: {
+      programs: [Object],
+      probMapping: [Array],
+      mapping: [Array],
+      ei: 'S'
+    }
+  },
+  genZoneRele: {
+    dataArr: {
+      programs: [Object],
+      probMapping: [Array],
+      mapping: [Array],
+      ei: 'S'
+    },
+    initProg: { giorno: '24.12', notte: 21 }
+  }
+} , dataInv(quali eventi sono alimentati):  { initProg: 'genZoneRele' }
+Waiting for the debugger to disconnect...
+/home/luigi/localdev/raspexampl/fv/fv3.js:1041
+state.program.triggers2.lastT=[date.toLocaleString(),probes];//JSON.stringify(probes)]; anomalus array with different types
+                             ^
+
+TypeError: Cannot set properties of undefined (setting 'lastT')
+    at program (/home/luigi/localdev/raspexampl/fv/fv3.js:1041:30)
+    at WithTime.<anonymous> (/home/luigi/localdev/raspexampl/fv/fv3.js:2317:13)
+    at WithTime.emit (node:events:526:28)
+    at WithTime.InnerFunction (/home/luigi/localdev/raspexampl/fv/app2.js:332:14)
+    at runEvent (/home/luigi/localdev/raspexampl/fv/app2.js:475:49)
+    at goonstep_ (/home/luigi/localdev/raspexampl/fv/app2.js:426:9)
+    at goonstep (/home/luigi/localdev/raspexampl/fv/app2.js:409:15)
+    at updateData_ (/home/luigi/localdev/raspexampl/fv/app2.js:318:7)
+    at WithTime.<anonymous> (/home/luigi/localdev/raspexampl/fv/fv3.js:2258:1)
+    at runMicrotasks (<anonymous>)
+____________________________________
+
+ socket.io  summary 
+ 
+x il namespace nodered  seguito: https://socket.io/docs/v4/namespaces/
+
+nb :  io.on = io.of("/").on  =  io.sockets.on ,  
+	cioe io=io.of("/") ? oppure io.on  registra middleware attaccato a tutti i namespace ?   
+
+- const adminNamespace = io.of("/admin");
+- mainspace: io.sockets === io.of("/")
+
+connection crea il socket che definice i event handler :
+
+                io.of("/").on("connection", (socket) => {
+                
+                	socket.on()
+                	socket.emit()
+                });
+                io.of("/").use((socket, next) => { next() });// socket middleware , can be used to auth:
+                	 io.of("/").use((socket, next) => {
+                                        const token = socket.handshake.auth.token;
+                                        // ...
+                                      });
+                io.of("/").emit("hi", "everyone!");  emit on all connected sockets
+                
+                
+ 

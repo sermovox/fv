@@ -385,7 +385,7 @@ pr.then((it)=>{// when resolved fill items of resolved[devNumb]={devNumb,devtype
   */
   
   console.log(' getio.js, fillctls() , got it a new  ctl dev resolved.  devInfo Origin (mqttnumb/mqttprob): ',it.type,' , dev number/index : ',it.devNumb,' is ctl null? : ',it.ctl==null);//,' promise resolved in def time in :',JSON.stringify(it.ctl,null,2));
-  if(it.ctl)console.log(' ..... , not null ctl : devid/portid/gpio ',it.ctl.gpio,', on plant ',mqttInst.plantName,' , FEATURES : dev type= ctl.cl (rele var/probe var used in readsync ) ',it.ctl.cl,',  class ',it.cl_class,', protocol ',it.protocol,' ,mqtt egistered topic ',it.topic);//,' promise resolved in def time in :',JSON.stringify(it.ctl,null,2));
+  if(it.ctl)console.log(' ..... , not null ctl : devid/portid/gpio ',it.ctl.gpio,', on plant ',mqttInst.plantName,' , FEATURES : dev type= ctl.cl (rele var/probe var used in readsync ) ',it.ctl.cl,',  class ',it.cl_class,', protocol ',it.protocol,' ,mqtt registered topic ',it.topic);//,' promise resolved in def time in :',JSON.stringify(it.ctl,null,2));
   
   if(it.ctl)console.log(' ..... it has .readSync: ',!!it.ctl.readSync);
   

@@ -63,14 +63,14 @@ cfgs.cfgMarsonLuigi={ name:'MarsonLuigi_API',// duplicated FFGG
       {portid:54,subtopic:'var_gas-pdc_',varx:3,isprobe:false,clas:'var',protocol:'mqttstate'}],// a var
 
                 // a var  add also write capabiliy , so can be used as gen state var to modify with mqtt app/node red . as mqtt num will ha a frame below relay state in browser !
-        
+        pythonprob:[2,4,8],// virtual modbus python probs  x : g , n , s  virtual device zones 
       relaisEv:['heat','pdc','g','n','s','split'
         ,'gaspdcPref','acs'
         ],// dev name x mqttnumb cfg  will appears in browser list of relays // >>>>>>>>> todo   add here and in fv3 a new item : heatht !!!!!!!!!!!!!!
                                                 // //  relays : https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001
       // titles:["HEAT Low Temp","HEAT High Temp"," PdC (vs GAS)","g"," Zona Notte"," Seminterrato"," Splits"],
       titles:["HEAT Low Temp"," PdC (vs GAS)","g"," Zona Notte"," Seminterrato"," Splits"
-        ,"gaspdcPref","block acs"]//,// description of device name
+        ,"gaspdcPref","blocco acs"]//,// description of device name
 
       // put into mqttnumb !!!
         //devid_shellyname:{11:'shelly1-34945475FE06'// mqtt device id-s/n relais and probes !!!!   , details
@@ -84,10 +84,22 @@ cfgs.cfgMarsonLuigi={ name:'MarsonLuigi_API',// duplicated FFGG
                         // virtual pdc (index =7) is set true: appena il intermediate è true pdc e' settato e verra data priorita al acs piuttosto che al condizionamento
                         // se si vuole bloccare la acs nella partecentrale della finestra in cui gaspdcPref e' true va introdotto altre regole/array:
                         // ex : si introduce un contattore che misura i tempo di attivazione di gaspdcpref (t) e si setta pdc a t=0 e dopo le 14
-        ,virt2realMap:[0,1,2,3,4,5,6,7],
+                        ,anticInterm2VirtMap:{gaspdcPref:[true,true,true,null,null,true,null,false]}//{aintermediateinrelaisEv:[true,false,null,,,,]}
+                        // or a function(state) returning [true,false,null,,,,]
+        ,virt2realMap:[0,1,2,3,4,5,6,7],// std virtual group , map only if >=0 , some bugs: so use identity only
+        virt2realProbMap:[-1,1000,-1,1001,-1,-1,-1],// algo works on index virt2realProbMap[0] of :
+                                //  mqttprob
+                                //  or ( if>1000) es 1003 > pythonprob[3] is the address to inquire modbus 
+                                //  to find probs relating to g, virtual index 2 of gpionumb/mqttnumb pump dev
+                                //  index 1 is the same but relating to n , virtual index 3 of gpionumb/mqttnumb pump dev
+                                // better:
+                                // virtual modbus python probs used by algo.  x : g , n , s  virtual zones temp/humid device map to  mqttprob dev
+                                // algo wants to find mqttprob index of :[g temp,g humid,n temp,n humidg, s temp,s humid]
+                                // -1 for undefined
+
         relaisDef:[false,false,false,false,false,false,false,true],// dafault value (if none algo propose true/false)
         invNomPow:6,
-        huawei:{inv:"1000000035350464",bat:"1000000035350466"}// devid
+        huawei:{inv:"1000000035350464",bat:"1000000035350466"}// devid bunis 
         };
 cfgs.cfgCasina={ name:'Casina_API',// duplicated FFGG
         apiPass:'xxxx',// to do, better use .env
@@ -106,7 +118,7 @@ cfgs.cfgCasina={ name:'Casina_API',// duplicated FFGG
         */ 
 
         mqttWebSock:        {portid:0,subtopic:'mqtt_websock_',varx:0,isprobe:false,clas:'int',protocol:'mqttxwebsock'},// must be portid=0 ! : a dummy var that creates ctl websocket topic 
-                                                                                                                        // todo >>>> must be added a user/token release process
+                                                                                                                        // todo >>>> must be added a user/token release process or implement a broker security by clientid
       //mqttnumb:[{portid:11,clas:'out',protocol:'shelly',subtopic:'shelly1-34945475FE06'},// clas 'out' or 'var' , same dim than gpionumb
      // correct: 
       mqttnumb:[
@@ -126,20 +138,28 @@ cfgs.cfgCasina={ name:'Casina_API',// duplicated FFGG
       null],// mqtt device info/id/port. number is the device id to subscribe
 
 
-      mqttprob:[{portid:110,subtopic:'ht-cucina',varx:null,isprobe:true,clas:'probe',protocol:'shelly'},//a probe,  the shelly ht probes to register (read only) 
+      mqttprob:[{portid:110,subtopic:'shellyht-1E6C54',varx:null,isprobe:true,clas:'probe',protocol:'shellyht_t'},//a probe,  the shelly ht probes to register (read only) 
                                                                                 // nbnb clas e isprobe sono correlati !! > semplificare !
                                                                                 // clas='var'/'probe'or 'in'
 
+        {portid:111,subtopic:'shellyht-1E6C54',varx:null,isprobe:true,clas:'probe',protocol:'shellyht_h'},
+
+
       {portid:54,subtopic:'var_gas-pdc_',varx:3,isprobe:false,clas:'var',protocol:'mqttstate'},
         // {portid:77,clas:'var',protocol:'mqttstate',subtopic:'shelly1-666666666666'}
+
+        {portid:777,subtopic:'var_state_',varx:0,isprobe:false,clas:'var',protocol:'mqttstate'},// state var , usually portid=777
+
         ],// a var
+        
 
                 // a var  add also write capabiliy , so can be used as gen state var to modify with mqtt app/node red . as mqtt num will ha a frame below relay state in browser !
-        
+        pythonprob:[2,4,8],// virtual modbus python probs  x : g , n , s  virtual device zones 
       relaisEv:['heat','pdc','g','n','s','split'
-        ,'gaspdcPref','block acs'],// dev name x mqttnumb cfg  will appears in browser list of relays // >>>>>>>>> todo   add here and in fv3 a new item : heatht !!!!!!!!!!!!!!
+        ,'gaspdcPref','acs'],// dev name x mqttnumb cfg  will appears in browser list of relays // >>>>>>>>> todo   add here and in fv3 a new item : heatht !!!!!!!!!!!!!!
                                                 // //  relays : https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001
       // titles:["HEAT Low Temp","HEAT High Temp"," PdC (vs GAS)","g"," Zona Notte"," Seminterrato"," Splits"],
+      
       titles:["HEAT Low Temp"," PdC (vs GAS)","g"," Zona Notte"," Seminterrato"," Splits"
         ,"gaspdcPref",
         "blocco acs"]//,// description of device name
@@ -153,13 +173,26 @@ cfgs.cfgCasina={ name:'Casina_API',// duplicated FFGG
                         //}
         ,anticInterm2VirtMap:{gaspdcPref:[true,true,true,null,null,true,null,false]}//{aintermediateinrelaisEv:[true,false,null,,,,]}
                                                                                 // or a function(state) returning [true,false,null,,,,]
-        ,virt2realMap:[0,1,2,3,4,5,6,7],// std virtual group , map only if >=0 
+        ,virt2realMap:[0,1,2,3,4,5,6,7],// std virtual group , map only if >=0 , some bugs: so use identity only
+        virt2realProbMap:[3,0,1,-1,-1,-1,-1],// algo works on virtual index 1 ,rindex= virt2realProbMap[1] is the index in :
+                                //  mqttprob
+                                //  or ( if>1000) pythonprob   
+                                //  to find probs relating to g, virtual index 2 of gpionumb/mqttnumb pump dev
+                                //  virtual index 3 is the same but relating to n , virtual index 3 of gpionumb/mqttnumb pump dev
+                                // better:
+                                // virtual modbus python probs used by algo.  x : g , n , s  virtual zones temp/humid device map to  mqttprob dev
+                                // algo wants to find mqttprob index of :[g temp,g humid,n temp,n humidg, s temp,s humid]
+                                // -1 for undefined
+
+                                // virtualindex 0 is reservet to state pub var dev
+
         relaisDef:[false,false,false,false,false,false,false,true],// dafault value (if none algo propose true/false)
         invNomPow:5,
-        huawei:{inv:"1000000036026833",bat:"1000000036026834"}// devid
+         huawei:{inv:"1000000036026833",bat:"1000000036026834"}// devid casina
+        //huawei:{inv:"1000000035350464",bat:"1000000035350466"}// devid bunis 
 
         };
-cfgs.cfgDefFVMng={ name:'cfgDefFVMng',// duplicated FFGG
+cfgs.cfgDefFVMng={ name:'cfgDefFVMng',// duplicated FFGG. now better use constructor addUserPlant()
         apiPass:'xxxx',// to do, better use .env
         // index : the index of a device . iesimo device is got with getctls(x,y) that chooses from iesimo x or y 
         // portid : the id of a device, must be unique >0. 
@@ -196,18 +229,22 @@ cfgs.cfgDefFVMng={ name:'cfgDefFVMng',// duplicated FFGG
       null],// mqtt device info/id/port. number is the device id to subscribe
 
 
-      mqttprob:[{portid:110,subtopic:'ht-cucina',varx:null,isprobe:true,clas:'probe',protocol:'shelly'},//a probe,  the shelly ht probes to register (read only) 
-                                                                                // nbnb clas e isprobe sono correlati !! > semplificare !
-                                                                                // clas='var'/'probe'or 'in'
+      mqttprob:[{portid:110,subtopic:'shellyht-1E6C54',varx:null,isprobe:true,clas:'probe',protocol:'shellyht_t'},//a probe,  the shelly ht probes to register (read only) 
+      // nbnb clas e isprobe sono correlati !! > semplificare !
+      // clas='var'/'probe'or 'in'
+
+                {portid:111,subtopic:'shellyht-1E6C54',varx:null,isprobe:true,clas:'probe',protocol:'shellyht_h'},
+
 
       {portid:54,subtopic:'var_gas-pdc_',varx:3,isprobe:false,clas:'var',protocol:'mqttstate'},
         // {portid:77,clas:'var',protocol:'mqttstate',subtopic:'shelly1-666666666666'}
+        {portid:777,subtopic:'var_state_',varx:0,isprobe:false,clas:'var',protocol:'mqttstate'}
         ],// a var
 
                 // a var  add also write capabiliy , so can be used as gen state var to modify with mqtt app/node red . as mqtt num will ha a frame below relay state in browser !
-        
+        pythonprob:[2,4,8],// virtual modbus python probs  x : g , n , s  virtual device zones 
       relaisEv:['heat','pdc','g','n','s','split'
-        ,'gaspdcPref','block acs'],// dev name x mqttnumb cfg  will appears in browser list of relays // >>>>>>>>> todo   add here and in fv3 a new item : heatht !!!!!!!!!!!!!!
+        ,'gaspdcPref','acs'],// dev name x mqttnumb cfg  will appears in browser list of relays // >>>>>>>>> todo   add here and in fv3 a new item : heatht !!!!!!!!!!!!!!
                                                 // //  relays : https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001
       // titles:["HEAT Low Temp","HEAT High Temp"," PdC (vs GAS)","g"," Zona Notte"," Seminterrato"," Splits"],
       titles:["HEAT Low Temp"," PdC (vs GAS)","g"," Zona Notte"," Seminterrato"," Splits"
@@ -223,21 +260,33 @@ cfgs.cfgDefFVMng={ name:'cfgDefFVMng',// duplicated FFGG
                         //}
         ,anticInterm2VirtMap:{gaspdcPref:[true,true,true,null,null,true,null,false]}//{aintermediateinrelaisEv:[true,false,null,,,,]}
                                                                                 // or a function(state) returning [true,false,null,,,,]
-        ,virt2realMap:[0,1,2,3,4,5,6,7],// std virtual group , map only if >=0 
+        ,virt2realMap:[0,1,2,3,4,5,6,7],// std virtual group , map only if >=0 , some bugs: so use identity only
+        virt2realProbMap:[3,0,1,-1,-1,-1,-1],// algo works on virtual index 1 ,rindex= virt2realProbMap[1] is the index in :
+                                //  mqttprob
+                                //  or ( if>1000) pythonprob   
+                                //  to find probs relating to g, virtual index 2 of gpionumb/mqttnumb pump dev
+                                //  virtual index 3 is the same but relating to n , virtual index 3 of gpionumb/mqttnumb pump dev
+                                // better:
+                                // virtual modbus python probs used by algo.  x : g , n , s  virtual zones temp/humid device map to  mqttprob dev
+                                // algo wants to find mqttprob index of :[g temp,g humid,n temp,n humidg, s temp,s humid]
+                                // -1 for undefined
+
+                                // virtualindex 0 is reservet to state pub var dev
+
         relaisDef:[false,false,false,false,false,false,false,true],// dafault value (if none algo propose true/false)
         invNomPow:5,
         huawei:{inv:"1000000036026833",bat:"1000000036026834"}// devid
 
         };
 
-let plants={MarsonLuigi_API:{cfg:cfgs[cfgMarsonLuigi],// will be put in state.app.plant
+let plants={MarsonLuigi_API:{cfg:cfgs.cfgMarsonLuigi,// will be put in state.app.plant
                 name:"MarsonLuigi_API",// duplicated FFGG
                 passord:"marson",// not used 
                 users:['john'],
                 token:['123'],// really token has a client and a permission to act on some data/process
                 email:'luigi.marson@gmail.com'
                 },
-        DefFVMng_API:{  cfg:cfgs[cfgDefFVMng],
+        DefFVMng_API:{  cfg:cfgs.cfgDefFVMng,
                 name:"DefFGMng_API",// duplicated FFGG
                 passord:"marson",// not used 
                 users:['john'],
@@ -245,14 +294,14 @@ let plants={MarsonLuigi_API:{cfg:cfgs[cfgMarsonLuigi],// will be put in state.ap
                 email:'luigi.marson@gmail.com'
                 },
                 
-           Mirco1_API:{cfg:cfgs[cfgMarsonLuigi],// will be put in state.app.plant
+           Mirco1_API:{cfg:cfgs.cfgMarsonLuigi,// will be put in state.app.plant
                 name:"Mirco1_API",// duplicated FFGG
                 passord:"marson",
                 users:['mirco1'],
                 token:['xyz'],
                 email:'luigi.marson@gmail.com'
                 },
-          Casina_API:{cfg:cfgs[cfgCasina],// will be put in state.app.plant
+          Casina_API:{cfg:cfgs.cfgCasina,// will be put in state.app.plant
                 name:"Casina_API",// duplicated FFGG
                 passord:"marson",
                 users:['irene'],
@@ -304,11 +353,13 @@ function getconfig(plant='MarsonLuigi_API'){// =plantconfig, general obj to cust
                 return {gpionumb:plants[plant].cfg.gpionumb,
                         mqttnumb:plants[plant].cfg.mqttnumb,
                         mqttprob:plants[plant].cfg.mqttprob,
+                        pythonprob:plants[plant].cfg.pythonprob,
                         mqttWebSock:plants[plant].cfg.mqttWebSock,
                         relaisEv:plants[plant].cfg.relaisEv,
                         anticInterm2VirtMap:plants[plant].cfg.anticInterm2VirtMap,
                         relaisDef:plants[plant].cfg.relaisDef,
                         virt2realMap:plants[plant].cfg.virt2realMap,
+                        virt2realProbMap:plants[plant].cfg.virt2realProbMap,
                         huawei:plants[plant].cfg.huawei,
                         invNomPow:plants[plant].cfg.invNomPow,
                         plantName:plant
@@ -344,7 +395,7 @@ return prods;
 }
 
 
-function defFVMng(user)
+function defFVMng(user)// factory of a std plant tempalte of FV app 
 { 
        this.name='cfg'+user;// duplicated FFGG
        this.apiPass='xxxx';// to do, better use .env
@@ -384,18 +435,19 @@ function defFVMng(user)
       null];// mqtt device info/id/port. number is the device id to subscribe
 
 
-      this.mqttprob=[{portid:110,subtopic:'ht-cucina',varx:null,isprobe:true,clas:'probe',protocol:'shelly'},//a probe,  the shelly ht probes to register (read only) 
+      this.mqttprob=[{portid:110,subtopic:'shellyht-1E6C54',varx:null,isprobe:true,clas:'probe',protocol:'shellyht_t'},//a probe,  the shelly ht probes to register (read only) 
                                                                                 // nbnb clas e isprobe sono correlati !! > semplificare !
                                                                                 // clas='var'/'probe'or 'in'
-
+        {portid:111,subtopic:'shellyht-1E6C54',varx:null,isprobe:true,clas:'probe',protocol:'shellyht_h'},
       {portid:54,subtopic:'var_gas-pdc_',varx:3,isprobe:false,clas:'var',protocol:'mqttstate'},
         // {portid:77,clas:'var',protocol:'mqttstate',subtopic:'shelly1-666666666666'}
+        {portid:777,subtopic:'var_state_',varx:0,isprobe:false,clas:'var',protocol:'mqttstate'}
         ];// a var
 
                 // a var  add also write capabiliy , so can be used as gen state var to modify with mqtt app/node red . as mqtt num will ha a frame below relay state in browser !
-        
-                this.relaisEv=['heat','pdc','g','n','s','split'
-        ,'gaspdcPref','block acs'];// dev name x mqttnumb cfg  will appears in browser list of relays // >>>>>>>>> todo   add here and in fv3 a new item : heatht !!!!!!!!!!!!!!
+        this.pythonprob=[2,4,8]// virtual modbus python probs  x : g , n , s  virtual device zones 
+        this.relaisEv=['heat','pdc','g','n','s','split'
+        ,'gaspdcPref','acs'];// dev name x mqttnumb cfg  will appears in browser list of relays // >>>>>>>>> todo   add here and in fv3 a new item : heatht !!!!!!!!!!!!!!
                                                 // //  relays : https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001
       // titles:["HEAT Low Temp","HEAT High Temp"," PdC (vs GAS)","g"," Zona Notte"," Seminterrato"," Splits"],
       this.titles=["HEAT Low Temp"," PdC (vs GAS)","g"," Zona Notte"," Seminterrato"," Splits"
@@ -411,7 +463,22 @@ function defFVMng(user)
                         //}
         ;this.anticInterm2VirtMap={gaspdcPref:[true,true,true,null,null,true,null,false]}//{aintermediateinrelaisEv:[true,false,null,,,,]}
                                                                                 // or a function(state) returning [true,false,null,,,,]
-        ;this.virt2realMap=[0,1,2,3,4,5,6,7];// std virtual group , map only if >=0 
+
+        this.virt2realMap=[0,1,2,3,4,5,6,7];// std virtual group , map only if >=0 , some bugs: so use identity only
+        this.virt2realProbMap[3,0,1,-1,-1,-1,-1],// algo works on virtual index 1 ,rindex= virt2realProbMap[1] is the index in :
+                                //  mqttprob
+                                //  or ( if>1000) pythonprob   
+                                //  to find probs relating to g, virtual index 2 of gpionumb/mqttnumb pump dev
+                                //  virtual index 3 is the same but relating to n , virtual index 3 of gpionumb/mqttnumb pump dev
+                                // better:
+                                // virtual modbus python probs used by algo.  x : g , n , s  virtual zones temp/humid device map to  mqttprob dev
+                                // algo wants to find mqttprob index of :[g temp,g humid,n temp,n humidg, s temp,s humid]
+                                // -1 for undefined
+
+                                // virtualindex 0 is reservet to state pub var dev
+
+
+
         this.relaisDef=[false,false,false,false,false,false,false,true];// dafault value (if none algo propose true/false)
         this.invNomPow=5;
         this.huawei={inv:"1000000036026833",bat:"1000000036026834"}// devid

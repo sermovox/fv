@@ -171,6 +171,17 @@ const api={// see https://javascript.info/promise-chaining
     fn.socket.emit('status',fn.state,prettyjson);// send the status to the browser too, also if the related plant section is not jet visible !
     if(fn.socketNR)fn.socketNR.emit('state',fn.state);// in case a node-red is listening with websocket
 
+    // x home assistant state :
+
+    let statedev=null,stind;
+    // old : if(inp&&inp.probMapping) old map=inp.probMapping;// [2,4]
+    if(fn.iodev&&fn.iodev.probs_&&new_scripts.app.plantconfig.virt2realProbMap&&(stind=new_scripts.app.plantconfig.virt2realProbMap[0])>=0){
+        if((statedev= fn.iodev.probs_[stind])!=null){//!== undefined) {
+            statedev.writeSync({state:{anticipate:new_scripts.anticipate != false&&new_scripts.anticipate != null,
+                program:new_scripts.program != false&&new_scripts.program != null,
+            battery:new_scripts.aiax.battery}});
+    }}
+
     return new Promise(function(resolve, reject) {
           let bank,file;
           //console.log('writescript: file ',file,' starting .... ',new_scripts);

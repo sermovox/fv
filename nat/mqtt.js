@@ -53,11 +53,14 @@ let client,roClient;
 // subscription and publishing topic x rele dev , shelly protocol :
 // std Subscribe variables, in future will be customized using gpio set from device model config data in init() according with the type requested 
 const shelly_stopic = 'shellies/',shelly_topicp = '/relay/0',
+shellyht_t_topicp= '/sensor/temperature',
+shellyht_h_topicp = '/sensor/humidity',
      shelly_options = {qos: 0},// needed really ?
     nodeRedp='/NReadUser/cmd';// usato per comandare dal esterno il var/rele dev come fosse anche un virtual device con questo cmd topic
 
 // Publish variables
 const shelly_topicpp = '/relay/0/command',
+
 nodeRedpp='/NReadUser/publish',// usato per ........  ????????
 messageOn = 'on', messageOff = 'off',
 pub_options = {qos: 0, retain: false};// in http://www.steves-internet-guide.com/using-node-mqtt-client/ use    ={retain:true,qos:1}
@@ -724,7 +727,7 @@ re= await stList();//(gp,123);// add a listener for device gp. when a msg arrive
         }
 
     } else if (clas == 3) {// probe in mqttprob
-        if (that.cfg.protocol == 'shelly') { return ending(re); }
+        if (that.cfg.protocol == 'shelly'||true) { return ending(re); }
         else return ending(null);// unknown protocol
 
 
@@ -845,10 +848,11 @@ return rread(true);
 
 }
 
-fc.prototype.writeSync = function (val_) {// val=0/1, can return false if in error 
+fc.prototype.writeSync = function (val_) {// val_=0/1, or object in some protocol. can return false if in error 
     // will send a topic KKUU as registered in init() conf data for the device 
     // todo : in dev config data we can mark a dev if is available for out (a shelly 1 relay) or 'in' a HT device
-    val=valCorrection(val_);// inverse value 0 <> 1  , because of gpio inversion !!!!
+    let intval=null;
+    if(Number.isInteger(val_))intval=valCorrection(val_);// if val is integer, inverse value 0 <> 1  , because of gpio inversion !!!!
     let gp = this.gpio,// portid
     queue=this.mqttInst.status[gp],
     that=this;
@@ -865,9 +869,9 @@ fc.prototype.writeSync = function (val_) {// val=0/1, can return false if in err
         } else topic = this.mqttInst.mqttTop[dev];// same as write topic (subscription)
 
         if (this.cl == 1) { // a rele/pump inorout='out'   see mqttnumb set
-
+            if(intval==null)return false;
             if (this.cfg.protocol == 'shelly')
-                if (val == 0) message = messageOff; else message = messageOn;
+                if (intval == 0) message = messageOff; else message = messageOn;
 
             // clear msg queue ( and its listener ? must be rejected ????)
             // WARNING hope a message in transit dont get here meanwile !!!!
@@ -895,7 +899,8 @@ fc.prototype.writeSync = function (val_) {// val=0/1, can return false if in err
                 //  let topic_ = 'ctl_' + topic + varx;// warning we add ctl_   !!!!
 
                 // if (val == 0) message = messageOff; else message = messageOn;
-                message = pub(val, this.mqttInst.plantName, gp);
+               if(intval!=null) message = pub(intval, this.mqttInst.plantName, gp);
+               else message = pub(val_, this.mqttInst.plantName, gp);
 
                 // clear msg queue ( and its listener ? must be rejected ????)
                 // WARNING hope a message in transit dont get here meanwile !!!!
@@ -918,9 +923,10 @@ fc.prototype.writeSync = function (val_) {// val=0/1, can return false if in err
 
         } else if (this.cl == 3) {// a probe in mqttprob[i] . a prob cant write |||||||||||||||||  sodo  return true
             return ending(true);
-        }else if (this.cl == 0) {// a ctl , future use,  write as type 2 or type 4 (var), this is a dummy device for now , dont read , dont write , just process interrupt
-            if (this.cfg.protocol == 'mqttxwebsock') {
-                message = pub(val, this.mqttInst.plantName, gp);
+        }else if (this.cl == 0) {// a ctl , future use,  write as type 2 or type 4 (var), this is a dummy device for now , 
+                                // USUALLY till now, dont read , dont write , just process interrupt
+            if (this.cfg.protocol == 'mqttxwebsock') {// val is integer 
+                message = pub(intval, this.mqttInst.plantName, gp);
 
                 this.mqttInst.status[gp].length = 0; // ??????
 
@@ -942,7 +948,7 @@ fc.prototype.writeSync = function (val_) {// val=0/1, can return false if in err
 
 function ending (value) {
     that.lastwrite=value;// record last write
-    console.log(' ** writesync , using instance ',that.mqttInst.id, ' for portid ',gp,', cl  ',that.cl,', is ending writinging val: ',val,', now current dev queue is : ',queue,' returning code',value);
+    console.log(' ** writesync , using instance ',that.mqttInst.id, ' for portid ',gp,', cl  ',that.cl,', is ending writinging val/intval: ',val_,'/',intval,', now current dev queue is : ',queue,' returning code',value);
     return value;
 
 }
@@ -1323,7 +1329,19 @@ function numbSubscr(val, that, ctlpack, subscred) {// al subscribe del topic ass
                 //client.publish(topic, "buona sera", opt);  // send msg with testtopic topic for debug and trace in var itself a connection was asked?
                 // >>> if the server keeps last var state we delete the current value ! 
                 // forse e meglio mndare il msg >ctlpresent solo se dopo aver subscribed non ricevo nulla e so che sto aprendo per la prima volta questa var 
-                client.publish(topicNodeRedPubish, pub(">ctlpresent", that.plantName, portid), opt);// better send in specific sub topic 
+                let msgg=pub(">ctlpresent", that.plantName, portid);
+                client.publish(topicNodeRedPubish, msgg, opt,
+                function (err) {
+                    if (err) {
+                        console.log("An error occurred during publish on portid: ", portid,'to ' + topicNodeRedPubish);
+                        return ending(null);// 
+                    } else {
+                        console.log("writeSync() stdVarExtCmd(),  Published on device portid ", portid, " , a var msg ", msgg, ",successfully to " +topicNodeRedPubish);
+                        
+                    }
+                }
+                
+                );// better send in specific sub topic 
                 //client.publish(topic, 'paolo', opt);
                 // client.publish(topic, defVar, opt);
                 //client.publish(topic, 'giovanni', opt);
@@ -1405,7 +1423,18 @@ function numbSubscr(val, that, ctlpack, subscred) {// al subscribe del topic ass
 //client.publish(topic, "buona sera", opt);  // send msg with testtopic topic for debug and trace in var itself a connection was asked?
                                     // >>> if the server keeps last var state we delete the current value ! 
                                     // forse e meglio mndare il msg >ctlpresent solo se dopo aver subscribed non ricevo nulla e so che sto aprendo per la prima volta questa var 
-                        client.publish(topicNodeRedPubish, pub(">ctlpresent",that.plantName,portid), opt);// better send in specific sub topic 
+                        let msgg=pub(">ctlpresent",that.plantName,portid);
+                        client.publish(topicNodeRedPubish, msgg, opt,                    
+                            function (err) {
+                                if (err) {
+                                    console.log("An error occurred during publish on portid: ", portid,'to ' + topicNodeRedPubish);
+                                    return ending(null);// 
+                                } else {
+                                    console.log("writeSync() ,  Published on device portid ", portid, " , a var msg ", msgg, ",successfully to " +topicNodeRedPubish);
+                                    
+                                }
+                            }             
+                        );// better send in specific sub topic 
                         //client.publish(topic, 'paolo', opt);
                         // client.publish(topic, defVar, opt);
                         //client.publish(topic, 'giovanni', opt);
@@ -1423,32 +1452,45 @@ function numbSubscr(val, that, ctlpack, subscred) {// al subscribe del topic ass
    } else if (isprobe && clas == 'probe') { 
     cl_class='probe';
         // just set the topic x the probe according to protocol 
-        if (protocol == 'shelly') {
-            topic='ctl_probe_' +subtopic;// according to device 
+        if (protocol == 'shellyht_t') {
+            topic=shelly_stopic+ subtopic + shellyht_t_topicp;// according to device 
             topicPub='';// x dummy write  ??
-            client.subscribe(topic, shelly_options, function (err) {// in bash do : mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
-                if (err) {
-                    console.log("An error occurred while subscribing shelly")
-                } else {
-                    that.status[portid] = [];// LLPP : init array, so now is subscribed , was null (no subscribed)
-                    console.log('probSubscr() deviceid/portid ',portid,' Subscribed successfully in plant ',that.plantName,' to shelly probe protocol, topic: ' + topic);
-                    if (that.futurecb[portid]) that.futurecb[portid]();// check point to goon later when we want the gp ctl 
-                    if(subscred)subscred({topic,cl_class});
-                }
-            });
 
+
+        }else if (protocol == 'shellyht_h') {
+            topic=shelly_stopic+ subtopic + shellyht_h_topicp;// according to device 
+            topicPub='';// x dummy write  ??
         }
     }
-    if(topic){that.mqttTop[portid]=topic;
-        if(invTopic[topic])log.error('probSubscr() , error, found a device with already registered topic by someother plant !!!');
-        invTopic[topic]={portid,mqttInst:that,topic,topicNodeRed,cl_class,protocol,ctlpack};
+    if(topic){
+        
+        client.subscribe(topic, shelly_options, function (err) {// in bash do : mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+            if (err) {
+                console.log("An error occurred while subscribing shelly")
+            } else {
+                that.status[portid] = [];// LLPP : init array, so now is subscribed , was null (no subscribed)
+                console.log('probSubscr() deviceid/portid ',portid,' Subscribed successfully in plant ',that.plantName,' to shelly probe protocol, topic: ' + topic);
+                if (that.futurecb[portid]) that.futurecb[portid]();// check point to goon later when we want the gp ctl 
+
+                that.mqttTop[portid]=topic;
+                if(invTopic[topic])log.error('probSubscr() , error, found a device with already registered topic by someother plant !!!');
+                invTopic[topic]={portid,mqttInst:that,topic,topicNodeRed,cl_class,protocol,ctlpack};
+
+
+
+                if(subscred)subscred({topic,cl_class});// resolve
+            }
+        });
+        
+        
+
     };// complete cfg to easier/better dev management !
     // QUESTION : prob var dev non ha meccanismo/topic topicNodeRed ? significa che gli ext ctl banalmente scrivono sul anche loro sul topic base in cui si legge lo stato. infatti non c'e' un state.relais !!!!
     if(topicPub)that.mqttTopPub[portid]=topicPub;// register topic x publish if different from subscribe. can be null if writesync receves a null value
     return true;// ??
 }
 
-function pub(load,Plant,portid){// format the msg
+function pub(load,Plant,portid){// format the msg, inserting , load can be int or obj
 return JSON.stringify({payload:load,sender:{plant:Plant,user:portid}})  ;// user is really portid = dev !!!
 }
 function rec(msg){// recognize the payload in not signal well formatted message string: must have a json with payload and sender properties
@@ -1468,8 +1510,12 @@ let retu;
    // let ret=JSON.parse(msg);
     }
 
-function  valCorrection(value){// change 0 <> 1
-if(value==null||isNaN(value))return value ;
-if(INVERTONOFF_RELAY)if(value==0)return 1; else return 0;
+function  valCorrection(value){// change 0 <> 1   use only for rasperry port on/off if the hardware rele connection is inverted
+//if(value==null||isNaN(value))return value ;// The isNaN() function answers the question "is the input functionally equivalent to NaN when used in a number context". 
+                                            // If isNaN(x) returns false, you can use x in an arithmetic expression as if it's a valid number that's not NaN.
+                                            // see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/isNaN#description
+if(value==null||!Number.isInteger(value))return value ;// return if value="1"
+if(INVERTONOFF_RELAY)// invert 0<>1
+if(value==0)return 1; else return 0;
 
 }

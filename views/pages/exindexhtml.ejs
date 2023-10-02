@@ -126,7 +126,7 @@
         <br> &nbsp; &ensp; &emsp;
         program:  <input type="text" id="PGMgiorno" name="PGMgiorno" value='{"8:30":25,"17:00":22}' size="30" oninput="setprname1(1,this.value)"> , valid JSON: 
         <textarea id="validate1" name="valid1" rows="1" cols="5"></textarea>,
-        <br>&nbsp; &ensp;&nbsp; &ensp;  waiting pv tollerance: <input type="number" id="TgiornoTollerance" name="TgiornoTollerance" placeholder="0.7" size="3"> gradi 
+        <br>&nbsp; &ensp;&nbsp; &ensp;  waiting pv tollerance: <input type="number" id="TgiornoTollerance" name="TgiornoTollerance" placeholder="1.5" size="3"> gradi 
         <br><br>&nbsp; &ensp;&nbsp; &ensp;  manual set: <input type="number" id="TgiornoMan" name="TgiornoMan" placeholder="20" size="4"> validity: <input type="number" id="TgiornoVal" name="TgiornoVal" placeholder="3" size="2"> h
  
       </p>
@@ -141,7 +141,7 @@
             </p>
 
             devmapping:  <input type="text" id="mapping" name="mapping" value='==&&state.devmapping=[0,1,2,3,-1,5]' size="30" > 
-            probmapping:  <input type="text" id="probMapping" name="probMapping" value='==&&state.probmapping=[2,4,0,3,1,5]' size="30" > 
+            probmapping:  <input type="text" id="probMapping" name="probMapping" value='==&&state.probmapping=[0,1,2]' size="30" > 
            
 
           </form>
@@ -622,7 +622,7 @@ if(this.value){res=this.value;
 
     // send receive program algo staff 
     let triggers2_ = document.getElementById("triggers2").elements;// form elements
-    let extract2 = ["Tgiorno","PGMgiorno","Tnotte","PGMnotte","lastT","mapping","probMapping","ei"],// name in form triggers2 that are in triggers{} and in lastT
+    let extract2 = ["Tgiorno","PGMgiorno","Tnotte","PGMnotte","lastT","mapping","probMapping","ei","TgiornoTollerance"],// name in form triggers2 that are in triggers{} and in lastT
      triggers2 = {};// extract
 
     socket.on('status', function (data,prettyjson) { //get button status from client, see https://www.w3schools.com/tags/tryit.asp?filename=tryhtml_textarea
@@ -728,12 +728,12 @@ if(this.value){res=this.value;
                   
                 }*/
                 let tollerance=0;
-                if(triggers2&&triggers2.TgiornoToll){// {"8:30":1.5,,,}
+                if(triggers2&&triggers2.TgiornoToll){// {"8:30":1.5,,,}  // TODO  is still not deined now 
                   // get first val 
                   let ks=Object.keys(triggers2.TgiornoToll);
                   for(let ii=0;ii<ks.length;ii++){
                   if(triggers2.TgiornoToll[ks[ii]]>tollerance)
-                  {tollerance=triggers2.TgiornoToll[ks[ii]];// first found is x all !!
+                  {tollerance=triggers2.TgiornoToll[ks[ii]];// take the max !!
                   if(triggers2.PGMgiorno[ks]!=null){// must be same keys
                     triggers2.PGMgiorno[ks]+=1000;// add toll
 
@@ -880,11 +880,17 @@ if(this.value){res=this.value;
     triggers2.TgiornoToll={};// {'8:30':0,"10:50":1.5}
     let ks=Object.keys(triggers2.PGMgiorno);// PGMgiorno= {'8:30':0,"10:50":1022} >  {'8:30':0,"10:50":22}
                   for(let ii=0;ii<ks.length;ii++){
+                    /* old : if >1000 allora setta TgiornoToll con TgiornoTollerance altrimenti 0 
+                    // PGMgiorno= {'8:30':0,"10:50":1022} >  {'8:30':0,"10:50":22}
                   if(triggers2.PGMgiorno[ks[ii]]>=1000){// significa vogliamo applicare la tolleranza
                     triggers2.PGMgiorno[ks[ii]]-=1000;
                     triggers2.TgiornoToll[ks[ii]]=triggers2_.TgiornoTollerance.value;
                   }else triggers2.TgiornoToll[ks[ii]]=0;
-                  
+                  */
+                 // now simply fill TgiornoToll con TgiornoTollerance
+                
+                    
+                    triggers2.TgiornoToll[ks[ii]]=triggers2_.TgiornoTollerance.value;
                   
 
                   }

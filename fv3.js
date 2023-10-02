@@ -180,8 +180,8 @@ app.get("/", (req, res) => {
 app.post("/registerPlant/", (req, res) => {// 11092023, this is called when ha register for a plant configuration passing json cfgdata or a sintesis of it
 
                             // new :
-                            // user after registration pay and get a token in response , then he can register the plant sending info about is shelly relays :
-                            // call this url with a form in which says the shelly  with a autorization token in header
+                            // user after registration pay and get a token in response to auth aiax request, then he can register the plant sending info about is shelly relays :
+                            // call this url with a aiax form  with  the shelly cfg  with a autorization token in header
                             // so , see moscow-city_guide_fullstackNodejs.pdf pag 164:
                             // - the user with browser  got the token when after registration (user password added to authenticate user on next login )
                             //    , he login and then will pay for the service the  token is created and returned to user browser 
@@ -395,13 +395,7 @@ app.get('/about', function(req, res) {
 });
 
 
-app.post(
-  "/login",
-  passport.authenticate("local", {
-    successRedirect: "/",
-    failureRedirect: "/",
-  })
-);
+app.post("/login",passport.authenticate("local", {successRedirect: "/",failureRedirect: "/"}));// login handler 
 
 app.post("/logout", (req, res) => {
   console.log(`logout ${req.session.id}`);
@@ -512,15 +506,19 @@ const io = new Server(http, {
 // convert a connect middleware to a Socket.IO middleware , https://socket.io/docs/v3/middlewares/ , 
 const wrap = middleware => (socket, next) => middleware(socket.request, {}, next);
 
-if(sessionMiddleware)io.use(wrap(sessionMiddleware));
+if(sessionMiddleware)io.use(wrap(sessionMiddleware));// wrap sessionmiddleware (param:(req,res,nexy) to io middleaware (param:(socket,next)))
 if(passport)io.use(wrap(passport.initialize()));
 if(passport)io.use(wrap(passport.session()));
 
-io.use((socket, next) => {
+io.use((socket, next) => {// 092023 : probabilmente qui si verifica che :
+                          //  - il request,  da cui proviene la richiesta di apertura del socket,
+                          //    abbia  ,(il session add alcuni campi al request tra cui lo .user !)  
+                          // il .user , il che siglifica che il sw di auth ha aggiunto nel sesio  il user authorized
+
   if (socket.request.user) {
     next();
   } else {
-    next(new Error('unauthorized'))
+    next(new Error('unauthorized'));// will stop processing socket
   }
 });
 
@@ -1019,13 +1017,13 @@ let body=
 
 
   function program(state,inp__,probes){// /  probes={giorno:19.2,notte:,,,,}   // will set real relays from program and anticipate virtual devices set!!
-                                      // inp__.program={'giorno':{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}, 
-                                      //  'notte':....}
-                                    // the program algo : returns the new proposal pumps state, store algo result on state.lastProgramAlgo
-
+                                     
                                     /*
                                     inp__:  {
-                                            programs: { giorno: { sched: [{"8:30": 15,"17:00": 19,}] } },
+                                            programs: { giorno: { sched: [{"8:30": 15,"17:00": 19,}],    set in HHDD  
+                                                                    toll: [{"8:30": 0.5,"17:00": 0,6}] // molto fine basterebbe unico valore di toll =1.3
+                                                        notte:   {}
+                                                      } },
                                             probMapping: [ 2, 4, 0, 3, 1, 5 ],
                                             mapping: [ 0, 1, 2, 3, -1, 5 ],
                                             ei: 'S'
@@ -1033,11 +1031,14 @@ let body=
 
                                     */
 
-let inp=inp__.programs,isSummer=inp__.ei=='S';
+let inp=inp__.programs,// {giorno,notte}
+isSummer=inp__.ei=='S';
 console.log('program() called with programming/scheduling data inp: ',JSON.stringify(inp__,null,2),' and current probs: ',probes);
 console.log('program() NB before call consolidate ret=optimize(ret) can have any null value!');
 
-let ret=null,h,m,optimRet=null;
+let ret=null,// pumps if t<desidered , no anticipating
+    antret,// pumps if t<desidered + toll,  anticipating
+    h,m,optimRet=null;
 let  date=pdate();//new Date();date.setHours(date.getHours()+dOraLegale);
 
 // register into the last read probes
@@ -1045,20 +1046,18 @@ state.program.triggers2.lastT=[date.toLocaleString(),probes];//JSON.stringify(pr
 // find zone to activate
     if(probes&&inp){// inp=sched={giorno:{'16:10':-3,,,,},notte:{},probMapping:[],mapping:[],ei} 
 
-      let zonelist=  Object.keys(inp),toactivate=[],activation=false;
+      let zonelist=  Object.keys(inp),//[giorno,notte]
+      toactivate=[],// [actiongiorno,actionnotte]
+      activation=false;// true if at least one is in toactivate
      
       h=date.getHours();m=date.getMinutes();
- 
         // Do stuff
-
-      for(let i=0;i<zonelist.length;i++){// scan inp keys : the zones to find the current index in inp
+      let action;//[true/false start if no anticipate ,true/false start if anticipate]  
+      for(let i=0;i<zonelist.length;i++){// scan inp keys : the zones to find the current index in inp 
         // todo improvement: if probes[i]= null allora non modificare il relativo pump !!!!  ( set null ! )
 
-        if(toact(zonelist[i],probes[zonelist[i]],inp[zonelist[i]],isSummer)){// zona,valore sonda, programma orario x la zona,Summer/Winter
-          activation=true;
-          toactivate.push(zonelist[i]);// inserisce il programma che necesita una attivazione in toactivate
-        }
-
+        toactivate.push(toact(zonelist[i],probes[zonelist[i]],inp[zonelist[i]],// {'16:10':-3,,,,}
+          isSummer));
       }
 
 
@@ -1070,10 +1069,18 @@ state.program.triggers2.lastT=[date.toLocaleString(),probes];//JSON.stringify(pr
       */
 
       let changing=false;
-    if (activation)  {// some section is cooler than programmed in winter
-      ret = [true, null, toactivate.indexOf('giorno')>=0,toactivate.indexOf('notte')>=0, false,null];// [heat,pdc,g,n,s,split]. program algo (specific) suggestion 
-        // set pdc + split according to text + hour + fv power
-        
+    if (toactivate[0]||toactivate[1])  {// some section is cooler than programmed in winter or warmer in summer
+      ret = [true, null, false,false, false,null];// [heat,pdc,g,n,s,split]. program algo (specific) suggestion 
+      antret = [true, null, false,false, false,null];
+
+    if (toactivate[0])  {// some section is cooler than programmed in winter or warmer in summer
+      ret[2]=toactivate[0][0];
+      antret[2]=toactivate[0][1];
+    }    
+    if (toactivate[1])  {// notte
+      ret[3]=toactivate[1][0];
+      antret[3]=toactivate[1][1];
+    }   
 
 /*
         if(!(ret&&state.lastProgramAlgo&&ch(ret,state.lastProgramAlgo.pumps))){// the algo produces a different ret from  previous algo
@@ -1097,8 +1104,8 @@ state.lastProgramAlgo=state.lastProgramAlgo||{model:'programbase'};
       state.lastProgramAlgo.time=date.getTime();
       state.lastProgramAlgo.probes=probes;
       state.lastProgramAlgo.program=inp;
-      state.lastProgramAlgo.pumps=ret;
-
+      state.lastProgramAlgo.pumps=ret;// action if not anticipating 
+      state.lastProgramAlgo.anticGap=antret;// action if  anticipating 
      
       //,curBattSavings:0,curEnSavings:0
         // al last reset battSav aumenta ogni check di dT*inverter e cosi enSavings che pero viene diminuto del lastbatreset
@@ -1131,16 +1138,12 @@ state.lastProgramAlgo=state.lastProgramAlgo||{model:'programbase'};
 
     // optimRet=optimize(ret,state);// consolidation taking care of anticipating algo and user manual set
     // now call in attuators optimRet=consolidate(state,'program');// consolidation taking care of anticipating algo and user manual set
-    optimRet=ret;// here optimate is just ret , consolidation called after
+    optimRet=ret;// here optimate is just ret , effective consolidation will be called after
 
     console.log('programming() found no unsatisfacted programmed temp in house, so suggests virtual  ([heat,pdc,g,n,s,split]) program actions: ',ret);
     if(state.lastAnticAlgo)console.log(' \n so next consolidation/optimizing with last anticipating action : ', state.lastAnticAlgo.pumps);
     console.log('\n at last got: : ',optimRet);
-
-
   }
-
- 
 
     }  else { state.lastProgramAlgo=false;optimRet = null;
 
@@ -1176,12 +1179,17 @@ return optimRet;
     function toact(zona, sonda, sc_,isSummer) {// zona,valore sonda, sc=programma orario x la zona. verifica se una zone ha temperatora sonda <  alla programmata nello slot dove cade l'ora corrente
                                       // se  torna true
 
-      // sc_={sc=sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}
+                                    /* sc_= 				      {sched: {"8:30": 27,"17:00": 30,},
+                                              				      toll: {"8:30": 0,"17:00": 0,},
+                                              				      TgiornoTollerance: 0,
+				                                                    },    */
+
+      // sc_={sc=sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1=0.7,"17:00":dt2}// tolleranze delle temperature desiderate
       if (!sonda) return;
-      let sc = sc_.sched;
+      let sc = sc_.sched,scantic=sc_.toll;
       // nb toll future use : query lastAnticAlgo to see if a fv production is expected in short time
       // if(lastAnticAlgo.short)dt=true;
-      let keylist = Object.keys(sc);// orari del programma
+      let keylist = Object.keys(sc);// orari del programma =["8:30","17:00"]
       // cerca dove cade la cur temp : slot
 
       console.log(' toact() analizing  zona: ', zona, ' programma : ', sc, ',  at present hour:min  ', h,':', m,);
@@ -1208,45 +1216,48 @@ return optimRet;
 
         else {
           if (!(h > ma[0]) && m < ma[1]) {
-
             slot = i - 1; i = 1000;// got slot
             // tempx =tempx + ' - got slot '+ slot +' minute '+m;// ma[0]; 
             console.log(' got slot  ',slot,' because present hour is = but current min is < !');
           }
-
         }
 
       }
       if (slot < 0) slot = last;
 
-      temp = sc[keylist[slot]];//programmed temp 
+      temp = sc[keylist[slot]];//programmed desidered temp x the current slot
+      let delta=scantic[keylist[slot]];if(isSummer)delta=-delta;
+      tempantic = temp+delta;//tolerance temp to start anticipate  x the current slot
       // if(lastAnticAlgo.short)// last anticipate expect to produce fv energy (> 2kWh) in short time (less 1 hour)
-      if (sc_.sched && sc_.sched[keylist[slot]] > 0 && sc_.sched[keylist[slot]] < 1)// tempettura desiderata ta 0 e 1  ?????????????
-       { temp += sc_.sched[keylist[slot]];
+      
+      /*if (sc_.sched && sc_.toll[keylist[slot]] > 0 && sc_.toll[keylist[slot]] < 2)// tolleranza temperatura desiderata ta 0 e 1  ?????????????
+       { temp += sc_.toll[keylist[slot]];// es se ho un desidered temp=20   cambio in 20.5 cioe aumento la temperatura desiderata ????
         console.error(' toact() detect speculating condition , so change temp that now is ',temp)
-       }
+       }*/
 
 
 
 
       //resu=tempx+' - slot '+ slot +'/'+(slot+1)+', temp ' + sc[keylist[slot]]; 
  // 
-      let act=temp > sonda;if(isSummer)act=!act;
+      let act=temp > sonda;if(isSummer)act=!act;// es 19 > 20   dont start normal warming probe is sonda = 20, desidered t is temp=19
+      let actantic=tempantic > sonda;if(isSummer)actantic=!actantic;// es 19 > 20   dont start normal warming probe is sonda = 20, desidered t is temp=19
+
       if (act) {
         console.log(' toact() activate generator . infact in zone ',zona,', found current time slot: ', slot, ' with desidered temp: ', temp,' and probe temp ',sonda,' . modalità condizionatore/riscaldamento ',isSummer);
      
-        return true;
+
       }// else leave ret undefined !
       else  console.log(' toact() do not activate generator . infact found current time slot: ', slot, ' with desidered temp: ', temp,' and probe temp ',sonda,' . modalità condizionatore/riscaldamento ',isSummer);
-      return
+      return [act,actantic];//[false,true]
     }
 
-      function ch(ret,oldret){// check for different values
+   
 
+      function ch(ret,oldret){// check for different values
         if(ret.join()==oldret.join())return false;// ret == oldret so pumps are the same 
         return true;
         }
-
 }
 
 
@@ -1391,8 +1402,8 @@ if(triggers.PdCTrig1){a=2; console.log(' anticipate algo find required policy : 
       fVP=parseInt(triggers.FVPower),// if positive the % of battery charging power, if negative the !cloudly  required condition
       doAntic;
       if(fVP!=NaN&&plantconfig.invNomPow!=null&&plantconfig.invNomPow!=NaN){
-      let pococloudly=cloudly <= (100 + fVP);
-      if (fVP<0&& pococloudly// negative value means confront - cloudly
+      let pococloudly;//=cloudly <= (100 + fVP);// es 100 +  -80 = 20
+      if (fVP<0&& (pococloudly=cloudly) <= (100 + fVP+1)// negative value means confront - cloudly  , ok per  100<=100-1+1
         ||(fVP>=0&&(100*(inverter-consumo)/plantconfig.invNomPow >= fVP))// positive means confront with inverter power , potenze in %
       
       ) {doAntic=true;}
@@ -2131,36 +2142,57 @@ these.state,
 
 // just update status to the  ....? if needed 
 
-let probes , reads=2,retry=false,inp;
-if(inp_&&inp_.dataArr){inp=inp_.dataArr;//  inp=sched
+let probes , // reads=2,retry=false,
+inp;
+if(inp_&&inp_.dataArr){inp=inp_.dataArr;//  inp=sched di  prog_parmFact(sched) !
 }
 
-    probes={};
+    probes={giorno:null,notte:null};// algo works with virtual probs index=0,1,2...  
+              // then we map this index i to:
+              //    - prob dev iodev.probes_[map[i]]if real=map[i] is >=0 
+              //    - a python device of address= (- real )  if is <0
           // probe mappings:
           let map;
-          if(inp&&inp.probMapping)map=inp.probMapping;// [2,4]
-          else map=[0,1,2,3,4,5];// identity x modbus
-
+          // old : if(inp&&inp.probMapping) old map=inp.probMapping;// [2,4]
+          if(state.app.plantconfig.virt2realProbMap)map=state.app.plantconfig.virt2realProbMap;
+          else {map=[0,1,2,3,4,5];// identity x modbus probe  map
+          console.error('initProg error , probe mapping missing ')
+          return null;// stop, exit form execute
+        }
 
 // to do   invece di mappare giorno e notte rinominare i programmi 0 e 1 e poi mappare con map[0/1] che sara o l'indirizzo modbus 
 //  o il mqtt dev registrato in these/eM/fn.iodev.probes_[map[0]]
 
+let pyInd;
 
-    if(map[1]<1000){// is modbus dev to manage al volo
-    probes.notte=// 1
-    parseFloat(await shellcmd('modbusRead',{addr:map[1],register:'temp',val:0}).catch(error => { // val useless
-      console.error('  shellcmd catched ,error: ', error);
-      retry=true;
-    }));
-    if(retry){
-      retry=false;
-      probes.notte=parseFloat(await shellcmd('modbusRead',{addr:map[1],register:'temp',val:0}).catch(error => { // val useless
-        console.error('  shellcmd catched ,error: ', error);
-        retry=true;
-      }));
-    }
-    if(retry){retry=false;reads--;
-      probes.notte=null;}
+// mappings of probe  :
+// algo works on virtual index refearring to gpionumb/mqttnumb pump/var e mqttprob/pythonprob probs/var
+// some of pump/var are diplayed on browser as pump list with real index refearring to map[i] virtual index , map filled as 
+// real index 0 is associated to giorno probe that is managed by g mqttnumb virtual dev/pump ( index 3)
+
+
+// ***** remember : (updated on 28092023: index 0 is the state var)
+//virt2realProbMap:[x,0,1,-1,-1,-1,-1],  // [some state var,g temp,g humid,n temp,n humidg, s temp,s humid]
+// algo works on index virt2realProbMap[1] of :
+//  mqttprob
+//  or ( if>1000) pythonprob   
+//  to find temp probs relating to g, virtual index 2 of gpionumb/mqttnumb pump dev
+//  index 3 is the same but relating to n , virtual index 3 of gpionumb/mqttnumb pump dev
+// better:
+// virtual modbus python probs used by algo.  x : g , n , s  virtual zones temp/humid device map to  mqttprob dev
+// algo wants to find mqttprob index of :[state,g temp,g humid,n temp,n humidg, s temp,s humid]
+// -1 for undefined
+
+
+// t night
+let vInd=3;
+if(map[vInd]<0);// remain null
+else if(map[vInd]>=1000){// virtual index 1 refears to probe associated to  virtual pump/dev of index 3 ('n') cioe zona giorno .  usually map is a identity
+  // if map[1] <0 mapped to a python dev at index - map[1]
+pyInd= map[vInd]-1000;// real i index is mappen on python virtual address these.iodev.pythonprobes_[pyInd])
+
+probes.notte=await getPyProb(pyInd);// 1000 > 0
+
   }else {// is mqtt registered device
     // todo : read the mqtt input devices (cant write ) stored in fn.iodev.probes_
     // ...
@@ -2168,51 +2200,64 @@ if(inp_&&inp_.dataArr){inp=inp_.dataArr;//  inp=sched
     // ....
     // NBNBNB     above we got the modbus probe devices just calling a python func , they do not need to be configured/generated in fn.iodev
 
-    // map[0]>=1000
-    let curval
-    if(these.iodev.probes_[map[1]])// curval=await this.relais_[pump_].readSync();// 0/1
-    curval=valCorrection(await these.iodev.probes_[map[1]].readSync());// 0/1
-    probes.notte=curval;
 
-  }
+   probes.notte=await getMqttProb(map[vInd]) ; //  pyInd=map[1]:  real i index is mappen on python virtual address these.iodev.pythonprobes_[pyInd])
 
-  if(map[0]<1000){// is modbus
-    probes.giorno=parseFloat(await shellcmd('modbusRead',{addr:map[0],register:'temp',val:0}).catch(error => { // val useless
-      console.error('  shellcmd catched ,error: ', error);
-      retry=true;
-    }));
-    if(retry){
-      retry=false;
-      probes.giorno=parseFloat(await shellcmd('modbusRead',{addr:map[0],register:'temp',val:0}).catch(error => { // val useless
-        console.error('  shellcmd catched ,error: ', error);
-        retry=true;
-      }));
-    }
-    if(retry){retry=false;reads--;
-      probes.giorno=null;}
+
+}
+
+// t giorno
+vInd=1;
+if(map[vInd]<0);// remain null
+else if(map[vInd]>=1000){// virtual index 0 refears to probe associated to  virtual pump/dev of index 2 ('g') cioe zona giorno
+              // if map[0] <0 mapped to a python dev at index - map[0]
+    const pyInd=map[vInd]-1000;
+    probes.giorno=await getPyProb(pyInd);
   }else {// is mqtt
     // todo : read the mqtt input devices (cant write ) stored in fn.iodev.probes_
     // ...
     // probes.giorno=these.iodev.probes_[map[0]]
     // ....
     // NBNBNB     above we got the modbus probe devices just calling a python func , they do not need to be configured/generated in fn.iodev
-
-    // map[0]>=1000
-    let curval
-    if(these.iodev.probes_[map[0]])// curval=await this.relais_[pump_].readSync();// 0/1
-    curval=valCorrection(await these.iodev.probes_[map[0]].readSync());// 0/1 or also ''/null that could mean N/A   .... todo manage that case !
-    probes.notte=curval;
-
+    probes.giorno=await getMqttProb(map[vInd])  //  pyInd=map[1]:  real i index is mappen on python virtual address these.iodev.pythonprobes_[pyInd])
   }
 
 
-    console.log('  genZoneRele , reading temp , sonda gave:  ',probes);
-
-if(reads<1){
-  if(DEBUG_probe){probes.notte=20;probes.giorno=20;} 
-  else probes=null;// todo retry if fails some read
-    //todo exit execute without call next event !!
+async function getPyProb(pyInd){// get python probs device ref
+  let addr,ret=null,retry;
+if(addr= these.iodev.pythonprobs_[pyInd]!=null){//!== undefined) {
+  ret=// 1
+  parseFloat(await shellcmd('modbusRead',{addr,register:'temp',val:0}).catch(error => { // val useless
+    console.error(' getPyProb() :  addr:',addr,' shellcmd catched ,error: ', error);
+    retry=true;
+  }));
+  if(retry){// 2nd chance
+    retry=false;
+    ret=parseFloat(await shellcmd('modbusRead',{addr:pyInd,register:'temp',val:0}).catch(error => { // val useless
+      console.error('  shellcmd catched ,error: ', error);
+      retry=true;
+    }));
   }
+}
+return ret;
+}
+async function getMqttProb(ind){
+  let dev,curval=null;
+  if((dev= these.iodev.probs_[ind])!=null){//!== undefined) {
+    console.log('getMqttProb() reading probe val in dev pythonprob index: ',ind);
+    curval=await dev.readSync();// 0/1
+  }
+  return curval;
+}
+    console.log('  initProg event , reading temp , sonda gave:  ',probes);
+
+
+
+if(probes.notte==null){console.error('  initProg event , found notte null temp reading probs . to do some correction(set std 21). probes: ',
+probes);probes.notte=21;
+}if(probes.giorno==null){console.error('  initProg event , found giorno null temp reading probs . to do some correction(set std 21). probes: ',probes);
+probes.notte=21;
+}
 
 cb(0,probes);	// goon with framework event chaining probes={giorno:'19.2',notte:,,,,}
 return 1;// what .on returns ?,  anyway if  this.state.stepInd=0 app will restart ev2run loop 
@@ -2229,7 +2274,7 @@ these.on('genZoneRele',
 // from startcheck :
 async function ( inp_, cb) {// the fsm ask state updates (we use openapi) : will set input of 'startcheck' , best to set also corresponding state ( last data gathered from fusionsolar)
                             // inp_= {'initProg':{giorno:19.2,notte:,,,,},
-                            //  dataArr(=sched)
+                            //  dataArr(=sched)}         nb sched from  prog_parmFact(sched)
   
   console.log(' handler fired by event genZoneRele , with input data: ',JSON.stringify(inp_,null,2));
 
@@ -2273,14 +2318,17 @@ async function ( inp_, cb) {// the fsm ask state updates (we use openapi) : will
   let  aTT;// virtual devices. each algo will set virtual device. after , in attuators(these,map,aTT), we set real devices mapping virtual into real dev
   
 
-    if((aTT=program(state,inp,probes))&&aTT&&aTT.length>0){// set algo results in lastProgramAlgo
+    if((aTT=program(state,inp,probes))&&aTT&&aTT.length>0){// set program algo results in lastProgramAlgo
                                           // virtual devices to map are index: 0,2,3,( in future 4)
                                           //  probes={giorno:19.2,notte:,,,,}  
                                           // inp={program:{'giorno':{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}, 
                                           //  'notte':....},
                                           //  ei;// W/S
                                         //    'mapping':[]}// opzionale
-      // mappings:
+ 
+ 
+ 
+      // old : mappings:
       // algo program has virtual relais [heat,pdc,g,n,s,split]  di cui si agisce solo su heat,g,n e poi s .
       // cha vanno mappati nei real device  del plant .
       // es map[7,-1,5,6,8,-1] significa :
@@ -2288,7 +2336,7 @@ async function ( inp_, cb) {// the fsm ask state updates (we use openapi) : will
       //  setta il real dev con index 5 come il virtual device di index 2,
       //  ......
       // tuti i real dev non mappati andranno settati null, il che vuoldire che non vengono modificati !!! 
-      let map;
+      let map;// OLD not used now , !!!!!!!!!!!!!!!!!!
       if(inp.mapping)map=inp.mapping;// sched.mapping from browser cfg 
       else map=[0,1,2,3,-1,5];// only s is not affected by progrm/anticipate algo 
       
@@ -2393,7 +2441,7 @@ async function concludi(){
 
 // let result=await attuators(these,session,clientDiscon);// .catch((e) => {
 let result=await attuators(these);// .catch((e) => {
-  console.log("attuators(): returns consolidate :",result);
+  console.log("attuators(): returns consolidate result (program+anticipate+manual algos) :",result);
   res.data={consolidate:result.toString()};
 }
 // end event to process programming algo 
@@ -2714,7 +2762,7 @@ function sendstatus(state){// error: we need the socket that connect to browser 
     }
 });
 console.log('sendstatus() pretty is: ',prettyjson);
-  io.sockets.emit('status',state,prettyjson);// no   , socket.emit...
+  io.sockets.emit('status',state,prettyjson);// no good!!!!!!  , use : socket.emit...
 }
 
 
@@ -2740,8 +2788,8 @@ console.log('sendstatus() pretty is: ',prettyjson);
   // >> in un customized plant avremo dei cust device con indici 0,1,,max 
   // e noi mapperemo ordinatamente i virtual device sui customized index !!!
 // we action simulating to push gpio button events
-let state=fn.state,relays=state.relays,// the state of device displayed on browser (true/false)
-relaisEv=state.app.plantconfig.relaisEv;
+let state=fn.state,relays=state.relays,// the state (null/ true/false) of device displayed on browser (gpionumb/mqttnumb dev in models.js) (true/false)
+relaisEv=state.app.plantconfig.relaisEv;// name <> index  for gpionumb/mqttnumb dev
 
 
 let aTT=consolidate(state,'program'),// this is virtual dev. now all algo works on a single def appDevSpaceGroup and produce the def virtual dev set
@@ -2768,18 +2816,21 @@ let i,mmax=aTT.length,mapmax=map.length;
     let realind;
     if (i < mapmax) realind = map[i];// apply map only if are >=0
     else realind = i;// identity 
+
+    // error on managing mapping virtual> real , so waiting debug :
+    realind=i;//anyway till we resolve the bag
                 
       if (aTT[i] != null &&// not both null or undefined, the iesimo virtual dev to set on real dev of index map[i]
                              // at present usually consolidate assign true or false to any dev , so we rewrite each time consolidate runs (on a loop ago or program algo )
-           realind >= 0 && realind < relaisEv.length &&//  iesimo virtual is mapped to index= map[i] of name: relaisEv[i], con state:relays[relaisEv[i]])  ,i=-1 means do not map, virtual not used here 
-           (forceWrite||aTT[i] != relays[relaisEv[realind]])) {// write to dev , also if present state is the same , infact dev can change val in different way 
+           realind >= 0 && realind < relaisEv.length &&//  iesimo virtual is mapped to index= map[i] of name: relaisEv[relaisEv[i]], con state:relays[relaisEv[i]])  ,i=-1 means do not map, virtual not used here 
+           (forceWrite||aTT[i] != relays[relaisEv[i]])) {// write to dev , also if present state is the same , infact dev can change val in different way 
                       const db = false; if (db) {// debug only , old unused now
-                      incong(relaisEv[realind], state);// segnala solo se c'e' differenza tra il current state relay value e il reale hw relay value , se c'e quando lo sistemo ??????
-                      console.log(' attuators() : just to info that at real index ',i,' current  pump state : ', relays[relaisEv[i]], ' is different from newval call setPump(0,', relaisEv[i], ')');
+                      incong(relaisEv[i], state);// segnala solo se c'e' differenza tra il current state relay value e il reale hw relay value ( cioè letto/read), se c'e quando lo sistemo ??????
+                      console.log(' attuators() : just to info that at real index ',i,' current  pump state : ', relays[relaisEv[i]], ' is different from newval to set with  setPump(i,newval,)');
                   }
              
      // promises.push(setPump(realind,aTT[i], fn,session,clientDiscon));// was : promises.push(setPump(i, relaisEv[realind], fn));
-      promises.push(setPump(realind,aTT[i], fn));// was : promises.push(setPump(i, relaisEv[realind], fn));
+      promises.push(setPump(realind,aTT[i], fn));// error realind is really i . was : promises.push(setPump(i, relaisEv[realind], fn));
     }
     else;// anyway se richiedo un set diverso dal corrente cambio il suo valore 
 
@@ -2928,8 +2979,9 @@ function setPump(pumpnumber,on,fn){// 0,1,2,3    on : changing value (true/1 or 
 }
 
 function setManual (pump_, val, coming,checked,eM)  {// this will be like the final part of a manual algo: propose a single pump value to be evaluater with all other active algo by optimize
-  // the proposal evaluated by execute is in state.lastUserAlgo.pumps
-  // val =0/1
+                                                    // the proposal evaluated in consolidate() is put in state.lastUserAlgo.pumps
+                                                    // val =0/1
+                                                    // checked : change scadenza if checked!=0, otherwise reset : val = null
   if (!eM) console.log('error: pump socket event called ,param: ', pump_, val, coming,checked);// to log too
   if (!eM) console.error('pump socket event, eM is null ', pump_, val, coming);
 
@@ -2954,8 +3006,8 @@ function setManual (pump_, val, coming,checked,eM)  {// this will be like the fi
       eM.state.lastUserAlgo = { policy: 0, algo: "usermanual0" };
     }
     let updatedate = pdate(),debug11=false;
-    if (!debug11) state.app.plantconfig.relaisEv.forEach((name, ind) => {// insert new proposal on ind pump
-      if (name == pump_) {
+    if (!debug11) state.app.plantconfig.relaisEv.forEach((name, ind) => {// debug11=false : insert new proposal on ind pump
+      if (name == pump_) {// update the pump_ item manual value the user want , expiring after a day  
         if (checked != 0) {// if set not change scadenza
           if (pumps[ind] != null) {// there is previous user request for this pump : update it 
             if (val == 0) pumps[ind] = false; else pumps[ind] = true;
@@ -3044,17 +3096,18 @@ function setManual (pump_, val, coming,checked,eM)  {// this will be like the fi
 
 // the node-red namespace :
 const adminNamespace = io.of("/admin"),
-emittedTokenOnRuotingEntryAvailableOnlyToRecognizedUser={abc:true};
+emittedTokenOnRuotingEntryAvailableOnlyToRecognizedUser={abc:true};//AAZZ
 
 adminNamespace.use((socket, next) => {// https://socket.io/docs/v4/server-socket-instance/#sockethandshake
   // ensure the user has sufficient rights
-  const token = socket.handshake.auth.token;
+  const token = socket.handshake.auth.token;// qui non si va a cercare in req session il .user settato da passport ma 
+                                            //  si estrae il il auth header del aiax request e poi si valida il token !
 
 let userAutorized=false;
 
 // ggg use models.getPlants();
 
- if(emittedTokenOnRuotingEntryAvailableOnlyToRecognizedUser[token])userAutorized=true;
+ if(emittedTokenOnRuotingEntryAvailableOnlyToRecognizedUser[token])userAutorized=true;// il token c'e' perche registrato in AAZZ
 
 
 if(userAutorized)
@@ -3092,7 +3145,7 @@ if(userAutorized)
 
 
 
-        NBNB   io.set is no more used to set socket.auth !!!  , anyway tis is old way : 
+        NBNB   io.set is no more used to set socket.auth !!!  , anyway this is old way : 
 
 
 
@@ -3132,6 +3185,8 @@ if(userAutorized)
                 Some tutorials may also mention io.sockets, it's simply an alias for io.of("/").
 
                 io.sockets === io.of("/")
+
+                        >>>>>>>>>>>>>  quindi : io.on = io.of("/").on  =  io.sockets.on
 
                 Custom namespaces
 
@@ -3359,7 +3414,7 @@ if(userAutorized)
 
 
 
-adminNamespace.on("connection", socket => {// register emit handlers
+adminNamespace.on("connection", socket => {// register emit handlers on 
   console.log(' from node-red  a socket started');
 
 
@@ -3654,7 +3709,7 @@ session.save();// save socketid
                                       //  }
                                       // 
     let{gpionumb,mqttnumb,mqttprob,relaisEv,devid_shellyname,mqttWebSock}=plantconfig;
-    
+let pythonprobs=   [...plantconfig.pythonprob];
 
 const keepDeviceDef=true;// is true, try false
  if(keepDeviceDef&&!eM.init){// eM is not initiated (non recovered from started[name] )
@@ -3744,7 +3799,7 @@ return   new Promise(function(resolve, reject) {
 myctls_.then(
   (ctl1)=>{
           myprobs_.then((ctl2)=>{// all resolved
-                                resolve({myctls:ctl1,myprobs:ctl2});// DDQQAA
+                                resolve({myctls:ctl1,myprobs:ctl2,pythonprobs});// DDQQAA
   });
 }
 )
@@ -3753,8 +3808,8 @@ myctls_.then(
 }// ends buildPlantDev
   }// ends abilita
 
-function abilita2(devices_){// {myctls,myprobs} // DDQQAA
-  let devices=devices_.myctls,// {ctls:[ctl1,,,],devmap:[{devNumb,devType,portnumb},,,,]}
+function abilita2(devices_){// {myctls,myprobs,pythonprob} // DDQQAA
+  let devices=devices_.myctls,// {ctls:[ctl1,ctl2,,],devmap:[{devNumb,devType,portnumb},,,,]}
                                 /* 	  	  	   	devices={
                                                           ctls:[ctl1=new fc(gp,ind,inorout,cfg)= 	
                                                                   {gpio=11,
@@ -3765,18 +3820,19 @@ function abilita2(devices_){// {myctls,myprobs} // DDQQAA
                                                                   isOn,
                                                                   readsync,
                                                                   writesync}
-                                                                  ,,,],
+                                                                  ,ctl2,,],
                                                           devmap:[{devNumb,devType,portnumb},,,,]}  
                                 */
 //eM=socket.eM,
 
       probes=devices_.myprobs;// 
 console.log(' buildPlantDev(),got dev ctl');
-eM.iodev.relais_=Array(devices.ctls.length).fill(null);// fill relays/pump  list in browser , inorout='out'
+eM.iodev.relais_=Array(devices.ctls.length).fill(null);// fill relays/pump  list in browser , inorout='out' cioe out capable
 eM.iodev.probs_=Array(probes.ctls.length).fill(null);//  inorout='in-var'
                                                       // in algo triggers frame we assign the probs to use for each input used by algo ,  
                                                       // ex : the number 2 (night)program schedule use the 2nd registered probe models , 
                                                       //    that is the shelly dev number mqttprob[2] or mqttprob[2-1]  
+eM.iodev.pythonprobs_=devices_.pythonprob;// just copyed from models !  pythonprobes_
 
 let state=eM.state;
 state.devMap=Array(devices.ctls.length).fill(null);
@@ -3834,7 +3890,7 @@ let pumpsHandler=eM.pumpsHandler;
   relaisEv.forEach((pump,ind) => {// ex: pump='pdc', ind=2
                                 // will for each numbSubscr dev :
                                 // - add  socket event to sync raspberry buttons and web button
-                                // - set interrupts
+                                // - set interrupts on dev ctl iodev.relais_
     
 if(!eM)console.error('event connection setting hw button , eM is still null ');
 if(!eM)console.log('event connection setting hw button, eM is still null ');
@@ -3844,7 +3900,6 @@ pumpsHandler[ind]=watchparam(pump);// handler for actuators, each (button )handl
 
 if(relais&&relais[ind])relais[ind].watch(pumpsHandler[ind]);// attach same handler watchparam(pump) to all gpio pump  buttons 
                           // that handler works also x algo handler called in attuators/setpump   ex pumpsHandler[0](err,value) 0 means pdc pump
-
 
 // set interrups : now do the same for mqtt interrupts for var dev updating  and rele dev , cl = 1 e 2 , no cl 4
 
@@ -3861,7 +3916,6 @@ if(eM.iodev.relais_[ind]&&eM.iodev.relais_[ind].cl&&(eM.iodev.relais_[ind].cl==2
     // idea just interrupt if is different then state.ralays[dev]!
     let val_;
     if(!Number.isNaN(val_=Number(val))){// val is conveted to integer
-
 
       if(val_==0) ;else val_=1;
   console.log(' abilita2 interrupt : fire interrupt to change value : ',val,' so we change val as ',val_,' , on dev ',pump);
@@ -3914,7 +3968,7 @@ if(eM.iodev.relais_[ind]&&eM.iodev.relais_[ind].cl&&(eM.iodev.relais_[ind].cl==2
 
 let mqtt2webS;
 for(let ii=relaisEv.length;ii<eM.iodev.relais_.length||!mqtt2webS;ii++){// relais_ contain the int dummy dev with index>=relaisEv.length (usually =)
-  if(eM.iodev.relais_[ii].gpio==0)mqtt2webS=eM.iodev.relais_[ii];// the ctl for 
+  if(eM.iodev.relais_[ii].gpio==0)mqtt2webS=eM.iodev.relais_[ii];// the ctl , dev dummy with gpio=portid=0, that read from mqtt node-red like cmd 
 }
 if(mqtt2webS){
   mqtt2webS.intWebSoc=intWebSock;// handler point to setManual()
@@ -3932,20 +3986,25 @@ function intWebSock(val=0, devqueue, message){// val=0/1, the int handler of a f
   //                    better validate the token to avoid a different user having the mqtt broker access send a mqtt pub to a different user topic dev 
   // the user auth staff is in ..........................
   let xstart,xstop,xmin,data=message.data;
-  if((mevent))
+  if((mevent)){
 
   if(mevent=="stopcheckxSun"){
-    console.log('intWebSock() stopping program and anticipate Algos');
+    console.log('intWebSock() stopping anticipate Algos');
     stopRepeat();
-      stopprogrammer();
+
   
-    }else  if(mevent=='repeatcheckxSun'&&(data)&&(xstart=data[0])&&(xstop=data[1])&&(xmin=data[2])){
-      if(param=='on'){startAnt=startPgm=true;
+    }else if(mevent=="stopcheckxPgm"){
+      console.log('intWebSock() stopping program  Algos');
 
-      }
-      else{startPgm=true;
-      }
-
+        stopprogrammer();
+    
+    }else if(mevent=='repeatcheckxPgm'&&(data)&&(xstart=data[0])&&(xstop=data[1])&&(xmin=data[2])){
+      
+      startPgm=true;
+    }else if(mevent=='repeatcheckxSun'&&(data)&&(xstart=data[0])&&(xstop=data[1])&&(xmin=data[2])){
+      
+      startAnt=true;
+    }
         if(startAnt){
           if(state.anticipate==null||!state.anticipate)// dont run alredy
         {
@@ -3953,10 +4012,10 @@ function intWebSock(val=0, devqueue, message){// val=0/1, the int handler of a f
           repeatHandler.apply(this,data);// pass data array as params
         }
       }
-      if(startPgm){
+      else if(startPgm){
         if(state.program==null||!state.program)// dont run alredy
         {
-          let triggers2=message.data1;// only "PGMgiorno" : { "8:30" : 27, "17:00" : 30 },
+          let triggers2={};triggers2=message.data[3];// only "PGMgiorno" : { "8:30" : 27, "17:00" : 30 },
           // recover using previous sets and recoverd in .data
 /*
                                                                         "triggers2" : {
@@ -3970,17 +4029,17 @@ function intWebSock(val=0, devqueue, message){// val=0/1, the int handler of a f
                                                                           "ei" : "S"
                                                                       }
 */   
-if(triggers2){ 
+if(triggers2&&triggers2.PGMgiorno){ 
   triggers2.mapping="==&&state.devmapping=[0,1,2,3,-1,5]";
-  triggers2.probMapping="==&&state.probmapping=[2,4,0,3,1,5]";triggers2.ei="S";triggers2.Tgiorno=true; 
+  triggers2.probMapping="==&&state.probmapping=[2,4,0,3,1,5]";triggers2.ei=message.param.ei||"S";triggers2.Tgiorno=true; 
   console.log('intWebSock() starting program  Algos');                                              
-setTimeout(()=>{ repeatHandler1(xstart,xstop,xmin,triggers2);},1500);
-
-        }}
+// setTimeout(()=>{ repeatHandler1(xstart,xstop,xmin,triggers2);},1500);
+repeatHandler1(xstart,xstop,xmin,triggers2); 
+}}
       }
 
 }else console.log(' intWebSock() cant find a handler for mevent ',mevent);
-  else console.log(' intWebSock() cant find a handler for mevent ',mevent);
+
 }
 
 // moved : displayView(relaisEv,state);
@@ -4134,8 +4193,11 @@ setTimeout(()=>{ repeatHandler1(xstart,xstop,xmin,triggers2);},1500);
  });// 
 
 
-  socket.on('manualAlgoProposal',(pump_, val, coming,checked)=>setManual(pump_, val, coming,checked,eM));
-
+  socket.on('manualAlgoProposal',(pump_, val, coming,checked)=>{
+        console.log(' socket.on(manualAlgoProposal  handle set manual proposal');
+        setManual(pump_, val, coming,checked,eM);
+      });
+  
 
 
 
@@ -4192,6 +4254,12 @@ function repeatHandler(starthour,stophour,dminutes,triggers) {// called also by 
                                                                 */
   if(!eM)console.error(' repeatHandler(), eM is null ');
   if(!eM)console.log(' repeatHandler(), eM is null ');else console.log(' repeatHandler(), eM is found '); 
+
+
+  // non va perche allo start anticipate is recovered from state is not null but the algo must to start !
+  //if(eM.state.anticipate != false&&eM.state.anticipate != null){
+  //  console.log('repeatHandler() socket event handler , anticipate is already active ! ');return  }
+
     repeat=repeat||checkFactory(eM);// could be find null ???
     if(repeat.repeatcheckxSun(starthour,stophour,dminutes,antic_parmFact())==0)// exit ok 
     setanticipateflag({running:true,starthour,stophour,dminutes,triggers},'anticipate');// store in state the algo launch params (ex: triggers), update state store
@@ -4215,22 +4283,14 @@ function stopRepeat()  {
 
 // now the same x programming temperature x many zones
 socket.on('startprogrammer',repeatHandler1);// start anticipating algo with setting and run an execute()
-function repeatHandler1(starthour,stophour,dminutes,triggers2) {// sched triggers2 keys:extract2 = ["Tgiorno","PGMgiorno","Tnotte","PGMnotte"],
-                                                                /* {
-                                                                  Tgiorno: true,
-                                                                  PGMgiorno: {    "8:30": 15, "17:00": 19, },
-                                                                  Tnotte: false,
-                                                                  PGMnotte: { notte: {"8:30": 20,"17:00": 22,},},
-                                                                  lastT: ["5/31/2023, 10:53:20 AM", { notte: 20, giorno: 20,},],  // todo: what is this ?????????
-                                                                  mapping: "==&&state.devmapping=[0,1,2,3,-1,5]",
-                                                                  probMapping: "==&&state.probmapping=[2,4,0,3,1,5]",
-                                                                  ei: "S",
-                                                                }
-                                                                */
+function repeatHandler1(starthour,stophour,dminutes,triggers2) {// triggers2 keys sono gli items di :extract2 =  ["Tgiorno","PGMgiorno","Tnotte","PGMnotte","lastT","mapping","probMapping","ei","TgiornoTollerance"],
+                                                                
 
                                                                 /*        "triggers2" : {
                                                                           "Tgiorno" : true,
                                                                           "PGMgiorno" : { "8:30" : 27, "17:00" : 30 }, // associato al virtual rele g ( index 2)
+                                                                          "TgiornoToll": { "8:30" : 1.5, "17:00" : 1.5 }
+                                                                          "TgiornoTollerance":1.5,
                                                                           "Tnotte" : false,
                                                                           "PGMnotte" : { "notte" : { "8:30" : 20, "17:00" : 22 } },
                                                                           "lastT" : ["21/08/2023, 09:33:23", { "notte" : 23.8, "giorno" : 24.3 }], // NOT used to start programalgo !, just x info
@@ -4239,24 +4299,52 @@ function repeatHandler1(starthour,stophour,dminutes,triggers2) {// sched trigger
                                                                           "ei" : "S"
                                                                       }
                                                                 */
-  console.log(' startprogrammer socket event handler repeatHandler1() called with triggers2: ',triggers2 )   ;                                                            // sched={'giorno':['8:30':t1,"17:00":t2]} see initProg event x keys definitions
-  let sched={programs:{}};// sched={programs:{giorno:{'16:10':-3,,,,},notte:{}},probMapping:[],mapping:[]} 
+  console.log(' startprogrammer socket event handler repeatHandler1() called with triggers2: ',triggers2 ,' controller fn is null: ',eM==null)   ;                                                            // sched={'giorno':['8:30':t1,"17:00":t2]} see initProg event x keys definitions
+  let sched={programs:{}};// sched={programs:{giorno:{sched:{'16:10':-3,,,,},toll:{'16:10':1.5,,}},notte:{}},  HHDD
+                          //  probMapping:[],
+                          // mapping:[],
+                          // ei} 
   if(!triggers2)return;
+  if(eM.state.program != false&&eM.state.program != null){
+    console.log('startprogrammer socket event handler , program algo is alredy active ! ');return
+  }
+
   // if(triggers2.Tgiorno&&triggers2.PGMgiorno)Object.assign(sched, triggers2.PGMgiorno);
   // if(triggers2.Tnotte&&triggers2.PGMnotte)Object.assign(sched, triggers2.PGMnotte);
   if(triggers2.Tgiorno&&triggers2.PGMgiorno){sched.programs.giorno={sched:triggers2.PGMgiorno};
-    if(triggers2.PGMgiornoToll){sched.giorno.toll=triggers2.PGMgiornoToll;// // tolleranze (un valore x all), same keys of sched.giorno.sched
-      console.log(' startprogrammer socket event handler repeatHandler1() saved tollerate array: ',triggers2.PGMgiornoToll,'\n sched: ',sched);
+  if(triggers2.TgiornoTollerance)sched.programs.giorno.TgiornoTollerance=triggers2.TgiornoTollerance;
+    if(triggers2.TgiornoToll){sched.programs.giorno.toll=triggers2.TgiornoToll;// // tolleranze (un valore x all), same keys of sched.giorno.sched
+      console.log(' startprogrammer socket event handler repeatHandler1() saved tollerate array: ',triggers2.TgiornoToll,'\n sched: ',sched);
+    }else{// TgiornoToll is not defined . probably this is a call from plant/state recovery and the state was no really set with current version 
+      // just fill with 0 tollerance and build here
+      sched.programs.giorno.toll={};sched.programs.giorno.TgiornoTollerance=0;
+      let ks=Object.keys(triggers2.PGMgiorno);// PGMgiorno= {'8:30':0,"10:50":1022} >  {'8:30':0,"10:50":22}
+      for(let ii=0;ii<ks.length;ii++){
+        sched.programs.giorno.toll[ks[ii]]=0;
+      }
+
+
     }
   }
   if(triggers2.Tnotte&&triggers2.PGMnotte){sched.programs.notte={sched:triggers2.PGMnotte};
-    if(triggers2.PGMnotteToll)sched.notte.toll=triggers2.PGMnotteToll;// // tolleranze (un valore x all), same keys of sched.giorno.sched
+    if(triggers2.TnotteToll){sched.programs.notte.toll=triggers2.TnotteToll;// // tolleranze (un valore x all), same keys of sched.giorno.sched
+    console.log(' startprogrammer socket event handler repeatHandler1() saved tollerate array: ',triggers2.TnotteToll,'\n sched: ',sched);
+  }else{// TgiornoToll is not defined . probably this is a call from plant/state recovery and the state was no really set with current version 
+    // just fill with 0 tollerance and build here
+    sched.programs.notte.toll={};sched.programs.notte.TgiornoTollerance=0;
+    let ks=Object.keys(triggers2.PGMnotte);// PGMgiorno= {'8:30':0,"10:50":1022} >  {'8:30':0,"10:50":22}
+    for(let ii=0;ii<ks.length;ii++){
+      sched.programs.notte.toll[ks[ii]]=0;
+    }
+
+
+  }
   }
 
   sched.probMapping=toeval(eM.state,triggers2.probMapping);// mapping algo vars to plant devices !, input used when call last event genZoneRele of related exec created with prog_parmFact(sched)
                                                             // // preferred use :  ('==&&state.mapping=[0,1,3,2,4];')   will fill the state.mapping var ! and returs the array 
   sched.mapping=toeval(eM.state,triggers2.mapping);// mapping algo vars to plant devices !, input used when call last event genZoneRele of related exec created with prog_parmFact(sched)
-  if(triggers2.ei&&triggers2.ei=='S')sched.ei='S';else sched.programs.ei='W';
+  if(triggers2.ei&&triggers2.ei=='S')sched.ei='S';else sched.ei='W';
 
   if(!eM)console.error(' repeatHandler1(), eM is null ');
   if(!eM)console.log(' repeatHandler1(), eM is null ');else console.log(' repeatHandler(), eM is found '); 
@@ -4327,9 +4415,9 @@ process.on('SIGINT', function () { //on ctrl+c
 //return 'ok';    ??
 
 
-function anticipateFlag(set_,fn,algo,activeAlgoRes){// like onRelais, write state after completed it to store anticipate algo init param// algo =anticipate/program
-                                                    // sets state.anticipate and state.program 
-
+function anticipateFlag(set_,fn,algo,activeAlgoRes){// like onRelais, write state after completed it to store anticipate algo init param// algo =anticipate/program/manual
+                                                    // sets state.activeAlgoRes to store the temp results of algo  
+                                                    // if set_=null  state.activeAlgoRes=null
                                                     //  new:
                                                     // - set algo init param if set_ != null
                                                     // - otherwhise reset algo init param  e algo result (state[activeAlgoRes]=null)
@@ -4735,7 +4823,7 @@ return {procName, a,b,ev2run, asyncPoint, processAsync, dataArr:dataArr_,algo:'p
 
 function consolidate(state, lastalgo) {// works on virtual dev  [false, false, false, false,false,false]= [heat,pdc,g,n,s,split], 
   // lastalgo = anticipate,program,user   : used ??
-  // done : puo essere chiamato sia da anticipate che da program. ma ultimamente program chiama optimize() !!!  >>> todo  sistemare un unico optimize !?!
+  // done : puo essere chiamato sia da anticipate che da program. ma ultimamente program chiama optimize() !!!  >>> todo  sistemare un unico optimize !?!  >> fatto , consolidate() :OK
   // heat : se impostato da program  antic puo solo fare or 
 
   // >>>  torna il valori dei rele , ricalcolati tenuto conto di 3 calcoli degli algo , il piu recente e i due precedenti  set !!! 
@@ -4754,25 +4842,29 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
   //let res = new Array(state.app.plantconfig.relaisEv.length); res.fill(false);// so if any of proposal has lower dimension we complete with false (std)
   // fill result with def value. that will be the value if all antic,program,and user suggested null value
   let res =[...state.app.plantconfig.relaisDef];// clone array
-  let curpumps = state.relays, antic, program
+  let curpumps = state.relays,// cur gpionumb/mqttnumb state with name keys
+   antic, anticGap, program // proposals
     , user;// the user manual set proposal , valid (no timeout)
   // see what set are active (lastxxxAlgo not false)
-  if (state.lastAnticAlgo
+   if (state.lastAnticAlgo
     && state.anticipate && state.anticipate.starthour <= date.getHours() && state.anticipate.stophour > date.getHours()
     //||lastalgo=='anticipate'
-  ) antic = state.lastAnticAlgo.pumps;// non vero : state.lastAnticAlgo could not jet assigned
-
+  ) {antic = state.lastAnticAlgo.pumps;// non vero : state.lastAnticAlgo could not jet assigned
+    
+  }
   if (state.lastProgramAlgo
     && state.program && state.program.starthour <= date.getHours() && state.program.stophour > date.getHours()
     // ||lastalgo=='program'
-  ) program = state.lastProgramAlgo.pumps;
-
+  ) {program = state.lastProgramAlgo.pumps;
+    anticGap=state.lastProgramAlgo.anticGap;// the anticipate proposal flag (activate item x item the anticipate proposal , item gaspdcPref  of anticInterm2VirtMap:{gaspdcPref:[true,true,true,null,null,true,null,false]})
 
   // check scadenza
 
-  if (state.lastUserAlgo)// is alredy stored in state.user
-    if (isscad(date, state)) {// state.user=isscad(date,state.lastUserAlgo.scad);
-      state.lastUserAlgo = false;
+  }if (state.lastUserAlgo)// is alredy stored in state.user
+    if (isscad(date, state)) {// check if the user proposed (items ?) is still valid (see defTo in ms), so review the valid lastUserAlgo.pumps
+      
+                                // state.user=isscad(date,state.lastUserAlgo.scad);
+      // state.lastUserAlgo = false;
     }
   if (state.lastUserAlgo
     //||lastalgo=='user'
@@ -4782,10 +4874,11 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
     console.log(' consolidate() found anticipate relays set: ', antic);
   }
   if (program) {
-    console.log(' consolidate() found program relays set: ', program);
+    console.log(' consolidate() found program relays set: ', program);  
+      console.log(' consolidate() found program/anticipated activation flags: ', anticGap);
   }
   if (user) {
-    console.log(' consolidate() found manualuser  relays set: ', user);
+    console.log(' consolidate() found not expired manualuser  relays set: ', user);
   }
 
   /*
@@ -4796,18 +4889,18 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
   */
 
   let antMap = state.app.plantconfig.anticInterm2VirtMap,// update of virtual dev to apply if a intermediate is set true by anticipate. {gaspdcPref:[true,true,true,null,null,true,null]}/
-   apply;
+                                                          // anticInterm2VirtMap:{gaspdcPref:[true,true,true,null,null,true,null,false]}
+  apply;
   const sol = 1;// scelta implementativa , 
   // 0: apply intermedate then merge with program and user 
   // 1: merge , then apply intermediate .thats the preferred choice
 
   // a: process antic + program
   if (antic) {
-
     // MMNN :
 
     // antMap={ant=gaspdcPref:res=[true,false,null,,,null]}
-    if (sol == 0) applyIntermed(antic);
+    if (sol == 0) applyIntermed(antic,anticGap);
 
     if (program) {// antic + program + possibly user
       // program and antic  case 
@@ -4867,7 +4960,7 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
     state.user=true;
     */
   });
-  if (sol == 1) apply = applyIntermed(res);
+  if (sol == 1) apply = applyIntermed(res,anticGap);
 
   console.log(' consolidate() , at hour ', date.getHours(), ', merging anticipate (', antic, '), program (', program, ') and usermanual (', user, ') applyed intermedite (', apply, ') , relays merge into: ', res);
 
@@ -4878,7 +4971,7 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
     let someset = false;
     state.lastUserAlgo.pumps.forEach((val, ind) => {
 
-      if (val != null) {// null val , can be tru or false
+      if (val != null) {// null val , can be true or false
         let scad = state.lastUserAlgo.defTO[ind];// scad time 
         console.log(' isscad() for plant checking user set for pump index ', ind, ', con scadenza  ', scad, ' > when date.time ', date.getTime());
         if (scad < date.getTime()) {
@@ -4886,23 +4979,27 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
          someset = true;
       }}
     });
-    if(someset)console.log(' ..... so found manual valid ');else console.log(' ..... so found manual expired ');
+    if(someset)console.log(' ..... so found some manual proposed item invalid , so the valid one is now :', state.lastUserAlgo.pumps);else console.log(' ..... so found manual expired ');
     return someset;
   }
 
 
-  function applyIntermed(proposal) { // antMap : see anticInterm2VirtMap in model.js. proposal is current proposed relays to update if intermediate is set 
+  function applyIntermed(proposal,smallgapTemp) { // antMap : see anticInterm2VirtMap in model.js. proposal is current proposed relays to update if intermediate is set 
+                                                  // ex proposal=[false,false,false,false,false,false,true,false] so  gaspdcPref is true, int=7 , allora contagia anche i dev in antMap:
+                                                  // >>>>  proposal=[true,true,true,false,false,true,true,false]
     if (antMap) {// antMap={gaspdcPref:[true,true,true,null,null,true,null]}/// the intermediate proposal to apply on other dev, if a intermediate var (gaspdcPref) is found true
-      for (ant in antMap) {// ant is an itermediate var registered in antMap , ex ant=gaspdcPref
+                //  smallgapTemp=[false,false,true,null,,] if true then ,  if the anticipate proposal item  is true :  relay to proposal
+      for (ant in antMap) {// ant is an itermediate var registered in antMap , example: ant=gaspdcPref
         let ind;
-        if ((ind = state.app.plantconfig.relaisEv.indexOf(ant)) >= 0)
-          if (proposal[ind])// intermediate is set, apply its consequences
+        if ((ind = state.app.plantconfig.relaisEv.indexOf(ant)) >= 0)// ind : index of ant
+          if (proposal[ind])// the proposal says if intermediate of index ind is proposed true , so apply its consequences described in antMap[ant]
           {
-            console.log('applyIntermed() found a intermed var  of name ', ant, ' so apply it on related dev ');
-            antMap[ant].forEach((val, ind) => {
+            console.log('applyIntermed() found set the intermed var  of name ', ant, ' so apply its proposal gaspdcPref:[true,true,true,null,null,true,null] for true item in act flag : smallgapTemp[]');
+            antMap[ant].forEach((val, ind) => {// force any (not  null) interm var PROPOSAL: [true,true,true,null,null,true,null] if intermediate algo activated it : smallgapTemp[ind].smallgap=true
+              if(smallgapTemp&&smallgapTemp[ind]==true)
               if (val == true) proposal[ind] = true; else if (val == false) proposal[ind] = false;// fill virtual pump from intermediate virtual pumps
             });
-            return ant
+            return true
           }
       }
     }
@@ -4939,7 +5036,7 @@ return null;
 }
 function checkval(lastUserAlgo){return true;}// todo  return true if updatedate + defTo is < curdate, the pumps request is valid 
 
-function  valCorrection(value){// change 0 <> 1
+function  valCorrection(value){// change 0 <> 1 user only in raspberry because the gpio had inverted on/off in connecting the port to rele
   if(value==null||isNaN(value))return value ;
   if(INVERTONOFF_RELAY)if(value==0)return 1; else return 0;
   
@@ -5090,4 +5187,14 @@ options:['"0"','"1"']
                   */
 }
 
+function stringIsFloatorInt(str){
+  if(str==null||str=="")return false;
+ if (Number.isNaN(Number(str)))return false;
+ return true;
+}
+function stringIsInt(str){
+  if(str==null||str=="")return false;
+  if(Number.isInteger(Number(val)))return true;
+  return false;
+}
   }
