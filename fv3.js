@@ -55,6 +55,7 @@ ejscont=model.ejscontext('luigi')// to generate pumps list in html after  emit('
 const PersFold=process.env.PersFold,// persistence folder .data
 test1=require("cors"),
 IsRaspberry=process.env.IsRaspberry != 'false',
+DUMMY_T=21.11,// def T if not found
 forceWrite=true,// in setPump, write to dev , also if present state is the same as new val , infact dev can change val in different way 
 Serv_='Srv';// debug only, to be sure not to forghet some changes in code
 let rs485;if(IsRaspberry==false)rs485='rs485_simul.py';else rs485='rs485.py'
@@ -1100,8 +1101,8 @@ state.program.triggers2.lastT=[date.toLocaleString(),probes];//JSON.stringify(pr
 
       let changing=false;
     if (activation)  {// some section is cooler than programmed in winter or warmer in summer
-      ret = [true, null, false,false, false,null];// [heat,pdc,g,n,s,split]. program algo (specific) suggestion 
-      antret = [true, null, false,false, false,null];
+      ret = [true, false, false,false, false,null,null,true];// [heat,pdc,g,n,s,split,gaspdcPref,acs]. program algo (specific) suggestion 
+      antret = [true, true, false,false, false,null,null,false];// blockacs=false split = ?
 
     if (toactivate[0][0])  {// giorno
       ret[2]=true;
@@ -1152,15 +1153,15 @@ state.program.triggers2.lastT=[date.toLocaleString(),probes];//JSON.stringify(pr
 
     } else {//  no one of programs has temperature out of  target on current time slot 
     
-    ret =[false, null,false,false, false,null];// [false, null,null,null,null,null];// desidered program algo virtual actions : heat e i rele zonali: off, e nessuna modifica x gli altri rele 
-    antret = [false, null, false,false, false,null];
+    ret =[false, false,false,false, false,null,null,true];// [false, null,null,null,null,null];// desidered program algo virtual actions : heat e i rele zonali: off, e nessuna modifica x gli altri rele 
+    antret = [false, true, false,false, false,null,null,false];
 
     {
     if (toactivate[0][1])  {// giorno antic
-      antret[2]=true;
+      antret[2]=true;antret[0]=true;
     }    
     if (toactivate[1][1])  {// notte antic
-      antret[3]=true;
+      antret[3]=true;antret[0]=true;
     }  
   }
 
@@ -1225,14 +1226,16 @@ return optimRet;
 				                                                    },    */
 
       // sc_={sc=sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1=0.7,"17:00":dt2}// tolleranze delle temperature desiderate
-      if (!sonda) return;
+      if (!sonda){ 
+        console.log(' toact() analizing  zona: ', zona,  ', sonda is( null) : ',sonda);
+        return;}
       let sc = sc_.sched,scantic=sc_.toll;
       // nb toll future use : query lastAnticAlgo to see if a fv production is expected in short time
       // if(lastAnticAlgo.short)dt=true;
       let keylist = Object.keys(sc);// orari del programma =["8:30","17:00"]
       // cerca dove cade la cur temp : slot
 
-      console.log(' toact() analizing  zona: ', zona, ' programma : ', sc, ',  at present hour:min  ', h,':', m,);
+      if(PRTLEV>5)console.log(' toact() analizing  zona: ', zona, ' programma : ', sc, ',  at present hour:min  ', h,':', m,);
 
       let slot = -1, // time interval dove l'ora corrente cade, quindi   temp = sc[keylist[slot]] è la temperatura programmata !
       last = keylist.length - 1, temp = sc[keylist[last]], resu = 'none', tempx = '';
@@ -2284,7 +2287,7 @@ if((addr= these.iodev.pythonprobs_[pyInd])!=null){//!== undefined) {
 }
 return ret;
 }
-async function getMqttProb(ind){
+async function getMqttProb(ind){// can be number or a float string ?
   let dev,curval=null;
   if((dev= these.iodev.probs_[ind])!=null){//!== undefined) {
     console.log('getMqttProb() reading probe val in dev pythonprob index: ',ind);
@@ -2296,12 +2299,22 @@ async function getMqttProb(ind){
 
 
 // probe can read ''  if queue is void !!
-if(probes.notte==null||typeof probs.notte=='string'){console.error('  initProg event ,plant: ',plant,' found notte null temp reading probs . should exit , to do some correction(set std 21). probes: ',
-probes);probes.notte=21;
-}if(probes.giorno==null||typeof probs.giorno=='string'){console.error('  initProg event ,plant: ',plant,' found giorno null temp reading probs . should exit, to do some correction(set std 21). probes: ',probes);
-probes.notte=21;
-}
+let val_,val__=probes.notte;
+// if(probes.notte==null||typeof probes.notte=='string'){console.error('  initProg event ,plant: ',plant,' found notte null temp reading probs . should exit , to do some correction(set std 21). probes: ',probes);
+if(val__==null||val__==''||Number.isNaN(val_=Number(val__))){console.error('  initProg event ,plant: ',plant,' found notte null temp reading probs . should exit , to do some correction(set std 21). probes: ',probes);
 
+
+console.log('  initProg event , plant: ',plant,' found notte null temp reading probs . should exit , to do some correction(set std 21). probes: ',probes);
+val_=DUMMY_T;
+}
+probes.notte=val_;
+val__=probes.giorno;
+if(val__==null||val__==''||Number.isNaN(val_=Number(val__))){console.error('  initProg event ,plant: ',plant,' found giorno null temp reading probs . should exit, to do some correction(set std 21). probes: ',probes);
+console.log('  initProg event , plant: ',plant,' found giorno null temp reading probs . should exit, to do some correction(set std 21). probes: ',probes);
+val_=DUMMY_T;
+}
+probes.giorno=val_;
+if(PRTLEV>5)console.log('  initProg event , plant: ',plant,' found temp probes:',probes);
 cb(0,probes);	// goon with framework event chaining probes={giorno:'19.2',notte:,,,,}
 return 1;// what .on returns ?,  anyway if  this.state.stepInd=0 app will restart ev2run loop 
 });
@@ -2319,7 +2332,7 @@ async function ( inp_, cb) {// the fsm ask state updates (we use openapi) : will
                             // inp_= {'initProg':{giorno:19.2,notte:,,,,},
                             //  dataArr(=sched)}         nb sched from  prog_parmFact(sched)
   
-  console.log(' handler fired by event genZoneRele , with input data: ',JSON.stringify(inp_,null,2));
+  if(PRTLEV>5)console.log(' handler fired by event genZoneRele , with input data: ',JSON.stringify(inp_,null,2));
 
                                         /*
                                            inp_={
@@ -4923,9 +4936,9 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
   }
   if (program) {
     console.log(' consolidate() found program relays set: ', program);  
-      console.log(' consolidate() found program/anticipated activation flags: ', anticGap);
-  }
-  if (user) {
+      console.log(' consolidate() found program/anticipated activation flags: ', anticGap);// the proposal to apply if  anticipate algo (is a intermediate var gaspdcPref ) is true
+  } 
+      if (user) {
     console.log(' consolidate() found not expired manualuser  relays set: ', user);
   }
 
@@ -4985,11 +4998,10 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
     if (program) program.forEach((val, ind) => { if(val!=null) res[ind] = val });// program >> res
   }
 
+
   // b: apply user wants , initially user will have day validity res will bet set by antic and/or program if active or can be null
   // apply default if no assign and program :
   // alredy done if(!res){res=new Array(state.app.plantconfig.relaisEv.length);res.fill(false);}// todo  same length as  relaisEv
-
-
   res.forEach((val, ind) => {
     if (user) {
       if (user[ind] == null) {
@@ -5032,19 +5044,23 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
   }
 
 
-  function applyIntermed(proposal,smallgapTemp) { // antMap : see anticInterm2VirtMap in model.js. proposal is current proposed relays to update if intermediate is set 
+  function applyIntermed(proposal,smallgapTemp) { // antMap : is the anticInterm2VirtMap in model.js.   proposal is current proposed relays to update if intermediate is set 
                                                   // ex proposal=[false,false,false,false,false,false,true,false] so  gaspdcPref is true, int=7 , allora contagia anche i dev in antMap:
                                                   // >>>>  proposal=[true,true,true,false,false,true,true,false]
+                                                //  smallgapTemp=[false,false,true,null,,] if true then ,  if the anticipate var is true, apply the anticipate proposal smallgapTemp)
+                                                // indeed the anticInterm2VirtMap  non sarebbe necessaria per vedere se applicare anticipate basterebbe la smallgapTemp
+                                                //    che pero non è configurabile !
+
     if (antMap) {// antMap={gaspdcPref:[true,true,true,null,null,true,null]}/// the intermediate proposal to apply on other dev, if a intermediate var (gaspdcPref) is found true
-                //  smallgapTemp=[false,false,true,null,,] if true then ,  if the anticipate proposal item  is true :  relay to proposal
+
       for (ant in antMap) {// ant is an itermediate var registered in antMap , example: ant=gaspdcPref
         let ind;
         if ((ind = state.app.plantconfig.relaisEv.indexOf(ant)) >= 0)// ind : index of ant
-          if (proposal[ind])// the proposal says if intermediate of index ind is proposed true , so apply its consequences described in antMap[ant]
+          if (proposal[ind])// the proposal says: if intermediate of index ind (name=gaspdcPref) is proposed true >> then apply its consequences described in antMap[ant]
           {
             console.log('applyIntermed() found set the intermed var  of name ', ant, ' so apply its proposal gaspdcPref:[true,true,true,null,null,true,null] for true item in act flag : smallgapTemp[]');
             antMap[ant].forEach((val, ind) => {// force any (not  null) interm var PROPOSAL: [true,true,true,null,null,true,null] if intermediate algo activated it : smallgapTemp[ind].smallgap=true
-              if(smallgapTemp&&smallgapTemp[ind]==true)
+              if(smallgapTemp&&smallgapTemp[ind]==true)// if is true  apply the anticipate proposal 
               if (val == true) proposal[ind] = true; else if (val == false) proposal[ind] = false;// fill virtual pump from intermediate virtual pumps
             });
             return true

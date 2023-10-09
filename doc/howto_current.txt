@@ -3960,6 +3960,7 @@ __________________________________
 controllare che, come  e quando : se cambio uno state.x.y.z   allora viene scritto in persistant as json 
 ____________________________
 test if string is float or integer : console.log((!Number.isNaN(val_=Number(test))),but Number()  is 0  with "",undefined and null !!!
+		so : test != null &&test !='' && (!Number.isNaN(val_=Number(test))    is goog to test a float , int or a number string 
 test if a integer :
 - Number.isInteger(Number.parseInt(test)),test); 
 or better :
@@ -4781,5 +4782,8 @@ al tempo t
    ___________________________
    https://emhass.readthedocs.io/en/latest/
    
+   __________________________________________________
+   todo if temp not got exit null from algo !!!
+   ________________________________________
    
  	 

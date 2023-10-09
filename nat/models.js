@@ -204,7 +204,7 @@ cfgs.cfgCasina={ name:'Casina_API',// duplicated FFGG
       mqttnumb:[
         // {portid:11,clas:'out',protocol:'shelly',subtopic:'shelly1-34945475F7DE'},// clas 'out' or 'var' , same dim than gpionumb
                                                                                         // subtopic: other protocol, different from shelly, can have different feature ex subscriptTopic and PubTopic !
-        {portid:11,clas:'out',protocol:'shelly',subtopic:'shelly1-34945475FE06'},// for test only
+        {portid:11,clas:'out',protocol:'shelly',subtopic:'_shelly1-34945475FE06'},// for test only
        null,null,null,null,
        {portid:66,clas:'var',varx:4,isprobe:false,protocol:'mqttstate',subtopic:'var_split_'}, // ex of a shelly like dev . agganciato al customdevice shell per accendere gli split 
                         // question what is difference among type 1 and 2 ? : 
@@ -218,11 +218,11 @@ cfgs.cfgCasina={ name:'Casina_API',// duplicated FFGG
       null],// mqtt device info/id/port. number is the device id to subscribe
 
 
-      mqttprob:[{portid:110,subtopic:'shellyht-1E6C54',varx:null,isprobe:true,clas:'probe',protocol:'shellyht_t'},//a probe,  the shelly ht probes to register (read only) 
+      mqttprob:[{portid:110,subtopic:'_shellyht-1E6C54',varx:null,isprobe:true,clas:'probe',protocol:'shellyht_t'},//a probe,  the shelly ht probes to register (read only) 
                                                                                 // nbnb clas e isprobe sono correlati !! > semplificare !
                                                                                 // clas='var'/'probe'or 'in'
 
-        {portid:111,subtopic:'shellyht-1E6C54',varx:null,isprobe:true,clas:'probe',protocol:'shellyht_h'},
+        {portid:111,subtopic:'_shellyht-1E6C54',varx:null,isprobe:true,clas:'probe',protocol:'shellyht_h'},
 
 
       {portid:54,subtopic:'var_gas-pdc_',varx:3,isprobe:false,clas:'var',protocol:'mqttstate'},
@@ -521,10 +521,10 @@ function defFVMng(user)// factory of a std plant tempalte of FV app
       null];// mqtt device info/id/port. number is the device id to subscribe
 
 
-      this.mqttprob=[{portid:110,subtopic:'shellyht-1E6C54',varx:null,isprobe:true,clas:'probe',protocol:'shellyht_t'},//a probe,  the shelly ht probes to register (read only) 
+      this.mqttprob=[{portid:110,subtopic:'_shellyht-1E6C54',varx:null,isprobe:true,clas:'probe',protocol:'shellyht_t'},//a probe,  the shelly ht probes to register (read only) 
                                                                                 // nbnb clas e isprobe sono correlati !! > semplificare !
                                                                                 // clas='var'/'probe'or 'in'
-        {portid:111,subtopic:'shellyht-1E6C54',varx:null,isprobe:true,clas:'probe',protocol:'shellyht_h'},
+        {portid:111,subtopic:'_shellyht-1E6C54',varx:null,isprobe:true,clas:'probe',protocol:'shellyht_h'},
       {portid:54,subtopic:'var_gas-pdc_',varx:3,isprobe:false,clas:'var',protocol:'mqttstate'},
         // {portid:77,clas:'var',protocol:'mqttstate',subtopic:'shelly1-666666666666'}
         {portid:777,subtopic:'var_state_',varx:0,isprobe:false,clas:'var',protocol:'mqttstate'}
