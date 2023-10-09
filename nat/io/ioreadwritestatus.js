@@ -176,10 +176,15 @@ const api={// see https://javascript.info/promise-chaining
     let statedev=null,stind;
     // old : if(inp&&inp.probMapping) old map=inp.probMapping;// [2,4]
     if(fn.iodev&&fn.iodev.probs_&&new_scripts.app.plantconfig.virt2realProbMap&&(stind=new_scripts.app.plantconfig.virt2realProbMap[0])>=0){
+        let desTemp=21;// def
+        if(fn.state.lastProgramAlgo.desT)
+              desTemp=fn.state.lastProgramAlgo.desT[0];
         if((statedev= fn.iodev.probs_[stind])!=null){//!== undefined) {
             statedev.writeSync({state:{anticipate:new_scripts.anticipate != false&&new_scripts.anticipate != null,
                 program:new_scripts.program != false&&new_scripts.program != null,
-            battery:new_scripts.aiax.battery}});
+            battery:new_scripts.aiax.battery,
+            desTemp// desidered temp , giorno only !
+        }});
     }}
 
     return new Promise(function(resolve, reject) {

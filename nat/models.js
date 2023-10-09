@@ -20,7 +20,85 @@ cfgs={};
 
 
 
-cfgs.cfgMarsonLuigi={ name:'MarsonLuigi_API',// duplicated FFGG
+cfgs.cfgMarsonLuigi={ name:'MarsonLuigi_API',//run in raspberry
+        apiPass:'xxxx',// to do
+        // index : the index of a device . iesimo device is got with getctls(x,y) that chooses from iesimo x or y 
+        // portid : the id of a device, must be unique >0. 
+      gpionumb:[16,12,19,13,6,26,0,20],// (dev id or portid) raspberry device info. number is the raspberry gpio , null means no connection to dev available
+      //mqttnumb:[11,null,null,null,null,null,null,null],// mqtt device info/id/port. number is the device id to subscribe
+
+      /* mqtt staff 
+      mqttnumb,// { portid, varx, isprobe, clas, protocol, subtopic } 
+                // config of devices that are relay/var (class=out/var) and follow some protocol (mqttstate (+isprobe in future) for var and shelly for relay) 
+               // devices have/map a calculated topics (using subtopic and also varx) according to protocol and interface (readsync/writesync) versus mqtt topics pub/subscrtipt 
+
+        mqttprob,// { portid, subtopic, varx, isprobe, clas, protocol }  config of devices that are probes/var (isprobe) and follow some protocol (mqttstate for var and shelly for probe) 
+                // devices have/map a calculated topics according to protocol and interface (readsync/writesync) versus mqtt topics pub/subscrtipt 
+        */ 
+
+     mqttWebSock:        {portid:0,subtopic:'mqtt_websock_',varx:0,isprobe:false,clas:'int',protocol:'mqttxwebsock'},// must be portid=0 ! : a dummy var that creates ctl websocket topic 
+
+      mqttnumb:[
+      //{portid:11,clas:'out',protocol:'shelly',subtopic:'shelly1-34945475FE06'},// clas 'out' or 'var' , same dim than gpionumb
+        null,// use gpionumb !                                                                                // subtopic: other protocol, different from shelly, can have different feature ex subscriptTopic and PubTopic !
+      null,null,null,null,
+             {portid:66,clas:'var',varx:4,isprobe:false,protocol:'mqttstate',subtopic:'var_split_'}, // ex of a shelly like dev . agganciato al customdevice shell per accendere gli split 
+                        // question what is difference among type 1 and 2 ? : 
+                        //              -       different topic formatting type 1 
+                        //              -       obbligatoriamente ha pubtopic diverso da topic e avendo un device fisico che ricopia poi il pubtopic in topic 
+                        //      so type 1 devono avere pubtopic diverso da topic ed è meglio che non facciano un readSync per ricvare lo state che puo avere ritardo 
+                        //                                              
+                        // TODO : add also a topicPub property ?????
+      // {portid:10,clas:'var',topic:'gas-pdc',varx:3,protocol:'mqttstate'} ex of 'out' var
+      {portid:55,subtopic:'var_gas-pdc_',varx:4,isprobe:false,clas:'var',protocol:'mqttstate'},// a var
+      null],// mqtt device info/id/port. number is the device id to subscribe
+
+      mqttprob:[{portid:110,subtopic:'ht-cucina',varx:null,isprobe:true,clas:'probe',protocol:'shelly'},//a probe,  the shelly ht probes to register (read only) 
+                                                                                // nbnb clas e isprobe sono correlati !! > semplificare !
+                                                                                // clas='var'/'probe'or 'in'
+
+      {portid:54,subtopic:'var_gas-pdc_',varx:3,isprobe:false,clas:'var',protocol:'mqttstate'}],// a var
+
+                // a var  add also write capabiliy , so can be used as gen state var to modify with mqtt app/node red . as mqtt num will ha a frame below relay state in browser !
+        pythonprob:[2,4,8],// virtual modbus python probs  x : g , n , s  virtual device zones 
+      relaisEv:['heat','pdc','g','n','s','split'
+        ,'gaspdcPref','acs'
+        ],// dev name x mqttnumb cfg  will appears in browser list of relays // >>>>>>>>> todo   add here and in fv3 a new item : heatht !!!!!!!!!!!!!!
+                                                // //  relays : https://www.norobot.it/nascondere-e-mostrare-elementi-in-una-pagina-web/#btn001
+      // titles:["HEAT Low Temp","HEAT High Temp"," PdC (vs GAS)","g"," Zona Notte"," Seminterrato"," Splits"],
+      titles:["HEAT Low Temp"," PdC (vs GAS)","g"," Zona Notte"," Seminterrato"," Splits"
+        ,"gaspdcPref","blocco acs"]//,// description of device name
+
+      // put into mqttnumb !!!
+        //devid_shellyname:{11:'shelly1-34945475FE06'// mqtt device id-s/n relais and probes !!!!   , details
+                                                // in future we must add cfg data in order to check that the device can be compatible with the type requested (in/out)
+                                                // and other cfg data in order to set a customized topic to send/publish and receive/subscribe messages 
+                                                //              >>> (now we use a def cfg (out:shelly 1 and in:shelly ht) in mqtt ) 
+                                                // 11:{sn:'shelly1-34945475FE06',types:['in,'out'],subscrptiondata:{in:{},out:{},publishcfg:{}}
+                        //}
+        ,anticInterm2VirtMap:{gaspdcPref:[true,true,true,null,null,true,null,false]}//{aintermediateinrelaisEv:[true,false,null,,,,]} update of virtual dev to apply if a intermediate is set true by anticipate
+                        // or a function(state) returning [true,false,null,,,,]
+                        // virtual pdc (index =7) is set true: appena il intermediate è true pdc e' settato e verra data priorita al acs piuttosto che al condizionamento
+                        // se si vuole bloccare la acs nella partecentrale della finestra in cui gaspdcPref e' true va introdotto altre regole/array:
+                        // ex : si introduce un contattore che misura i tempo di attivazione di gaspdcpref (t) e si setta pdc a t=0 e dopo le 14
+                     
+                        // or a function(state) returning [true,false,null,,,,]
+        ,virt2realMap:[0,1,2,3,4,5,6,7],// std virtual group , map only if >=0 , some bugs: so use identity only
+        virt2realProbMap:[-1,1000,-1,1001,-1,-1,-1],// algo works on index virt2realProbMap[0] of :
+                                //  mqttprob
+                                //  or ( if>1000) es 1003 > pythonprob[3] is the address to inquire modbus 
+                                //  to find probs relating to g, virtual index 2 of gpionumb/mqttnumb pump dev
+                                //  index 1 is the same but relating to n , virtual index 3 of gpionumb/mqttnumb pump dev
+                                // better:
+                                // virtual modbus python probs used by algo.  x : g , n , s  virtual zones temp/humid device map to  mqttprob dev
+                                // algo wants to find mqttprob index of :[g temp,g humid,n temp,n humidg, s temp,s humid]
+                                // -1 for undefined
+
+        relaisDef:[false,false,false,false,false,false,false,true],// dafault value (if none algo propose true/false)
+        invNomPow:6,
+        huawei:{inv:"1000000035350464",bat:"1000000035350466"}// devid bunis 
+        };
+cfgs.cfgMarsonLuigi_={ name:'MarsonLuigi_API_',// run in no raspberry
         apiPass:'xxxx',// to do
         // index : the index of a device . iesimo device is got with getctls(x,y) that chooses from iesimo x or y 
         // portid : the id of a device, must be unique >0. 
@@ -35,6 +113,7 @@ cfgs.cfgMarsonLuigi={ name:'MarsonLuigi_API',// duplicated FFGG
         mqttprob,// { portid, subtopic, varx, isprobe, clas, protocol }  config of devices that are probes/var (isprobe) and follow some protocol (mqttstate for var and shelly for probe) 
                 // devices have/map a calculated topics according to protocol and interface (readsync/writesync) versus mqtt topics pub/subscrtipt 
         */ 
+        mqttWebSock:        {portid:0,subtopic:'mqtt_websock_',varx:0,isprobe:false,clas:'int',protocol:'mqttxwebsock'},// must be portid=0 ! : a dummy var that creates ctl websocket topic 
 
       mqttnumb:[// same dim as gpionumb 
                  {portid:11,clas:'out',protocol:'shelly',subtopic:'shelly1-34945475FE06'},// clas 'out' or 'var' , same dim than gpionumb
@@ -84,7 +163,7 @@ cfgs.cfgMarsonLuigi={ name:'MarsonLuigi_API',// duplicated FFGG
                         // virtual pdc (index =7) is set true: appena il intermediate è true pdc e' settato e verra data priorita al acs piuttosto che al condizionamento
                         // se si vuole bloccare la acs nella partecentrale della finestra in cui gaspdcPref e' true va introdotto altre regole/array:
                         // ex : si introduce un contattore che misura i tempo di attivazione di gaspdcpref (t) e si setta pdc a t=0 e dopo le 14
-                        ,anticInterm2VirtMap:{gaspdcPref:[true,true,true,null,null,true,null,false]}//{aintermediateinrelaisEv:[true,false,null,,,,]}
+
                         // or a function(state) returning [true,false,null,,,,]
         ,virt2realMap:[0,1,2,3,4,5,6,7],// std virtual group , map only if >=0 , some bugs: so use identity only
         virt2realProbMap:[-1,1000,-1,1001,-1,-1,-1],// algo works on index virt2realProbMap[0] of :
@@ -101,6 +180,7 @@ cfgs.cfgMarsonLuigi={ name:'MarsonLuigi_API',// duplicated FFGG
         invNomPow:6,
         huawei:{inv:"1000000035350464",bat:"1000000035350466"}// devid bunis 
         };
+
 cfgs.cfgCasina={ name:'Casina_API',// duplicated FFGG
         apiPass:'xxxx',// to do, better use .env
         // index : the index of a device . iesimo device is got with getctls(x,y) that chooses from iesimo x or y 
@@ -286,6 +366,13 @@ let plants={MarsonLuigi_API:{cfg:cfgs.cfgMarsonLuigi,// will be put in state.app
                 token:['123'],// really token has a client and a permission to act on some data/process
                 email:'luigi.marson@gmail.com'
                 },
+        MarsonLuigi_API_:{cfg:cfgs.cfgMarsonLuigi_,// will be put in state.app.plant
+                name:"MarsonLuigi_API_",// duplicated FFGG
+                passord:"marson",// not used 
+                users:['john'],
+                token:['123'],// really token has a client and a permission to act on some data/process
+                email:'luigi.marson@gmail.com'
+                },
         DefFVMng_API:{  cfg:cfgs.cfgDefFVMng,
                 name:"DefFGMng_API",// duplicated FFGG
                 passord:"marson",// not used 
@@ -293,7 +380,6 @@ let plants={MarsonLuigi_API:{cfg:cfgs.cfgMarsonLuigi,// will be put in state.app
                 token:['123'],// really token has a client and a permission to act on some data/process
                 email:'luigi.marson@gmail.com'
                 },
-                
            Mirco1_API:{cfg:cfgs.cfgMarsonLuigi,// will be put in state.app.plant
                 name:"Mirco1_API",// duplicated FFGG
                 passord:"marson",

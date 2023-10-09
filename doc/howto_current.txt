@@ -4592,7 +4592,7 @@ ____________________________________
 
  socket.io  summary 
  
-x il namespace nodered  seguito: https://socket.io/docs/v4/namespaces/
+x il namespace nodered si è  seguito: https://socket.io/docs/v4/namespaces/
 
 nb :  io.on = io.of("/").on  =  io.sockets.on ,  
 	cioe io=io.of("/") ? oppure io.on  registra middleware attaccato a tutti i namespace ?   
@@ -4614,5 +4614,172 @@ connection crea il socket che definice i event handler :
                                       });
                 io.of("/").emit("hi", "everyone!");  emit on all connected sockets
                 
+                ........................
                 
+_______________________
+
+reference out of scope in socket.on('comnnection',,
+	plantcnt=model.ejscontext(plant_),
+	    eM = ccbbRef(plantcfg.name);              
+________________________________________
+
+user - plant association
+
+dopo che il client (installer che puo avere piu plant da gestire) si è identificato puo chiedere la gestione di un plant con:
+- socket.on('startuserplant', handler:
+
+ 	 se il plant e' gestibile da client/user (see plants['MarsonLuigi_API'].users ) allora si carica il controller con:
+ 	 	  eM = ccbbRef(plantcfg.name);
+ 		  aggiungendo i rif al current session/socket : eM.getcontext={getSession:session,,,,
+ 		  nb getSession is used in onRelais()!
+ 		  
+ 		  nb: verra aggiunto anche il ref al socket, nodered socket, home assistant socket ....
+
+	ccbbRef=function ccbb(plantname) {// when client/plant got a request (a button) for a plant on a webpage , we fire : socket.on('startuserplant' ,that to operate/ register the fv ctl inst
+	>  so we instatiate or recover  the fsm: ()  calling ccbbRef(plantname) 
+	 
+	> recover from : return started[name].inst;	
+	> instantiate with event_manager/fsm factory : the eMClass.cfg factory: 
+	
+	      inst=started[name].inst = (new eMClass()).cfg(name);// create the fv ctl, customize its .on . nb function cfg() is created in this module !
+	      inst.reBuildFromState=true;// that wll be overwritten by loadstate !!!
+	      inst.init=false;// not redy to be used without recover state and connectto to device 
+	      return inst
+	      
+	      nb  eMClass is got calling fsmManager = require('./app2.js') :
+
+			      	fsmmanager(opt, function (app, opt, no_ccbb) {// ask fsm factory app to give the event factory eMClass, or connect as login to the app server
+		  			// no_ccbb   needed ??
+		  			
+		  			eMClass = app.getEventMng();
+	      				...
+		  			eMClass.prototype.cfg = function (plantname) {// add a cfg static func that add fv3 custom .on on all instance 
+
+
+__________________________________________________________
+ res =[...state.app.plantconfig.relaisDef];// clone array
+ ______________________________________________________
  
+ restructuring sw .on('connect',handler)		XXRR
+ 
+ 		function handler(){
+ 		eM=
+ 		repeat=
+ 		
+ 		}
+ 
+ 	e interni socket.on('event',handler1)
+ 	
+ 			nb handler1 usa variabili di state a livello plant (eM/fn) poi risolto il plant il handler e' in efeftti stateless dal punto di vista plant per tutta la gestione del plant sucessiva 
+ 				recuperati dal user sul bank plants[]
+ 				>>> in altre parole si potrebbe pensare il handler1 come il risultato di un factory (closure) che mette a disposizione del handler delle variabili static settate in base ai parametri della chiamata del factory !!!!!
+ 
+ l'handler/1 e' meglio metterlo in un require ext cosi e' chiaro quali main var vengono passati , esse sono uno state addizionale degli handler 
+  es in socket.on('startuserplant' ,handler2) in base al user authenticated e al plant autorizzato che vuole gestire , viene recuperato/generato il ctl del plant 
+  - quando faccio partire un repetitive algo uso un repeat che una volta creato poi rimane a disposizione nel socket per accendere spegnere gli algo del plant sulla schermata browser
+  - gli algo quando girano settano state.program/anticipate che viene poi recuperato nel caso di nuova connessione socket:
+  
+  	- build/recover fn/eM, recover state, add mqtt devices using startfv_:
+  	
+  		-  {eM,repeat,repeat1} = (ccbb=ccbbRef)(plantcfg.name).inst;  GGTT
+  			
+		    eM.getcontext=...
+		    em.socket= socket
+  		-  if (eM) {
+			     // startfv_(eM,user);// ** start/update singlethon 
+			     recoverstatus.call(eM,plantcfg,plantcnt,plantconfig,feature).then((em_) => startfv_(em_,oncomplete_)); /
+  		
+  	- oncomplete(): start program/anticipate according state.program/anticipate if the algo in not active (lauched before in a socket connection in a app/server instance not stopped )
+  		se ad es trovo state.program allora vuol dire che esso stava girando perche precedentemnte ho girato repeatHandler1 :
+  			repeatHandler1 esso avendo procurato il launcher repeat/1 membro del handler XXRR:
+  				handler.repeat1= repeat1||fv3.checkFactory(eM) // checkFactory è factory/closure del repeat/repeat1!
+  				
+  					*** idea: invece di settare repeat qui posso tentate di recuperarlo in GGTT. praticamente quando apro un nuovo socket connection ricovero il eM e anche il repeat/1 !!
+  							>>  fatto !
+  				
+  				nb quando chiudo la connessione socket il XXRR handler possiede (come in un closure) delle var che sono riferite da funzioni/ oggetti che sono ancora attivi e disponibili pertanto non puo essere garbage collector 
+  		(ri)lancia il algo :
+  			- repeat1.repeatcheckxSun(starthour,stophour,dminutes,prog_parmFact(sched))==0)
+  					nb if find  (repeat/1=checkFactory).interv  vuol dire che il interval che lancia ripetutamente la func del algo e' attiva 
+  						usualy we will stop it and reset !! :
+  					- if (interv) clearInterval(interv);
+  						>> why reset ????? if we want to reset it and restart using the new devices rebuilt with current cfg in model we can stop and start the algo from browser !!!!!
+  						>> so if repeat is recovered in a socket and we want to restart the algo we stop the previuos repetition interv 
+  						>> but the problem is if we exit from socket and a client reconnect we probably  find the previous repeat that is alredy working :
+  							see :
+  								    	repeat =started[name].repeat;
+    									repeat1=started[name].repeat1;
+  						>>>>> so we can store a reference on checkFactory somewhere in plants[aplant] ?????
+  							probably yes!!
+  			
+  				setanticipateflag({running:true,starthour,stophour,dminutes,triggers2},'program');
+  				
+  					
+  				
+  				> tale funzione di repeat1 non ha rif esterni ma continua ad operare 
+  							see: checkFactory.gfg_Run_()
+  								esso fa rirare piu volte checkFactory.callF() 
+  									che opera sulle variabili di checkFactory :
+  										fn
+  								 e lancia checkFactory.callFn_(execParm);
+  								 	che opera sulle variabili di checkFactory : es execParm
+  								 	e lancia fn.execute(procName,a,b,  ev2run, asyncPoint, processAsync, dataArr, finche non siamo fuori limiti giornata
+  								 	con :  checkFactory.interv = setInterval(
+  								 		>>> nbnb passando interv un rif alla procedura da ripetere , la funzione di sistema mantiene un rif a checkFactory che quindi non puo essere garbage collected !!!!!!!!!!!!!!!!!!!!!! 
+  				
+  				  fino a che viene arrestata con 
+  					repeat1.stopRepeat() che provvede a clerare il interv !!!!!
+  					setanticipateflag(false,'program','lastProgramAlgo');		
+  							>> // store in state the algo launch params (ex: triggers), update state store :
+  											state.program/anticipate=set_;
+  											
+  								**** cioe il state.program significa che l'algo program was started nd never stopped
+  									quindi in oncomplete_() :
+  									- se sono in un socket in cui ho lanciato il algo : il algo e' running posso resettarlo o stopparlo
+  									- se non sono in un socket che lo ha lanciato : posso recuperatlo con  ccbbRef() e resettarlo (potrei anche semplicemente recuperarlo)
+  									- se il server e' stato stoppato : il eM e repeat sono persi , ricostruirli !
+  						mantiene rif al algo ???????
+  					
+  				 nel ambito della stessa connessione socket XXRR !
+  				 ma se il socket viene chiuso ????  sembrache non siaa possibile avere il rif di interv a meno che non lo inserisco in setanticipateflag su qualche var !!!!!!!!!!!!!!!!!!!
+____________________________________
+adminNamespace.on("connection", socket => {// register emit handlers on 
+  console.log(' from node-red  a socket started 
+  
+  ***************    todo complete event to manage () stop repeat algo,.....');
+
+___________________________________________
+
+
+se attivo 2 soket , allora ho 2 closure che lavorno sullo stesso fn , se cambio una attivazione su un browser si vedra dai 2 browser !?
+
+__________________________________-
+
+ipotesi stazionaria , cicli giornalieri che si ripetono 
+
+al tempo t 
+ calcolo se riempio la batteria in giornata con una stima consumi std :
+ - si allora il delta devo se posso anticiparlo :risparmio energia enel( non immetto in rete energia del fv) 1 = anticipo min (ma in ogni caso limitato) per avere 100% a fine sole x tempo fino a fine sole
+ 	
+ inoltre se posso anticipare ancora es 2 kwh , allora avro meno batteria ma avro risparmiato ciclo di batteria in % sul ciclo base (meta potwnza batteria)
+ 
+ nb anticipo il condizionamento se t > t desidere programmata o se sono in recpero deferred con batteria vuota (avro anche risp ener enel) o no (risparmio di ciclo)
+ 
+ - se non riesco a riempira la batteria ma non si svuota la notte:
+ 	converra anticipare al max per risparmiare sul ciclo
+ 	
+ - se non riempio e si svuota la notte 
+ 	allora uguale a che non si svuota
+ _________________________________
+ 
+ test tollerance e ha ok manca attivare in tollerance anche pump consenso  e inserire tollerance quando start programmer da ha 
+ - non occorre comandare il consenso al modo di node red (propone un manualalgo via interrupt) che funziona solo con fv3 attivato  perche e' un po complex x user 
+ 	tanto vale far vedere il 
+   ma permettere di attivare un termostato locale quando il program algo è spento su switch nativo . si puo anche fare manual cmd sullo switch !
+   
+   >>> sistemare il ralay al _shelly......
+   ___________________________
+   https://emhass.readthedocs.io/en/latest/
+   
+   
+ 	 
