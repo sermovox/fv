@@ -134,11 +134,22 @@
           <p><input type="checkbox" id="Tnotte" name="Tnotte"> Termostato 2: HT zona notte &ensp; delay (hours) <input type="number"
               id="delay2" placeholder=1 size="4">
               <br> &nbsp; &ensp; &emsp;
-              program:  <input type="text" id="PGMnotte" name="PGMnotte" value='{"notte":{"8:30":20,"17:00":22}}' size="30" oninput="setprname1(2,this.value)"> , valid JSON: 
+              program:  <input type="text" id="PGMnotte" name="PGMnotte" value='{"8:30":20,"17:00":22}' size="30" oninput="setprname1(2,this.value)"> , valid JSON: 
               <textarea id="validate2" name="valid2" rows="1" cols="7"></textarea>,&nbsp; tollerance: <input type="number" id="TnotteTollerance" name="TnotteTollerance" placeholder="0.7" size="3"> 
               <br>&nbsp; &ensp;&nbsp; &ensp;  manual set: <input type="number" id="TnotteMan" name="TnotteMan" placeholder="20" size="4"> validity: <input type="number" id="TnotteVal" name="TnotteVal" placeholder="3" size="2"> h
               
             </p>
+
+            <br><br>
+            <p><input type="checkbox" id="Tacs" name="Tacs"> Termostato 4: HT zona acs &ensp; delay (hours) <input type="number"
+                id="delay4" placeholder=1 size="4">
+                <br> &nbsp; &ensp; &emsp;
+                program:  <input type="text" id="PGMacs" name="PGMacs" value='{"8:30":20,"17:00":22}' size="30" oninput="setprname1(4,this.value)"> , valid JSON: 
+                <textarea id="validate4" name="valid4" rows="1" cols="7"></textarea>,&nbsp; tollerance: <input type="number" id="TacsTollerance" name="TacsTollerance" placeholder="0.7" size="3"> 
+                <br>&nbsp; &ensp;&nbsp; &ensp;  manual set: <input type="number" id="TacsMan" name="TacsMan" placeholder="20" size="4"> validity: <input type="number" id="TacsVal" name="TacsVal" placeholder="3" size="2"> h
+                
+              </p>
+  
 
             devmapping:  <input type="text" id="mapping" name="mapping" value='==&&state.devmapping=[0,1,2,3,-1,5]' size="30" > 
             probmapping:  <input type="text" id="probMapping" name="probMapping" value='==&&state.probmapping=[0,1,2]' size="30" > 
@@ -622,7 +633,7 @@ if(this.value){res=this.value;
 
     // send receive program algo staff 
     let triggers2_ = document.getElementById("triggers2").elements;// form elements
-    let extract2 = ["Tgiorno","PGMgiorno","Tnotte","PGMnotte","lastT","mapping","probMapping","ei","TgiornoTollerance"],// name in form triggers2 that are in triggers{} and in lastT
+    let extract2 = ["Tgiorno","PGMgiorno","Tnotte","PGMnotte","Tacs","PGMacs","lastT","mapping","probMapping","ei","TgiornoTollerance","TacsTollerance"],// name in form triggers2 that are in triggers{} and in lastT
      triggers2 = {};// extract
 
     socket.on('status', function (data,prettyjson) { //get button status from client, see https://www.w3schools.com/tags/tryit.asp?filename=tryhtml_textarea
@@ -736,18 +747,12 @@ if(this.value){res=this.value;
                   {tollerance=triggers2.TgiornoToll[ks[ii]];// take the max !!
                   if(triggers2.PGMgiorno[ks]!=null){// must be same keys
                     triggers2.PGMgiorno[ks]+=1000;// add toll
-
-
                   }
                   }
-
                 }
                 triggers2_.TgiornoTollerance.value=tollerance;
                 }
-
                 triggers2_[val].value=JSON.stringify(triggers2[val]);
-              
-              
               }
             else if(val=='PGMnotte'&&triggers2[val]){
               let tollerance=0;
@@ -759,30 +764,35 @@ if(this.value){res=this.value;
                   {tollerance=triggers2.triggers2.TnotteToll[ks[ii]];// first found is x all !!
                   if(triggers2.PGMnotte[ks]!=null){// must be same keys
                     triggers2.PGMnotte[ks]+=1000;// add toll
-
-
                   }
                   }
 
                 }
                 triggers2_.TnotteTollerance.value=tollerance;
                 }
-
                 triggers2_[val].value=JSON.stringify(triggers2[val]);
-              
-              
 
+            }else if(val=='PGMacs'&&triggers2[val]){
+              let tollerance=0;
+                if(triggers2&&triggers2.TacsToll){// {"8:30":1.5,,,}
+                  // get first val 
+                  let ks=Object.keys(triggers2.TacsToll);
+                  for(let ii=0;ii<ks.length;ii++){
+                  if(triggers2.TacsToll[ks[ii]]>tollerance)
+                  {tollerance=triggers2.triggers2.TacsToll[ks[ii]];// first found is x all !!
+                  if(triggers2.PGMacs[ks]!=null){// must be same keys
+                    triggers2.PGMacs[ks]+=1000;// add toll
+                  }
+                  }
 
-
-
-
-
-
+                }
+                triggers2_.TacsTollerance.value=tollerance;
+                }
+                triggers2_[val].value=JSON.stringify(triggers2[val]);
 
             }else if (el.type == 'checkbox') triggers2_[val].checked = triggers2[val];
             else triggers2_[val].value = triggers2[val];
           }
-
         });
 
         // fille zone attive checkando il html e non da status.relays ???
@@ -888,16 +898,38 @@ if(this.value){res=this.value;
                   }else triggers2.TgiornoToll[ks[ii]]=0;
                   */
                  // now simply fill TgiornoToll con TgiornoTollerance
-                
-                    
                     triggers2.TgiornoToll[ks[ii]]=triggers2_.TgiornoTollerance.value;
-                  
-
                   }
                   }
   
   }
-
+  if(triggers2.PGMacs){// transform the json in obj, add   triggers2.TacsToll
+    
+    try {
+      triggers2.PGMacs=JSON.parse(triggers2.PGMacs);//document.getElementById("myprogram").value);
+    } catch(e) {
+      triggers2.PGMacs=null;
+      triggers2.Tacs=false;
+      //  alert(e); // error in the above string (in this case, yes)!
+    }
+    if(triggers2.PGMacs&&triggers2_.TacsTollerance&&triggers2_.TacsTollerance.value){
+      // add triggers2.TacsToll
+    triggers2.TacsToll={};// {'8:30':0,"10:50":1.5}
+    let ks=Object.keys(triggers2.PGMacs);// PGMacs= {'8:30':0,"10:50":1022} >  {'8:30':0,"10:50":22}
+                  for(let ii=0;ii<ks.length;ii++){
+                    /* old : if >1000 allora setta TgiornoToll con TgiornoTollerance altrimenti 0 
+                    // PGMgiorno= {'8:30':0,"10:50":1022} >  {'8:30':0,"10:50":22}
+                  if(triggers2.PGMgiorno[ks[ii]]>=1000){// significa vogliamo applicare la tolleranza
+                    triggers2.PGMgiorno[ks[ii]]-=1000;
+                    triggers2.TgiornoToll[ks[ii]]=triggers2_.TgiornoTollerance.value;
+                  }else triggers2.TgiornoToll[ks[ii]]=0;
+                  */
+                 // now simply fill TgiornoToll con TgiornoTollerance
+                    triggers2.TacsToll[ks[ii]]=triggers2_.TacsTollerance.value;
+                  }
+                  }
+  
+  }
     if(triggers2.PGMnotte){
     
     try {
@@ -912,17 +944,13 @@ if(this.value){res=this.value;
     triggers2.TnotteToll={};// {'8:30':0,"10:50":1.5}
     let ks=Object.keys(triggers2.PGMnotte);// PGMnotte= {'8:30':0,"10:50":1022} >  {'8:30':0,"10:50":22}
                   for(let ii=0;ii<ks.length;ii++){
+                    // todo : as in triggers2.PGMgiorno ???
                   if(triggers2.PGMnotte[ks[ii]]>=1000){// significa vogliamo applicare la tolleranza
                     triggers2.PGMnotte[ks[ii]]-=1000;
                     triggers2.TnotteToll[ks[ii]]=triggers2_.TnotteTollerance.value;
                   }else triggers2.TnotteToll[ks[ii]]=0;
-                  
-                  
-
                   }
                   }
-
-
 
       socket.emit("startprogrammer", start, stop, interval, triggers2); //send push button status to back to server. triggers2 keys:extract2 = ["Tgiorno","PGMgiorno","Tnotte","PGMnotte"],
       } else alert(' please select some triggers');

@@ -4785,5 +4785,31 @@ al tempo t
    __________________________________________________
    todo if temp not got exit null from algo !!!
    ________________________________________
+   when debugging and stop thea at restart the socket changes and has no more fn/eM instance so when push a button in browser we got error :
+   ]
+ stopprogrammer event fired
+ stopRepeat() called . we must reset the runing intervals
+.. setanticipateflag() eM is null 
+.. setanticipateflag() eM is null 
+ setanticipateflag() called to set running algo:  program  init param:  false  , in state. program  ,(if null init parm will also  reset state. lastProgramAlgo
+anticipateFlag(), eM is null!, probably after a debugging stop point
+anticipateFlag(), eM is null 
+Waiting for the debugger to disconnect...
+/home/luigi/localdev/raspexampl/fv/fv3.js:4522
+  let state=fn.state;
+               ^
+
+TypeError: Cannot read properties of undefined (reading 'state')
+    at anticipateFlag (/home/luigi/localdev/raspexampl/fv/fv3.js:4522:16)
+    at setanticipateflag (/home/luigi/localdev/raspexampl/fv/fv3.js:4288:5)
+    at Socket.stopprogrammer (/home/luigi/localdev/raspexampl/fv/fv3.js:4473:3)
+    at Socket.emit (node:events:526:28)
+    at Socket.emitUntyped (/home/luigi/localdev/raspexampl/node_modules/socket.io/dist/typed-events.js:69:22)
+    at /home/luigi/localdev/raspexampl/node_modules/socket.io/dist/socket.js:614:39
+    at processTicksAndRejections (node:internal/process/task_queues:78:11)
+
+Node.js v17.5.0
+luigi@luigi-Vostro-3560:~/localdev/raspexampl/fv$ 
+_______________________--
    
  	 

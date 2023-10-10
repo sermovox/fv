@@ -1028,10 +1028,12 @@ let body=
   function program(state,inp__,probes){// /  probes={giorno:19.2,notte:,,,,}   // will set real relays from program and anticipate virtual devices set!!
                                      
                                     /*
-                                    inp__:  {
-                                            programs: { giorno: { sched: [{"8:30": 15,"17:00": 19,}],    set in HHDD  
+                                    inp__=sched:  {
+                                            inp=programs: { giorno: { sched: [{"8:30": 15,"17:00": 19,}],    set in HHDD  
                                                                     toll: [{"8:30": 0.5,"17:00": 0,6}] // molto fine basterebbe unico valore di toll =1.3
                                                         notte:   {}
+                                                        ,,
+                                                        acs:{}
                                                       } },
                                             probMapping: [ 2, 4, 0, 3, 1, 5 ],
                                             mapping: [ 0, 1, 2, 3, -1, 5 ],
@@ -1083,6 +1085,15 @@ state.program.triggers2.lastT=[date.toLocaleString(),probes];//JSON.stringify(pr
           }else toactivate.push([false,false]);
           desTemp[1]=desTnotte[0];
 
+          // sottoterra scantinato
+          toactivate.push([false,false]);// todo
+
+          // acs
+          // recover acs probe ...   todo 
+
+          if(inp.acs)mres=toact('acs',21.11,inp.acs,false,desTnotte);// inp.acs.sched= [{"8:30": 45,"17:00": 10,}] // 45 e 10 si confrontano con 21.11 a dummy acs probe
+            else mres=[false,false];
+            toactivate.push(mres);
 
       /*
       >>>>>>>>>>>>>><
@@ -1165,6 +1176,10 @@ state.program.triggers2.lastT=[date.toLocaleString(),probes];//JSON.stringify(pr
     }  
   }
 
+  // if toactivate[2][]ret[4]=.....
+
+    ret[7]=!toactivate[3][0];
+    antret[7]=!toactivate[3][1];
 
 
   //  state.lastProgramAlgo={updatedate:date.toLocaleString(),time:date.getTime(),probes,pumps:ret,model:'programbase'};//  set this last program algo  virtual values in state, rewrite , just to set update date
@@ -1221,15 +1236,16 @@ return optimRet;
                                       // se  torna true
 
                                     /* sc_= 				      {sched: {"8:30": 27,"17:00": 30,},
-                                              				      toll: {"8:30": 0,"17:00": 0,},
-                                              				      TgiornoTollerance: 0,
+                                              				      toll: {"8:30": 0,"17:00": 0,},// temporaneamente ricavato da TTollerance : 
+                                              				      TTollerance: 0,
 				                                                    },    */
 
       // sc_={sc=sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1=0.7,"17:00":dt2}// tolleranze delle temperature desiderate
       if (!sonda){ 
-        console.log(' toact() analizing  zona: ', zona,  ', sonda is( null) : ',sonda);
+        console.error(' toact() analizing  zona: ', zona,  ', sonda is( null) : ',sonda,' so algo exit');
         return;}
       let sc = sc_.sched,scantic=sc_.toll;
+      let DELTA;if(!scantic)DELTA=sc_.TTollerance||0;else DELTA=null;// use if .toll is null
       // nb toll future use : query lastAnticAlgo to see if a fv production is expected in short time
       // if(lastAnticAlgo.short)dt=true;
       let keylist = Object.keys(sc);// orari del programma =["8:30","17:00"]
@@ -1270,7 +1286,8 @@ return optimRet;
 
       temp = sc[keylist[slot]];//programmed desidered temp x the current slot
       desT[0]=temp;// trace back the desidered temp
-      let delta=scantic[keylist[slot]];if(isSummer)delta=-delta;
+      let delta=DELTA||scantic[keylist[slot]];
+      if(isSummer)delta=-delta;
       tempantic = temp+delta;//tolerance temp to start anticipate  x the current slot
       // if(lastAnticAlgo.short)// last anticipate expect to produce fv energy (> 2kWh) in short time (less 1 hour)
       
@@ -1284,16 +1301,14 @@ return optimRet;
 
       //resu=tempx+' - slot '+ slot +'/'+(slot+1)+', temp ' + sc[keylist[slot]]; 
  // 
-      let act=temp > sonda;if(isSummer)act=!act;// es 19 > 20   dont start normal warming probe is sonda = 20, desidered t is temp=19
-      let actantic=tempantic > sonda;if(isSummer)actantic=!actantic;// es 19 > 20   dont start normal warming probe is sonda = 20, desidered t is temp=19
+      let act=temp > sonda;if(isSummer)act=!act;// es 19 > 20   dont start normal warming : probe is sonda = 20, desidered t is temp=19
+      let actantic=tempantic > sonda;if(isSummer)actantic=!actantic;// es 20.5 > 20   start anticipate warming : probe is sonda = 20, desidered t is temp=20.5
 
      //  if (act) {        console.log(' toact() activate generator . infact in zone ',zona,', found current time slot: ', slot, ' with desidered temp: ', temp,' and probe temp ',sonda,' . modalità condizionatore/riscaldamento ',isSummer);
      //  }      else  console.log(' toact() do not activate generator . infact found current time slot: ', slot, ' with desidered temp: ', temp,' and probe temp ',sonda,' . modalità condizionatore/riscaldamento: issummer: ',isSummer);
      console.log(' toact() activate generator: ',act,' . infact found current time slot: ', slot, ' with desidered temp: ', temp,' and probe temp ',sonda,' . modalità condizionatore/riscaldamento: issummer: ',isSummer);
      console.log(' toactantic() activate generator: ',actantic,'  . infact found current time slot: ', slot, ' with desidered antic temp: ', tempantic,' and probe temp ',sonda,' . modalità condizionatore/riscaldamento: issummer: ',isSummer);
-     
- 
-      return [act,actantic];//[false,true]
+      return [act,actantic]; //[false,true]=[activeIfNotAnticipate,activeIfAnticipate]
     }
 
    
@@ -1303,7 +1318,6 @@ return optimRet;
         return true;
         }
 }
-
 
 function optimize(res_,state){// old not used , now we call consolidate, see  result=await attuators(these).
                               //     was : now imagine optimize run only on program algo 
@@ -1368,15 +1382,12 @@ let user;// browser user algo manual set update required
 if(state.lastUserAlgo&&checkval(state.lastUserAlgo)){
 user=state.lastUserAlgo.pumps;
  console.log(' optimize() found manualuser  relays set: ',user);
- 
-
 
   }else state.lastUserAlgo=false;// expired 
 
 //res[1]=false;// pdc
 // res[5]=false; //split
 console.log(' optimize() used case: ', debcase);
-
 
     // b: apply user wants , initially user will have day validity res will bet set by antic and/or program if active or can be null
     // apply default if no assign and program :
@@ -1391,7 +1402,6 @@ console.log(' optimize() used case: ', debcase);
         res[ind] = user[ind];
         console.log(' consolidate() merging  found a valid manual set for pump index ', ind, ', that overwrite anticipate and program indication in ', res[ind]);
       }
-
     }
     if (res[ind] == null) res[ind] = false;// final check :should not be any null val in res !!!
     /*
@@ -1399,11 +1409,6 @@ console.log(' optimize() used case: ', debcase);
     state.user=true;
     */
   });
-
-
-
-
-
 
   return res;//ret;//res;// better clone
 }
@@ -1422,8 +1427,6 @@ function anticipate(state,algo){// the algo :  store algo result on state.lastAn
 
 // ******** input data is just set in state.aiax !!!!!!!!!!!!!!!!!!!!!
  let {battery,inverter,cloudly,consumo}=state.aiax,// filled with aiax in  getstat/bodies
- 
- 
  
  temp=20,
  {running,starthour,stophour,dminutes}=state.anticipate,
@@ -1453,21 +1456,19 @@ if(triggers.PdCTrig1){a=2; console.log(' anticipate algo find required policy : 
       ) {doAntic=true;}
       } else doAntic=false;
       
-      
       if(doAntic){
       // ret = [true, true, true,null, null,true];// [heat,pdc,g,n,s,split] 
   //     ret = [true, true, true,null, null,true,true];// added gaspdcPref : [heat,pdc,g,n,s,split,gaspdcPref] : according to todo now will be necessary set only  the intermediate var gaspdcPref  if use optimize loop :
                                                     // ret = [null, null, null,null, null,null,true];
-    ret = [null, null, null,null, null,null,true];// just set virtual intermediate 
+    ret = [null, null, null,null, null,null,true,null];// just set virtual intermediate 
     console.log('anticipate() find cloudily low so start pdc');
     }else{// no anticipating, so no requirements
-      ret = [null, null, null,null, null,null,false];// [heat,pdc,g,n,s,split] 
+      ret = [null, null, null,null, null,null,false,null];// [heat,pdc,g,n,s,split,gaspdcPref,blockacs] 
     }
   }
   }
   else ret = null;// algo not producing any advise requirements
   console.log('anticipate algo calculated new relays values : ',ret);
-   
 }else {
   console.log('anticipate algo cant find triggers, so retuns null ');
   console.error('anticipate algo cant find triggers ');
@@ -1535,10 +1536,6 @@ function calcsavings(){// calcola alle ore 8 i savings del giorno precedente
   */
 
   saving.push({enSavings:es,battSavings:state.lastAnticAlgo.daysavings.battery,day:checkday,date:ddd.toLocaleString(),checkedHour:ddd.getHours(),minLevBattery:battery});
-
-
-
-
 
   
 return true;
@@ -2131,7 +2128,7 @@ function customOn(these) {// set .on custom handler (event called by execute())
       }else{// aTT returned undefined or null : 
       //  state.lastAnticipating=false;
         res.noexec='noanticipating';// just exit  executing ev2run
-        // trim some valves, ex base timetable
+        // trim some valves, ex base timetableinitprog
       }
 
       //sendstatus(state);//
@@ -2142,17 +2139,13 @@ function customOn(these) {// set .on custom handler (event called by execute())
     cb(0, res);// false : nothing to do 
   });
 
-
 // end event to process anticipate algo 
-
 
 // event to process programming algo :
 
 these.on("initProg",// fill tSonda x next event
 
-
 // todo  from 'connect' schelethon 
-
 
 // se tolgo async non posso usare await f ma devo usare f().then() 
 // >>>>>>>>>>>>>>>>>>><  probabilmente ,on non puo tornare un async func !!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -2347,9 +2340,9 @@ async function ( inp_, cb) {// the fsm ask state updates (we use openapi) : will
 
                                         */
   
-  let inp,probes=null;
-  if(inp_&&inp_.dataArr){inp=inp_.dataArr;//  inp=sched={programs:{giorno:{'16:10':-3,,,,},notte:{}},probMapping:[],mapping:[],ei:'W'/'S'} 
-                                          // giorno'/1:{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}, 
+  let inp,probes=null;                    // inp_={event1=initprog:{},,,inp=sched=dataArr:{}} . dataArr the common input x all events
+  if(inp_&&inp_.dataArr){inp=inp_.dataArr;//  inp=sched={programs:{giorno:{'16:10':-3,,,,},notte:{},sott,acs},probMapping:[],mapping:[],ei:'W'/'S'} 
+                                          // giorno:{sched:{'8:30':t1,"17:00":t2},toll:{'8:30':dt1,"17:00":dt2}, 
 
                                           // updateed : 
 
@@ -4341,7 +4334,7 @@ function stopRepeat()  {
 
 // now the same x programming temperature x many zones
 socket.on('startprogrammer',repeatHandler1);// start anticipating algo with setting and run an execute()
-function repeatHandler1(starthour,stophour,dminutes,triggers2) {// triggers2 keys sono gli items di :extract2 =  ["Tgiorno","PGMgiorno","Tnotte","PGMnotte","lastT","mapping","probMapping","ei","TgiornoTollerance"],
+function repeatHandler1(starthour,stophour,dminutes,triggers2) {// triggers2 keys sono gli items di :extract2 =  ["Tgiorno","PGMgiorno","Tnotte","PGMnotte","lastT","mapping","probMapping","ei","TgiornoTollerance",,,,],
                                                                 
 
                                                                 /*        "triggers2" : {
@@ -4358,47 +4351,63 @@ function repeatHandler1(starthour,stophour,dminutes,triggers2) {// triggers2 key
                                                                       }
                                                                 */
   console.log(' startprogrammer socket event handler repeatHandler1() called with triggers2: ',triggers2 ,' controller fn is null: ',eM==null)   ;                                                            // sched={'giorno':['8:30':t1,"17:00":t2]} see initProg event x keys definitions
-  let sched={programs:{}};// sched={programs:{giorno:{sched:{'16:10':-3,,,,},toll:{'16:10':1.5,,}},notte:{}},  HHDD
+  let sched={programs:{}};// sched={programs:{giorno:{sched:{'16:10':-3,,,,},toll:{'16:10':1.5,,}},notte:{},,},  HHDD
                           //  probMapping:[],
                           // mapping:[],
                           // ei} 
   if(!triggers2)return;
 
-
+  /*
   // anyway restart according to state.program
   //if(eM.state.program != false&&eM.state.program != null){    console.log('startprogrammer socket event handler , program algo is alredy active ! ');return  }
 
   // if(triggers2.Tgiorno&&triggers2.PGMgiorno)Object.assign(sched, triggers2.PGMgiorno);
   // if(triggers2.Tnotte&&triggers2.PGMnotte)Object.assign(sched, triggers2.PGMnotte);
-  if(triggers2.Tgiorno&&triggers2.PGMgiorno){sched.programs.giorno={sched:triggers2.PGMgiorno};
-  if(triggers2.TgiornoTollerance)sched.programs.giorno.TgiornoTollerance=triggers2.TgiornoTollerance;
-    if(triggers2.TgiornoToll){sched.programs.giorno.toll=triggers2.TgiornoToll;// // tolleranze (un valore x all), same keys of sched.giorno.sched
-      console.log(' startprogrammer socket event handler repeatHandler1() saved tollerate array: ',triggers2.TgiornoToll,'\n sched: ',sched);
-    }else{// TgiornoToll is not defined . probably this is a call from plant/state recovery and the state was no really set with current version 
-      // just fill with 0 tollerance and build here
-      sched.programs.giorno.toll={};sched.programs.giorno.TgiornoTollerance=0;
-      let ks=Object.keys(triggers2.PGMgiorno);// PGMgiorno= {'8:30':0,"10:50":1022} >  {'8:30':0,"10:50":22}
-      for(let ii=0;ii<ks.length;ii++){
-        sched.programs.giorno.toll[ks[ii]]=0;
+  if (triggers2.Tgiorno && triggers2.PGMgiorno) {
+    sched.programs.giorno = { sched: triggers2.PGMgiorno };
+    if (triggers2.TgiornoTollerance) sched.programs.giorno.TgiornoTollerance = triggers2.TgiornoTollerance;// ok
+    else  sched.programs.giorno.TgiornoTollerance = 0;
+    if (triggers2.TgiornoToll) {// non più !
+      sched.programs.giorno.toll = triggers2.TgiornoToll;// // tolleranze (un valore x all), same keys of sched.giorno.sched
+      console.log(' startprogrammer socket event handler repeatHandler1() saved tollerate array: ', triggers2.TgiornoToll, '\n sched: ', sched);
+    } else {// TgiornoToll is not defined .( no: probably this is a call from plant/state recovery and the state was no really set with current version )
+      // just build here .toll
+      sched.programs.giorno.toll = {}; 
+      let ks = Object.keys(triggers2.PGMgiorno);// PGMgiorno= {'8:30':0,"10:50":1022} >  {'8:30':0,"10:50":22}
+      for (let ii = 0; ii < ks.length; ii++) {
+        sched.programs.giorno.toll[ks[ii]] = 0;
       }
-
-
     }
   }
-  if(triggers2.Tnotte&&triggers2.PGMnotte){sched.programs.notte={sched:triggers2.PGMnotte};
-    if(triggers2.TnotteToll){sched.programs.notte.toll=triggers2.TnotteToll;// // tolleranze (un valore x all), same keys of sched.giorno.sched
-    console.log(' startprogrammer socket event handler repeatHandler1() saved tollerate array: ',triggers2.TnotteToll,'\n sched: ',sched);
-  }else{// TgiornoToll is not defined . probably this is a call from plant/state recovery and the state was no really set with current version 
-    // just fill with 0 tollerance and build here
-    sched.programs.notte.toll={};sched.programs.notte.TgiornoTollerance=0;
-    let ks=Object.keys(triggers2.PGMnotte);// PGMgiorno= {'8:30':0,"10:50":1022} >  {'8:30':0,"10:50":22}
-    for(let ii=0;ii<ks.length;ii++){
-      sched.programs.notte.toll[ks[ii]]=0;
+
+  if (triggers2.Tnotte && triggers2.PGMnotte) {
+    sched.programs.notte = { sched: triggers2.PGMnotte };
+    if (triggers2.TnotteToll) {
+      sched.programs.notte.toll = triggers2.TnotteToll;// // tolleranze (un valore x all), same keys of sched.giorno.sched
+      console.log(' startprogrammer socket event handler repeatHandler1() saved tollerate array: ', triggers2.TnotteToll, '\n sched: ', sched);
+    } else {// TgiornoToll is not defined . probably this is a call from plant/state recovery and the state was no really set with current version 
+      // just fill with 0 tollerance and build here
+      sched.programs.notte.toll = {}; sched.programs.notte.TgiornoTollerance = 0;
+      let ks = Object.keys(triggers2.PGMnotte);// PGMgiorno= {'8:30':0,"10:50":1022} >  {'8:30':0,"10:50":22}
+      for (let ii = 0; ii < ks.length; ii++) {
+        sched.programs.notte.toll[ks[ii]] = 0;
+      }
     }
+  }
+*/
+if(triggers2.Tgiorno)fillpgm( triggers2,sched.programs.giorno={},triggers2.PGMgiorno,triggers2.TgiornoTollerance,triggers2.TgiornoToll);
+if(triggers2.Tnotte)fillpgm( triggers2,sched.programs.notte={},triggers2.PGMnotte,triggers2.TnotteTollerance,triggers2.TnotteToll);
+// sotterraneo scantinato: todo
+if(triggers2.Tacs)fillpgm( triggers2,sched.programs.acs={},triggers2.PGMacs,triggers2.TacsTollerance,triggers2.TacsToll);// 
 
 
-  }
-  }
+
+
+  // if(triggers2.sott&&triggers2.PGMsott){}// piano sottoterra
+
+
+
+
 
   sched.probMapping=toeval(eM.state,triggers2.probMapping);// mapping algo vars to plant devices !, input used when call last event genZoneRele of related exec created with prog_parmFact(sched)
                                                             // // preferred use :  ('==&&state.mapping=[0,1,3,2,4];')   will fill the state.mapping var ! and returs the array 
@@ -4428,6 +4437,30 @@ function repeatHandler1(starthour,stophour,dminutes,triggers2) {// triggers2 key
     else {repeat1=null;
    console.log(' startprogrammer() not called ');
     }
+
+
+// fillpgm( triggers2,sched.programs.giorno={},triggers2.PGMgiorno,triggers2.TgiornoTollerance,triggers2.TgiornoToll);
+function fillpgm(triggers2,prog,PMG,TTollerance,TToll){// triggers2,sched.programs.giorno={},triggers2.PGMgiorno,triggers2.TgiornoTollerance,triggers2.TgiornoToll
+                                                  // fills prog
+if ( PMG) {
+prog.sched=PMG ;
+if (TTollerance) prog.TTollerance = TTollerance;// ok
+else  prog.TTollerance = 0;
+if (TToll) {// non più !
+prog.toll = TToll;// // tolleranze (un valore x all), same keys of sched.giorno.sched
+// console.log(' startprogrammer socket event handler repeatHandler1() saved tollerate array: ', TToll, '\n sched: ', pgm);
+} else {// TgiornoToll is not defined .( no: probably this is a call from plant/state recovery and the state was no really set with current version )
+// just build here .toll
+prog.toll = {}; 
+let ks = Object.keys(PMG);// PGMgiorno= {'8:30':0,"10:50":1022} >  {'8:30':0,"10:50":22}
+for (let ii = 0; ii < ks.length; ii++) {
+prog.toll[ks[ii]] = 0;
+}
+}
+}
+}
+
+
   }
 
 
@@ -4484,7 +4517,7 @@ function anticipateFlag(set_,fn,algo,activeAlgoRes){// like onRelais, write stat
                                                     // - otherwhise reset algo init param  e algo result (state[activeAlgoRes]=null)
                                                     // - call api.writeScriptsToFile(fn) to write fn.state onto persistand + call websocket topic to update state staff on browser + ....
 
-  if(!fn)console.error('anticipateFlag(), eM is null ');
+  if(!fn)console.error('anticipateFlag(), eM is null!, probably after a debugging stop point');
   if(!fn){console.log('anticipateFlag(), eM is null ');}else console.log(' anticipateFlag(), eM is found ');
   let state=fn.state;
   state[algo]=set_;// state.program=
@@ -4825,7 +4858,7 @@ state=that.state,reBuildFromState=that.reBuildFromState;
 
 
   function prog_parmFact(sched){ // the execute cfg param  builder
-                                  // from browser we got sched
+                                  // from browser we got sched the std input x algos events chain : {,,event:{dataArr:sched}},// std input dataArr coming from sched
                                           // , the key are the key generated in initProg that define the probes whose temperature must be controlled
                                           // probSched= probe address={}
     //  let{procName, a,b,ev2run, asyncPoint, processAsync, dataArr}=execParm;
@@ -4933,6 +4966,7 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
 
   if (antic) {
     console.log(' consolidate() found anticipate relays set: ', antic);
+    
   }
   if (program) {
     console.log(' consolidate() found program relays set: ', program);  
@@ -4966,6 +5000,8 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
     if (program) {// antic + program + possibly user
       // program and antic  case 
       // take current relays (program + day modification of user and apply some lastalgo proposal
+      if(antic.length<program.length)console.error(' in consolidate found antic proposal with less items then program proposal !!!!!')
+
       if (lastalgo = 'program' || lastalgo == 'anticipate') {// useless. probaly  ever
         /*
         res.push(antic[0] || program[0]);
@@ -4987,7 +5023,8 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
         //  anzi, indeed we add in program virtual to real map the activation of some real on gaspdcPref : lh + pdc + g 
         //  and we can move that map from browser to model.js , see LLGGYY
 
-        antic.forEach((val, ind) => { if (val == null) {if(program[ind]!=null)res[ind] = program[ind];} else res[ind] = val });// prog e antic active, settings result:
+        antic.forEach((val, ind) => { // copt programa meno del unico valore non null di anticipate che si riferisce appunto alla var intermediate
+          if (val == null) {if(program[ind]!=null)res[ind] = program[ind];} else res[ind] = val });// prog e antic active, settings result:
                                                                                                       // take antic values (val) if not null, otherwise take not null program values !
       }
       // save 

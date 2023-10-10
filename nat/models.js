@@ -76,7 +76,7 @@ cfgs.cfgMarsonLuigi={ name:'MarsonLuigi_API',//run in raspberry
                                                 //              >>> (now we use a def cfg (out:shelly 1 and in:shelly ht) in mqtt ) 
                                                 // 11:{sn:'shelly1-34945475FE06',types:['in,'out'],subscrptiondata:{in:{},out:{},publishcfg:{}}
                         //}
-        ,anticInterm2VirtMap:{gaspdcPref:[true,true,true,null,null,true,null,false]}//{aintermediateinrelaisEv:[true,false,null,,,,]} update of virtual dev to apply if a intermediate is set true by anticipate
+        ,anticInterm2VirtMap:{gaspdcPref:[true,true,true,null,null,true,null,true]}//{aintermediateinrelaisEv:[true,false,null,,,,]} update of virtual dev to apply if a intermediate is set true by anticipate
                         // or a function(state) returning [true,false,null,,,,]
                         // virtual pdc (index =7) is set true: appena il intermediate è true pdc e' settato e verra data priorita al acs piuttosto che al condizionamento
                         // se si vuole bloccare la acs nella partecentrale della finestra in cui gaspdcPref e' true va introdotto altre regole/array:
@@ -158,7 +158,7 @@ cfgs.cfgMarsonLuigi_={ name:'MarsonLuigi_API_',// run in no raspberry
                                                 //              >>> (now we use a def cfg (out:shelly 1 and in:shelly ht) in mqtt ) 
                                                 // 11:{sn:'shelly1-34945475FE06',types:['in,'out'],subscrptiondata:{in:{},out:{},publishcfg:{}}
                         //}
-        ,anticInterm2VirtMap:{gaspdcPref:[true,true,true,null,null,true,null,false]}//{aintermediateinrelaisEv:[true,false,null,,,,]} update of virtual dev to apply if a intermediate is set true by anticipate
+        ,anticInterm2VirtMap:{gaspdcPref:[true,true,true,null,null,true,null,true]}//{aintermediateinrelaisEv:[true,false,null,,,,]} update of virtual dev to apply if a intermediate is set true by anticipate
                         // or a function(state) returning [true,false,null,,,,]
                         // virtual pdc (index =7) is set true: appena il intermediate è true pdc e' settato e verra data priorita al acs piuttosto che al condizionamento
                         // se si vuole bloccare la acs nella partecentrale della finestra in cui gaspdcPref e' true va introdotto altre regole/array:
@@ -251,7 +251,7 @@ cfgs.cfgCasina={ name:'Casina_API',// duplicated FFGG
                                                 //              >>> (now we use a def cfg (out:shelly 1 and in:shelly ht) in mqtt ) 
                                                 // 11:{sn:'shelly1-34945475FE06',types:['in,'out'],subscrptiondata:{in:{},out:{},publishcfg:{}}
                         //}
-        ,anticInterm2VirtMap:{gaspdcPref:[true,true,true,null,null,true,null,false]}//{aintermediateinrelaisEv:[true,false,null,,,,]}
+        ,anticInterm2VirtMap:{gaspdcPref:[true,true,true,null,null,true,null,true]}//{aintermediateinrelaisEv:[true,false,null,,,,]}
                                                                                 // or a function(state) returning [true,false,null,,,,]
         ,virt2realMap:[0,1,2,3,4,5,6,7],// std virtual group , map only if >=0 , some bugs: so use identity only
         virt2realProbMap:[3,0,1,-1,-1,-1,-1],// algo works on virtual index 1 ,rindex= virt2realProbMap[1] is the index in :
