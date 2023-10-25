@@ -1719,8 +1719,8 @@ in readSync/getgpio/rread/stList  waiting x a ext message  the entry point is th
  potra aspettae che tutti i rread delle richieste dei listener stabiliscano i ulteriori listener per aspettare un next ulteriore msg e si settano i nuovi listener 
  _________________________________________________
  
- the listener are set by readsync when the dev queue is void or the last msg is a signal , the a new msg is got and the listeren runned, inside stList and the promise returned will resole entro timeout di 0.1 s 
-   - entro tale tempo rread continua e capsce se risolvo readsync o se devo richiamare un ulterire  stList() che avviene risolvendo il promise el(msg) che procede nel ridefinire il    mqttInst.statusList[dev] per il prossimo msg  :
+ the listener are set by readsync when the dev queue is void or the last msg is a signal , the a new msg is got and the listeren runned, inside stList and the promise returned will resolve entro timeout di 0.1 s 
+   - entro tale tempo rread continua e capisce se risolvo readsync o se devo richiamare un ulterire  stList() che avviene risolvendo il promise el(msg) che procede nel ridefinire il    mqttInst.statusList[dev] per il prossimo msg  :
    
    - nel frattempo il thred continua il process di ricezione :
    
@@ -1749,8 +1749,8 @@ overview of listener fundamentals  in between the incoming msg process and the r
  		to process a next msg and coerentemente risolve la promise retProm ritornata da listener quando chiamato in message income 
  		affinche esso predisponga il listener array da chiamare al ricevimento del next message 
  		2 way :
- 		- (first time ) add listener to list array at the end (this wont be deleted ! ) and resolvr with 
- 		- resolve the promise returnad after the listener is called thiw the msg ,
+ 		- (first time ) add listener to list array at the end (this wont be deleted ! ) and resolve with 
+ 		- resolve the promise returned after the listener is called thiw the msg ,
  		    in income msg we will analyze all promise returned to see which listener to mantain to process the next msg 
  		    
  todo sistemare la resolve del promise tornata dal listener :  PPLLKK 
@@ -2481,11 +2481,13 @@ remember how was built the state of fm/eM/app2 inst :
 													  
 													  	return new Promise((resolve) => {  see mqttdev.txt ......
 													  		resolve({ctls:resu,devmap:resolved})
-													  				/*
+													  		
+													  				/*   ***********see in mqtt the func  fillProm(pr) : 
+													  				
 													  				ctls=[ctl1,,,,,] ctlx:PRX, see PIRLA in mqtt 
 													  				
 													  				
-															  		if mqtt use mqttInst factory, mqttInst.fact(), to get PRX:
+															  		   if mqtt use mqttInst factory, mqttInst.fact(), to get PRX:
 															  					ctl1={ctl:new fc(gp,ind,inorout,cfg,mqttInst)= 	
 			 																		{gpio=11,
 			 																		devNumb=0,// array index 0,1,2
@@ -2503,7 +2505,8 @@ remember how was built the state of fm/eM/app2 inst :
 																			    		 		  if(val==0)message=messageOff;else message=messageOn;
 																			    		 		  client.publish(topic, message, pub_options, function (err) {
 																			    		 		   ....
-																			    		 		     console.log("Published on device ",dev," , a (no var) msg ",message,",successfully to " + topic);
+																			    		 		     console.log("Published on device ",dev," , a (no var) msg
+																			    		 		      ",message,",successfully to " + topic);
 																			    		 		  
 																			    		 		  } 
 			 																		
@@ -2513,6 +2516,208 @@ remember how was built the state of fm/eM/app2 inst :
 			 																	devNumb:ind,
 			 																	type:'mqtt'} 
 													  				
+																			updated example    14102023 :
+																				   {
+																				  ctl: {
+																				    gpio: 54,
+																				    devNumb: 2,
+																				    type: "in-var",
+																				    cfg: {
+																				      portid: 54,
+																				      subtopic: "var_gas-pdc_",
+																				      varx: 3,
+																				      isprobe: false,
+																				      clas: "var",
+																				      protocol: "mqttstate",
+																				    },
+																				    mqttInst: {},
+																				    int: null,
+																				    cl: 4,
+																				    isOn: false,
+																				  },
+																				  devNumb: 2,
+																				  type: "mqtt",
+																				  topic: "@Casina_API@ctl_var_gas-pdc_3",
+																				  cl_class: "var",
+																				  protocol: "mqttstate",
+																				}
+													  				
+													  				
+													  				  devmap={ devNumb: 4, devType: 'gpio', portnumb: 26 },   			in gpio case 
+													  				  	= {devNumb: 5,devType: 'mqtt',portnumb: {portid: 66,			in mqtt case 
+																							clas: 'var',
+																							varx: 4,
+																							isprobe: false,
+																							protocol: 'mqttstate',
+																							subtopic: 'var_split_'
+																						      }
+ 																		 },
+ 																		 
+ 																		 
+ 																		 updated example di devmap : { devNumb, devType, portnumb },   
+																			abilita() buildplantDev() getctls() resolved devices in cfg x lists: gpionumb,mqttnumb. 
+																			      the resolved devs map is :  [
+																			  devmap= {
+																			    devNumb: 0,
+																			    devType: 'mqtt',
+																			    portnumb: {
+																			      portid: 11,
+																			      clas: 'out',
+																			      protocol: 'shelly',
+																			      subtopic: '_shelly1-34945475FE06'
+																			    }
+																			  },
+																			  { devNumb: 1, devType: 'gpio', portnumb: 16 },
+																			  { devNumb: 2, devType: 'gpio', portnumb: 20 },
+																			  { devNumb: 3, devType: 'gpio', portnumb: 21 },
+																			  { devNumb: 4, devType: 'gpio', portnumb: 26 },
+																			  {
+																			    devNumb: 5,
+																			    devType: 'mqtt',
+																			    portnumb: {
+																			      portid: 66,
+																			      clas: 'var',
+																			      varx: 4,
+																			      isprobe: false,
+																			      protocol: 'mqttstate',
+																			      subtopic: 'var_split_'
+																			    }
+																			  },
+																			  {
+																			    devNumb: 6,
+																			    devType: 'mqtt',
+																			    portnumb: {
+																			      portid: 55,
+																			      subtopic: 'var_gas-pdc_',
+																			      varx: 4,
+																			      isprobe: false,
+																			      clas: 'var',
+																			      protocol: 'mqttstate'
+																			    }
+																			  },
+																			  { devNumb: 7, devType: 'gpio', portnumb: 6 },
+																			  {
+																			    devNumb: 8,
+																			    devType: 'mqtt',
+																			    portnumb: {
+																			      portid: 0,
+																			      subtopic: 'mqtt_websock_',
+																			      varx: 0,
+																			      isprobe: false,
+																			      clas: 'int',
+																			      protocol: 'mqttxwebsock'
+																			    }
+																			  }
+																			]
+																			 abilita2(),got dev ctls x models.js lists: gpionumb,mqttnumb. relais map is:  [
+																			  {
+																			    devNumb: 0,
+																			    devType: 'mqtt',
+																			    portnumb: {
+																			      portid: 11,
+																			      clas: 'out',
+																			      protocol: 'shelly',
+																			      subtopic: '_shelly1-34945475FE06'
+																			    }
+																			  },
+																			  { devNumb: 1, devType: 'gpio', portnumb: 16 },
+																			  { devNumb: 2, devType: 'gpio', portnumb: 20 },
+																			  { devNumb: 3, devType: 'gpio', portnumb: 21 },
+																			  { devNumb: 4, devType: 'gpio', portnumb: 26 },
+																			  {
+																			    devNumb: 5,
+																			    devType: 'mqtt',
+																			    portnumb: {
+																			      portid: 66,
+																			      clas: 'var',
+																			      varx: 4,
+																			      isprobe: false,
+																			      protocol: 'mqttstate',
+																			      subtopic: 'var_split_'
+																			    }
+																			  },
+																			  {
+																			    devNumb: 6,
+																			    devType: 'mqtt',
+																			    portnumb: {
+																			      portid: 55,
+																			      subtopic: 'var_gas-pdc_',
+																			      varx: 4,
+																			      isprobe: false,
+																			      clas: 'var',
+																			      protocol: 'mqttstate'
+																			    }
+																			  },
+																			  { devNumb: 7, devType: 'gpio', portnumb: 6 },
+																			  {
+																			    devNumb: 8,
+																			    devType: 'mqtt',
+																			    portnumb: {
+																			      portid: 0,
+																			      subtopic: 'mqtt_websock_',
+																			      varx: 0,
+																			      isprobe: false,
+																			      clas: 'int',
+																			      protocol: 'mqttxwebsock'
+																			    }
+																			  }
+																			]
+																			 abilita2(),got dev ctls x models.js lists:,mqttprob. probs map is:  [
+																			  {
+																			    devNumb: 0,
+																			    devType: 'mqtt',
+																			    portnumb: {
+																			      portid: 11,
+																			      clas: 'out',
+																			      protocol: 'shelly',
+																			      subtopic: '_shelly1-34945475FE06'
+																			    }
+																			  },
+																			  { devNumb: 1, devType: 'gpio', portnumb: 16 },
+																			  { devNumb: 2, devType: 'gpio', portnumb: 20 },
+																			  { devNumb: 3, devType: 'gpio', portnumb: 21 },
+																			  { devNumb: 4, devType: 'gpio', portnumb: 26 },
+																			  {
+																			    devNumb: 5,
+																			    devType: 'mqtt',
+																			    portnumb: {
+																			      portid: 66,
+																			      clas: 'var',
+																			      varx: 4,
+																			      isprobe: false,
+																			      protocol: 'mqttstate',
+																			      subtopic: 'var_split_'
+																			    }
+																			  },
+																			  {
+																			    devNumb: 6,
+																			    devType: 'mqtt',
+																			    portnumb: {
+																			      portid: 55,
+																			      subtopic: 'var_gas-pdc_',
+																			      varx: 4,
+																			      isprobe: false,
+																			      clas: 'var',
+																			      protocol: 'mqttstate'
+																			    }
+																			  },
+																			  { devNumb: 7, devType: 'gpio', portnumb: 6 },
+																			  {
+																			    devNumb: 8,
+																			    devType: 'mqtt',
+																			    portnumb: {
+																			      portid: 0,
+																			      subtopic: 'mqtt_websock_',
+																			      varx: 0,
+																			      isprobe: false,
+																			      clas: 'int',
+																			      protocol: 'mqttxwebsock'
+																			    }
+																			  }
+																			]
+ 																		 
+   																	nb portnumb can be: null (if ctl is null)  / portid-portnumber number / descr obj in models.js (if mqtt)		  				
+													  				
 													  				
 													  				*/
 													  				
@@ -2520,19 +2725,16 @@ remember how was built the state of fm/eM/app2 inst :
 													  		
 													  			ctlx/PRX is got using :
 													  			getio(num, iotype, ind, ismqtt = false,mqttInst) 
-													  				that returns (PRX) {ctl={readsync,writesync,,,},devNumb:ind,type:'gpio'} that can be: 
-													  			
+													  				that returns (PRX) {ctl={readsync,writesync,,,},devNumb:ind,type:'gpio'} that can be:  
+										  			
 													  				- mqttInst.fact(num,ind,iotype);// factoty of dev ctl , a promise resolving to :
 													  				
-													  				  {ctl:new fc(gp,ind,inorout,cfg),devNumb:ind,type:'mqtt'}  (= PRX)
+													  				  {ctl:new fc(gp,ind,inorout,cfg),devNumb:ind,type:'mqtt'}  //   = PRX , see in mqtt code !!!!!!!!!!!!!!!
 													  					
 																		//  a relais if iotype='out' a pump or var
 																		//    or if (iotype='in-var', a probe or var
 																		//  mqtt dev 
 																		// iotype: is the capability requested and must match the dev registration data done in init()
-																		
-																		
-																		
 																		
 																		or if(Gpio)return:
 																	-  {ctl:new Gpio(num, iotype),devNumb:ind,type:'gpio'}; // as Promise.resolve
@@ -2897,7 +3099,13 @@ nodered pubs and subscr
         //		mentre lo update dello status di ext ctl viene gestito da topicNodeRed che impone un int per cambiare uno state di var tipo numb ( def in numbSubscr())
            
 
-        //		***************   MNG SUMMARY **************   :
+
+
+        //		***************  dev state type  MNG SUMMARY **************   :
+        
+        				SEE THE UPDATED FILE !!!!!!!
+        
+        
         // verifica di dove pubblicano i var dev:
         // - i type 1 ,rele (numbSubscr()) hanno topicPub=.../command si comportano per il resto come i type 2. in pratica il ctl scrive su topicPub e riceve conferma su topic .
         //		??:  gli ext ctl non scrivono su topicPub se vogliono cambiare lo state.relais con un interrupt handler=eM.iodev.relais_[ind].int (lancia setPump())scrivendo su pub topicNodeRed 
@@ -2913,9 +3121,9 @@ nodered pubs and subscr
         //			  fromthisctl = true e quindi non vengono caricati in dev queue in quanto lo state si basa piuttosto sul state.relais e non il dev queue !
         //		to CHECK: oltre che non caricare i topic fromthisctl sul dev queue, tuttavia sembrava che nemmeno pubblicassimo ,i var type 2, sul topic , invece si !!! 
         //			(per risparmiare una inutile operazione in quanto uso lo state.relais per leggere lo stato)
-        //		gli ext ctl scrivendo un pub potrebbero fillare il topic del dev x come si fà per i type 4 che usano il topic come state (daleggere con readsync() ma non in type 2 che usa state.relais come state 
+        //		gli ext ctl scrivendo un pub potrebbero fillare il topic del dev x come si fà per i type 4 che usano il queue del topic come state (daleggere con readsync() ma non in type 2 che usa state.relais come state 
         //			quindi per il type 2 dobbiamo lanciare in interrupt che setta una oggetto temporaneo eM.state.lastUserAlgo ( che rappresenta l'istanza di chi lo ha settato: il  ctl esterno NRed/HA o il anticipatealgo ) 
-        //			che poi viene usato dal master program algo per settare tutti gli state.relais , cmopreso lo stesso state.relais.x 
+        //			che poi viene usato dal master program algo per settare tutti gli state.relais , comopreso lo stesso state.relais.x 
         //				simulando un algo ( manual algo ) setta il manual algo result che assieme al normale (interno) anticipate algo, concorrerà in consolidate() (lanciato dal master program algo), a definire il next  state.relais  
         //		
         //					sarà quindi un pub  sul topicNodeRed lanciato dal ctl esterno HA (homeassistant) come automation triggerato  dal cambio del select sul ext ctl entity
@@ -2941,7 +3149,7 @@ nodered pubs and subscr
         //		QUESTION : ma che senso ha un handler=eM.iodev.relais_[ind].int che lancia setPump() ???? dovrebbe lanciare un manual algo come fa il browser con evento manualAlgoProposal. 
         //			infatti in consolidate i manulalgo setting sovrascrivono le indicazioni del algo anticipate
         
-        // - i type 4 var (probSubscr()) hanno topicPub=null quindi,al lancio di writeSync (nb non fillano, come gli type2, lo state.relais che non ha item specificoper i probSubscr dev):
+        // - i type 4 var (probSubscr()) hanno topicPub=null quindi,al lancio di writeSync (nb non fillano, come gli type2, lo state.relais che non ha item specifico per i probSubscr dev):
         //			 pubblicano su topic e al ricevimento (su topic e non sul cmdtopic ) essendo controllabile sender=dev  ,  fromthisctl = false e COMUNQUE vengono caricati in dev queue 
         //				( usato per mantenere lo stato(reperibile leggendo con readSync) )
         //		gli ext ctl normali scrivono lo stesso sul topic e quindi fillano (direttamente senza lanciare un interrupt) il queue che funge da stato, 
@@ -2959,12 +3167,26 @@ nodered pubs and subscr
           		- a type 2 (var dev ) essenzialmente ha un format nel publicare e ricevere i msg, entrambi hanno la capability di node-red cmdtopic ( interrupt), entrambi hanno state.relais_
           		-  type1 obbligatoriamente ha pubtopic diverso da topic e avendo un device fisico che ricopia poi il pubtopic in topic 
                         //      so type 1 devono avere pubtopic diverso da topic ed è meglio che non facciano un readSync per ricvare lo state che puo avere ritardo 
-                        //		ma se lo state e' modificato da altri allora o gli altri usano i nodered topic ( e quindi si lanciano interrupt) o se no devo readSync ogni tanto per vederese qualcuno ha modificato il topic
+                        //		ma se lo state e' modificato da altri dall'esterno allora o gli altri usano i nodered topic ( e quindi si lanciano interrupt) o se no devo readSync ogni tanto per vederese qualcuno ha modificato il topic
                         // 	mentre i type 2 possono pub anche su topic ma essendo formattati si puo capire dachi vengono, comunque e' meglio che gli ext ctl usino il nodered topic !! 
           		- mentre i type 4 non hanno lo state.relais_ quindi devono essere letti con readSync()  per ricavare lo state
           		- tutti type 1,2,4 hanno la possibilità di avere un pubtopc != topic
           		
           		// todo : aggiungere un protocollo generico per i shelly like con possibilita di indicare un pubtopic per i type 1 (rele)
+          		
+          		
+          		
+         added 24102023:
+  * i type 2 e 4 implementano internamente un device fisico che invece ha una sua parte nel type 1, 
+      quindi realizzano all'interno del pubtopic il comportamento del device fisico che esegue il comando e poi riflette l'azione fornendo dati nel topic ( comunque disponibile all'interno e all'esterno (nodered/ha))  :
+     - si riceve il pubtopic msg (dopo aver updatato lo state.relais interno), si esegue il comando e poi si manda sul topic la risposta corrispondente al nuovo stato del dev che usualmente in payload e' il nuovo valore assegnato
+    la differenza tra type 2 e type 4 è che il type 2 mantiene in state.relais lo state interno e quindi non c'e' la necessita di leggere il queue di topic (che diventa lo state del dev type 4 ) x averlo  
+    	mentre i ctl esterni (node red e ha) dovranno comunque usare il topic x avere info sullo stato del dev
+  * il comtopic (nodered/ha cmd) processa l'evento esterno via interrupt che termina con un nuovo STATE fatto da :
+  		- state.relais / lastxxxalgo/ lancio di ulteriori pub su dev.
+  	esso permette permette di gestire l'evento/cmd esterno e informare poi gli altri algo  		
+          		
+          		
  ____________________________________
  
  browser after debug  pause can be  reload after delete cookies , works all event but not receiving only event :'pump'  ???????????????
@@ -3109,6 +3331,13 @@ ___________________________________________
 
 				    									 	- e, se isProb=false, anche da setMqttXWebsock() che chiama doSomethingAsync(0,-1,true)   portid=0   index =-1
 				    									 	
+				    									 			la cfg e' in models.js :
+				    									 				       mqttWebSock:        {portid:0,subtopic:'mqtt_websock_',varx:0,isprobe:false,clas:'int',protocol:'mqttxwebsock'},
+				    									 				       				// must be portid=0 ! : a dummy var that creates ctl websocket topic 
+				    									 				       				
+				    									 			esso e' inserito in relais_ al  index >=relaisEv.length , usually index =relaisEv.length  DDTT DDTT    >>  see DDTT
+ 
+				    									 	
 				    									 		>> quindi in questo caso  doSomethingAsync(0,-1,true) chiama sul devid=0 getio(num=0, iotype='int', ind=-1, ismqtt =true,mqttInst)
 				    									 		che chiama  .fact(num,ind,iotype)sul dev dummy (num=0),che , come nei device normali, :
 				    									 			- torna ctlpack che oltre che settare le caratterisctiche dei dev 
@@ -3132,7 +3361,9 @@ ___________________________________________
 				    									 						 			ex @Casina_API@interface_mqtt_websock_0, usually not used 
 				    									 											msg= .....
 				    									 										e in cmdtopic, ex  @Casina_API@interface_mqtt_websock_0/NReadUser/cmd
-				    									 											msg= message='{"payload":1,"sender":{"plant":"Casina_API","user":xxx,"token":yyyy},"url":"mqttxwebsock","event":"repeatcheckxSun","data":{theeventhandlerparams=starthour,stophour,dminutes,triggers)}}' 
+				    									 											msg= message='{"payload":1,"sender":
+				    									 															    									 											{"plant":"Casina_API","user":xxx,"token":yyyy},"url":"mqttxwebsock","event":"repeatcheckxSun",
+				    									 															    									 											"data":{theeventhandlerparams=starthour,stophour,dminutes,triggers)}}' 
 
 				    									 				returns after call cb=subscred(topic,cl_class='var')
 				    									 				
@@ -3172,7 +3403,7 @@ ___________________________________________
             									 					     			abilita2() fills iodev.relais_ e iodev.relais_, con i ctls di myctls e myprobs
             									 					     			 i dev vengono fillati col loro index assegnando il dev name dall'array relaisEv ,
             									 					     			 	 index =0..relaisEv.length-1 (AAQZ)
-            									 					     			>>  relais_ contiene anche il dummy dev con portid=0 ma di index >=relaisEv.length
+            									 					     			>>  relais_ contiene anche il dummy dev con portid=0 ma di index >=relaisEv.length                DDTT
             									 					     				cosicche non viene mai processato in genere, in quanto si readsync e writeSync solo i dev AAQZ
             									 					     				tuttavia si  assegna il interrupt handler che risponderanno ai topic 
             									 			
@@ -3347,17 +3578,23 @@ state mng  : idea strutturare gli state il level , ......
   	
   _____________________________
   
-  idea : associare un dev fisico con un suo controller diverso da mqtt  a un dev (var o anche rele) aggiungendo :
+  
+  DEVICE CUSTOM AGGIUNTIVO divesro da MQTT esempio comandare con ModBUS i split !!
+  
+  
+  
+  idea : associare un dev fisico con un suo controller (es modbus) diverso da mqtt  a un dev (var o anche rele) aggiungendo :
    se il fisical dev write aggiungere un ub su dev topic,
+   
    se il fisical dev read aggiungere un call al device fisico da public topic (o nedered topic ?) 
    
-   cio ha senso se il dev fisico e0 strettamente associato al fv3 numbersubscr() dev ! 
+   cio ha senso se il dev fisico è strettamente associato al fv3 numbersubscr() dev ! 
    ...........
    
    se invece voglio inviare senza controllare dei comandi a device fisici che dipendono da un fv3 dev def basta che mandi la chiamata tipo   
    				parseFloat(await shellcmd('modbusRead',{addr:map[0],register:'temp',val:0})
-   	aggoingendola dopo aver scritto sul publictopic del fv3 dev 
-   	es il split dev comanda il rele dev che e' la valvola degli split .
+   	aggiungendola dopo aver scritto sul publictopic del fv3 dev 
+   	es. il split dev comanda il rele dev che e' la valvola degli split .
    		 però esso non è mqtt !!!!!! 
    		 quindi il comando lo devo aggiungere direttamente in consolidate !!!!  ????    NO
    		 >>> meglio personalizzare il writeSync di un gpio rele in 
@@ -3715,7 +3952,7 @@ curl \
 curl -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
 __________________________________________________
 
-created a long lved token , name fv3 :  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A
+home assistant created a long lived access token , name fv3 :  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A
 
 ____________www.anagrafenazionale.interno.it___________________________________
 
@@ -3965,7 +4202,6 @@ test if a integer :
 - Number.isInteger(Number.parseInt(test)),test); 
 or better :
 - (Number.isInteger(Number(val)))   but 0=Number()  is got with "",undefined and null !!!
-
 __________________________________________________
 
  setManual (pump_, val, coming,checked,eM) 
@@ -3974,8 +4210,7 @@ __________________________________________________
 	 1695413982434,
 	 mosquitto_sub -t   @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd   -u sermovox -P sime01 -h bot.sermovox.com -p 1883
 	 Subscribed successfully in plant
-	 
-	 
+	 	 
 	 
 	 onRelais,  changing/confirm current rele hw position/value x  gaspdcPref  , index  6  ,  to new value:  1
 writeSync() , using instance  1695343770933  Published on device  55  , a var msg  {"payload":1,"sender":{"plant":"Casina_API","user":55}} ,successfully to @Casina_API@ctl_var_gas-pdc_4
@@ -4476,7 +4711,7 @@ now:
     		curval=await dev.readSync();// 0/1
   }
 
-news : si introdice il dev state, dummy, al virtual index 0 che rappresenta un var dev , type 4 , che contiene specifiche var dello state :
+news : si introdice il dev state, dummy, al virtual index 0 dei virt2realProbMap , che rappresenta un var dev , type 4 , che contiene specifiche var dello state :
 	{statevar1,statevar2,,,} in json string format
 	usually are only writeSync to subtopic:'var_state_' 
 ____________________________________
@@ -4661,7 +4896,7 @@ __________________________________________________________
  res =[...state.app.plantconfig.relaisDef];// clone array
  ______________________________________________________
  
- restructuring sw .on('connect',handler)		XXRR
+ *************  good 251102023:      restructuring sw .on('connect',handler)		XXRR
  
  		function handler(){
  		eM=
@@ -4690,7 +4925,13 @@ __________________________________________________________
 			     // startfv_(eM,user);// ** start/update singlethon 
 			     recoverstatus.call(eM,plantcfg,plantcnt,plantconfig,feature).then((em_) => startfv_(em_,oncomplete_)); /
   		
-  	- oncomplete(): start program/anticipate according state.program/anticipate if the algo in not active (lauched before in a socket connection in a app/server instance not stopped )
+  	- oncomplete(): will:
+  			- start program/anticipate according state.program/anticipate if the algo in not active (lauched before in a socket connection in a app/server instance not stopped )
+  				cioe' se eM/fn e' stato recoverato dal server instance bank plants, vuol dire che stava girando  e quindi anche i suoi algo come si vede dallo state
+  				ma se eM è stato creato perche il server è stato stoppato o perche qualcuno ha stoppato il fn allora devo ripristinare gli algo previsti dallo state che ha registrato l'ultimo state valido del plant 
+  				
+  			- if fn e' recoverato e tutto va bene almeno allineare gli stati dei pumps/relais del browser con il loro corretti state state.ralays lanciando setPump su tutto il state.relays  !!!!!  **********  todo  *********
+  				
   		se ad es trovo state.program allora vuol dire che esso stava girando perche precedentemnte ho girato repeatHandler1 :
   			repeatHandler1 esso avendo procurato il launcher repeat/1 membro del handler XXRR:
   				handler.repeat1= repeat1||fv3.checkFactory(eM) // checkFactory è factory/closure del repeat/repeat1!
@@ -4811,5 +5052,319 @@ TypeError: Cannot read properties of undefined (reading 'state')
 Node.js v17.5.0
 luigi@luigi-Vostro-3560:~/localdev/raspexampl/fv$ 
 _______________________--
+  testinh ha 11102023
+  - se parto pgm da browser non updato  il pgm in ha
+  
+  - sistemare il winter/summer in : if(triggers2&&triggers2.PGMgiorno){ 
+	  triggers2.mapping="==&&state.devmapping=[0,1,2,3,-1,5]";
+	  triggers2.probMapping="==&&state.probmapping=[2,4,0,3,1,5]";triggers2.ei=message.param.ei||"S";triggers2.Tgiorno=true; 
+	  console.log('intWebSock() starting program  Algos');  
+  - sistemare :
+   mqtt income. Received message  {'id': '0', 'idx': '0', 'alias': None, 'platform': 'mqtt', 'topic': 'shellies/shelly1-34945475FE06/relay/0', 'payload': 'on', 'qos': 0, 'description': 'mqtt topic shellies/shelly1-34945475FE06/relay/0'}  on topic  shellies/_shelly1-34945475FE06/relay/0
+ Inserted current message ( {'id': '0', 'idx': '0', 'alias': None, 'platform': 'mqtt', 'topic': 'shellies/shelly1-34945475FE06/relay/0', 'payload': 'on', 'qos': 0, 'description': 'mqtt topic shellies/shelly1-34945475FE06/relay/0'} ) , in current msg queue for device: 11  is:  [
+  "{'id': '0', 'idx': '0', 'alias': None, 'platform': 'mqtt', 'topic': 'shellies/shelly1-34945475FE06/relay/0', 'payload': 'on', 'qos': 0, 'description': 'mqtt topic shellies/shelly1-34945475FE06/relay/0'}",
+  'on',
+  "{'id': '0', 'idx': '0', 'alias': None, 'platform': 'mqtt', 'topic': 'shellies/shelly1-34945475FE06/relay/0', 'payload': 'on', 'qos': 0, 'description': 'mqtt topic shellies/shelly1-34945475FE06/relay/0'}",
+  "{'id': '0', 'idx': '0', 'alias': None, 'platform': 'mqtt', 'topic': 'shellies/shelly1-34945475FE06/relay/0', 'payload': 'on', 'qos': 0, 'description': 'mqtt topic shellies/shelly1-34945475FE06/relay/0'}",
+  'on',
+  "{'id': ....
+  
+  - 
+  _____________________________________
+  Avoid using states.sensor.temperature.state, instead use states('sensor.temperature'). It is strongly advised to use the states(), is_state(), state_attr() and is_state_attr() as much as possible, to avoid errors and error message when the entity isn’t ready yet (e.g., during Home Assistant startup).
+  ___________________________________
+  
+  osservazioni :
+# see https://www.home-assistant.io/docs/blueprint/tutorial/
+blueprint:
+  name: FV Optimizer consenso state
+  description: FV OPtimizer state
+  domain: automation
+  input: 
+    acs_switch:
+      name: acs_switch
+      description: switch acs
+      selector:
+        entity:
+          filter:
+            - domain: switch 
+#  - alias: "fv3_relay_acs"
+id: "optimize100"
+initial_state: true
+trigger:
+  - platform: mqtt
+    # qui bisogna calcolare il topic in funzione del device connesso quindi una funzione di ... con !input .....
+    topic:  '@Casina_API@ctl_var_state_0'
+    # payload: "on"
+    # value_template: "{{ value_json.state }}"
+    # These variables are evaluated and set when this trigger is triggered:    use : {% if myval == "ON" %}   switch.turn_on ....
+    variables:
+        myval:  "{{ trigger }}"
+        myval2:  "{% if trigger.payload_json.payload.state.relays.acs == true %} ON {% else %} OFF {% endif %}"
+    ##    myval:  "{% if value_json.payload.state.relays.acs == true %} ON {% else %} OFF {% endif %}"
+condition:
+action:
+  - service: >
+       {% if myval2 == 'ON' %}
+         switch.turn_on
+       {% else %}
+         switch.turn_off
+       {% endif %}
+    target: !input acs_switch
+  - service: mqtt.publish
+    data:
+      topic: 'poppo'
+      payload: >
+        {{ trigger }} and {{ myval }} and {{ myval2 }}			>>>>> trigger and myval sono ==   !!!!!
+___________________________________
+
+fn context e closure di fn , cioe il cb della connessione socket è closure(cioe lo contiene come oggetto , quindi le funzioni di fn vedono le variabili/oggetti del closure) di fn 
+	nel cb girera' il fn e rimmarra a girare anche quando il socket viene chiuso
+	per vedere se il socket e' aperto si testa clientDiscon !
+	quando si riapre un socket la funzione di cb (nuovo closure) recupera il fn da started o ne instanzia uno nuovo recuperando anche tutti gli altri 'states' necessari a funzionare
+
+quando al event     socket.on('startuserplant',
+	- fn viene recoverato o viene instanziato, e aggiunto al bank di running ctl : started=[]
+			let recInsts = ccbbRef(plantcfg.name);
+    			fn=eM = recInsts.inst;
+    	fn viene corredato di 'states' che contengono info sul plant gestito e oggetti che lo gestiscono :
+    	 	- es 
+    	 		   repeat,// active rep func x anticipate
+			  repeat1,// active rep func x temperature programmer
+			  clientDiscon=false;		e' settato false in closere cb , true in handler di   socket.on('disconnect',() => {// clientDiscon=true;  });		SSWW 
+
+    	 e info sul corrente socket di connessione al browser:
+    	 	- eM.getcontext (=context), es sessione corrente del browser
+    	 	- eM.socket=socket;
+    	 	
+    	 		> eM.getcontext (=context) è usato in :
+    	 		    - OnRelais()
+    	 			- per controllare la sessione corrente dell'ultimo browser connession :  session 
+    	 					per .....
+    	 			- per controllare se il browser e' attivo e anullare la sua doppia richiesta : see: OnRelais started x mqttnumb dev , pump/devNam
+    	 			
+    	 				se proviene dal browser si processa solo se (context=fn.getcontext).processBrow()== true cioe se context.discFromBrow== false
    
+   						infatti in setPump() :
+   						 clientDiscon=fn.getcontext.getCliDiscon()=context.clientDiscon
+   						 	se false (cioe il browser è connesso con il socket) :
+   						 		  fn.getcontext.discFromBrow=true;// so in eM.getcontext.processBrow() return false if fn.state.discFromBrow=true
+   						 		  // now reset timeoutref=fn.getcontext.blocking :
+									  if(fn.getcontext.blocking)clearTimeout(fn.getcontext.blocking);// fn.state.discFromBrow : the server req  (onRelais ) is followed by a browswer req : 
+									  //    so if a previous browser timeout was set , reset it and  reset the interval of browser  blocking 
+									  fn.getcontext.blocking=setTimeout(()=>{ fn.getcontext.discFromBrow=false ;fn.getcontext.blocking=null},2000);
+									  		naturalmente appena ricevuto il event dal server in onRelais si cancella immediatamente il flag browser blocking : discFromBrow: true > false
+									  	>> questo resetta  con 2 s di ritardo il flag che blocca il processamento del setPump event  in OnRelais perche gia processato direttamente da setPump 
+									  		di solito 
+									  	 quindi dopo 2 s il browser puo mandare eventi che saranno processati da onRelais()
+											>>> sarebbe meglio mettere un hash per escludere proprio operazione appena lanciate dal setPromp()    
+   								quindi si lancia solo in tale caso (clientDiscon=false) il browser event con :
+   									fn.pumpsHandler[pumpnumber](0,on_);/
+   
+   
+   						>>>>>>>>>ok :   summary :
+   						all'inizio in SSWW  si setta la variabile closure  clientDiscon che poi viene true solo  quando il socket esce SSEE
+   							clientDiscon è disponibile anche in fn.getContext.getCliDiscon
+   							
+   						in setPump se c'è connessione socket con un browser (clientDiscon=false, :
+   							- si setta getcontext.discFromBrow=true che è  flag di non doppo processamento 
+   							 	e si rilancia un timeout con funzione che resetta il flag dopo 2 s 
+   							 		il timeout ref viene storato in .getcontext.blocking)
+   							- poi si invia l'evento di update dei pumps ( fn.pumpsHandler[pumpnumber](0,on_)): al browser via socket event
+
+   							
+   							
+   							
+   						in OnRelais() 
+   							- recupero clientDiscon con clientDiscon=fn.getcontext.getCliDiscon()
+   							
+   							se vedo arrvare un evento dal browser , (see: if (fn.getcontext && fn.getcontext.processBrow))
+   							- checko il flag discFromBrow(via fn.getcontext.processBrow)
+   								se  discFromBrow==true  
+   									- resetto timeout (getcontext.blocking)
+   									  e resetto il flag fn.getcontext.discFromBrow=false
+   									  ed esco senza processare due volte l'evento nascente da setPump
+   
+   
+   						>> migliorare descrivendo meglio il setpump da non raddoppiare con un hash
+   						>> capire perche il reset del  clientDiscon che avviene nel :
+   						
+   							 socket.on('disconnect',() => {// to do 	SSEE
+								    // set a flag to avoid browser .emit call from any function that can do that
+								    // eM will run also if the client dead . when a new connection come and it refears to same plant of the running eM , attact it to the closure and goon  
+								    clientDiscon=true;  });
+   							non viene poi resetatto d un nuova connessione !!!!
+    	 	
+    	 inoltre recupera info sulla cfg del plant da models x buildare i device :
+    	 	- eM.status.plantcfg
+    
+    	 e lo state del plant che sopravvive alla distruzione del istanza (server down ) 
+    	 	- fn.state
+    	 	ricoverato con 
+    		- recoverstatus.call(eM,plantcfg,plantcnt,plantconfig,feature)
+    		
+    		- .then((em_) => startfv_(em_,oncomplete_));
+    		  dove viene appiccicati i device 				>>>>>>>>>><>> è da fare solo per istanza nuova e non recuperata !  >> controllare !!!!
+    		  - fn.iodev
+    		  e con oncomplete():
+    		  - si  partono i algo correnti come registrato in . state
+    		  
+    dopo questo evento gli altri eventi del socket (verso browser) avranno a disposizione il plant ctl fn per operare:
+    	- fn
+    	
+    fn similmente verra messo a disposizione anche agli altre connessioni come :
+    	- verso nodered o verso mqtt parte socket emul o verso socket ha 
+    	
+ ___________________________
+ to do studiare :
+ 
+         /* **************
+         getCliDiscon() banalmente ritorna questo onconnection handler clientDiscon (significa il browser non connesso, session expired !)!! 
+          in base a clientDiscon si  settera getcontext.discFromBrow true se clientDiscon=false cioe non processo il doppio comando in onRelais
+           nb getcontext.processBrow() ritorna !getcontext.discFromBrow
+           inoltre  when clientdiscon it useless run function that will emit browser .emit , because no connection is available
+        */
+ 
+    context= eM.getcontext={// to make available this closure var to setPump,.....
+                  // probably must nulllified when socket disconnect clientDiscon=null, instead to pass clientDiscon !
+	      getSession:function(){return session;},
+	      getCliDiscon:function(){return clientDiscon;}, ritorna clientDiscon
+	      processBrow:function(){
+		if(this.discFromBrow)return false;// discard processing the browser req
+		else return true;},
+	      discFromBrow:false  // flag di non doppio processamento
+ e state.    
+	     	"discFromBrow" : [],		??
+    		"blocking" : [],
+
+    perche il client disconnect rimane attivo dopo che riconnetto un socket cosi perdo nel browser gli update dei pumps !
+    
+    
+    see : 
+    	 // todo correct fn.state.discFromBrow >>>> fn.getcontext.discFromBrow ??? 
+_______________________________________
+
+ old staff , try to resolve a bug :
+ errore rssi 16102021
+ recovery yaml del 11102023 e da li com meld cancellato tutto da 11102023 meno rssi e poi :
+  aggiunto pezzo pezzo staff dal 11102023 fino a comarsa errore rssi 
+  
+  ________________________________
+  
+ mosquitto_pub -h bot.sermovox.com -t  @Casina_API@ctl_var_state_0   -m '{"payload":{"state":{"relays":{"acs":false}}}}' -p 1883  -u sermovox -P sime01
+
+  >  {'id': '0', 'idx': '0', 'alias': None, 'platform': 'mqtt', 'topic': '@Casina_API@ctl_var_state_0', 'payload': '{"payload":{"state":{"relays":{"acs":false}}}}', 'qos': 0, 'description': 'mqtt topic @Casina_API@ctl_var_state_0', 'payload_json': {'payload': {'state': {'relays': {'acs': False}}}}} and {'id': '0', 'idx': '0', 'alias': None, 'platform': 'mqtt', 'topic': '@Casina_API@ctl_var_state_0', 'payload': '{"payload":{"state":{"relays":{"acs":false}}}}', 'qos': 0, 'description': 'mqtt topic @Casina_API@ctl_var_state_0', 'payload_json': {'payload': {'state': {'relays': {'acs': False}}}}} and  thatis to test!
+
+____________________________
+
+remember interrupt 
+
+in mqtt  si checca se posso agganciare un int quando un messaggio diretto a un dev di tipo 0 1,2,4 ha un cmd topic :
+	 topicNodeRed = adev.topicNodeRed; isCmdTopic = topicNodeRed && topicNodeRed == topic; /
+ quindi si assegna il suo handler e gli si passa i data :
+ message_.url == 'setMan' && ctlpack.ctl.int1) o
+  message_.url == 'mqttxwebsock' && ctlpack.ctl.intWebSoc) 
+  than the def : intHand = ctlpack.ctl.int0;
+ if (intHand) intHand(msg, mqttInst.status[dev], data);
+ 
+ 
+ nb  lo state e' inviato tramite un dev type 4 di tipo prob indirizzato da virt2realProbMap:[0] che in casina è il prob number 3 che è
+ 
+ 
+ nb intwebsok int è relativo al dev con description : 
+ 	 mqttWebSock:        {portid:0,subtopic:'mqtt_websock_',varx:0,isprobe:false,clas:'int',protocol:'mqttxwebsock'},// must be portid=0 ! : a dummy var that creates ctl websocket topic 
+                                                                                                                        // todo >>>> must be added a user/token release process or implement a broker security by clientid
+ _________________________________________
+ todo add temp a program algo lanciato con cmdtopic del dev 
+ 
+  infatti si pub :
+ 	topic: '@Casina_API@interface_mqtt_websock_0/NReadUser/cmd'
+          payload: >
+               {"payload":1,"sender":{"plant":"Casina_API","user":77},"url":"mqttxwebsock","event":"repeatcheckxSun","data":{{ states.sensor.pippo.state }},"data1":{{ states.input_text.text1.state }},"param":"{{ states('input_boolean.savingsservice') }}"}
+               
+       e essendo  "url":"mqttxwebsock"  e un cmdtopic lancia un interrupt ctlpack.ctl.intWebSoc  sul device descritto con   mqttWebSock.
+       
+       nd il int ctlpack.ctl.intWebSoc:
+       	intWebSock(val=0, devqueue, message)
+       lancia il handler del algo program impostando triggers2:
+       
+       			triggers2=message.data[3];// only "PGMgiorno" : { "8:30" : 27, "17:00" : 30 },
+       			
+       			repeatHandler1(xstart,xstop,xmin,triggers2); 
+       			
+         nb l'handler gestise un trigger2 che completo è: 		
+
+                                                                        "triggers2" : {
+                                                                          "Tgiorno" : true,
+                                                                          "PGMgiorno" : { "8:30" : 27, "17:00" : 30 },
+                                                                          "Tnotte" : false,
+                                                                          "PGMnotte" : { "notte" : { "8:30" : 20, "17:00" : 22 } },
+                                                                          "lastT" : ["21/08/2023, 09:33:23", { "notte" : 23.8, "giorno" : 24.3 }],
+                                                                          "mapping" : "==&&state.devmapping=[0,1,2,3,-1,5]",
+                                                                          "probMapping" : "==&&state.probmapping=[2,4,0,3,1,5]",
+                                                                          "ei" : "S"
+                                                                      }
+  ________________________________
+  
+  session management :
+  see the log when the socket is connected to browser:
+	  console.log(`saving user and socketid ${socket.id} in session ${session.id} used by future fn ( will be associated to user plant). in case algo procedure wants to do something with session and socket if they are active`);
+	  console.log('session will be duplicated on fn.getcontext and the socket is still active if fn.getcontext.discFromBrow=false ! '); 
+__________________________
+
+ attenzione che e' fn a avere la connessione con il ha via mqtt o wsocket. ha sincronizza i rele usando il  
+ 	- il command topic dei rele associati that is fired only when its state.relays changes o 
+ 	- via state (repetitive at specific event that changes some state) 
+ 	
+ 	>> gestire eventuali disallineamenti !!!
+ __________________________________
+ 
+ models.js ha home assistant state topic  
+ // virt2realProbMap[ 0] is reserved to state pub var dev on mqttprob[virtualindex[0]]
+ 
+        virt2realProbMap:[3,1000,-1,1001,-1,-1,-1],// algo works on virtual index 1 ,rindex= virt2realProbMap[1] is the index in :
+                                //  mqttprob
+                                //  or ( if>1000) pythonprob   
+                                //  to find probs relating to :
+                                //      g, virtual index 2 of gpionumb/mqttnumb pump dev
+                                //              the g temp prob is got by a python shell referring to address pythonprob[virt2realProbMap[1]]
+                                //      n , virtual index 3 of gpionumb/mqttnumb pump dev
+                                //              the n temp prob is got by a python shell referring to address pythonprob[virt2realProbMap[3]]
+                                //      s  virtual index 4 of gpionumb/mqttnumb pump dev
+                                // better if < 1000 : 
+                                // virtual modbus python probs used by algo.  x : g , n , s  virtual zones temp/humid device map to  mqttprob dev
+                                // algo wants to find mqttprob and look at virt2realProbMap whose index are so mapped :
+                                //  index of virt2realProbMap > [ha state dummy var device,g temp,g humid,n temp,n humidg, s temp,s humid]
+                                // -1 for undefined
+                                // virtualindex 0 is reserved to state pub var dev on mqttprob[virtualindex[0]]
+ ______________________________-
+ 22102023 : todo :
+    			- if fn e' recoverato e tutto va bene almeno allineare gli stati dei pumps/relais del browser con il loro corretti state state.ralays lanciando setPump su tutto il state.relays  !!!!!  **********  todo  *********
+______________________________________
+todo : 
+- the listener array grows too much , try to reset listener x all cases , see:
+            if (resetListener) {
+                resRetList(resetListener);// say to message income to reset the listener
+                see the log in logs/listenertoolonganticipateatmorning_23102023.txt
+                
+- check in casina , should be identity ? :
+ "devmapping" : [0, 1, 2, 3, -1, 5],
+ ___________________
+ dev mng summary :
+ un device mqtt ha topic e pubtopic :
+ - A un topic che sono 
+ 	messaggi ricevuti dal dev , e relativi subtopic che possono esere pensati come canali addizionali , es url/event  con request e response (del request sul B)
+  e un 
+ -B pubtopic che sono i messaggi trasmessi da fv3 con relativi subtopic , es url con  request ( il response avviene sul A con pari urlresponse) e request
+ in pratica e come avere un websocket tra fv3 verso il device e viceversa con emit(A)  e relativi .on handler (B)
+ 
+ un custom device i canali tra fv3 e device sono rappresentati da cmdshell  (B con un solo subtopic e relativo return ) e/o da pubshell
+  quindi fv3 lancia un writesync es start splits , si lancia lo shel e la sua risposta puo essere inserita 
+  - nel pubtopic che da al device principale che poi lo puo rigirare nel topic 
+  - rigirato come nei var dev type 2 ne topic dove trovo la risposta del device che ritorna nel readsync 
+  
+  
+  nb un pubshell si ottiene anche col meccanismo  virt2realProbMap in models.js !
+    _____________________________
+    
  	 

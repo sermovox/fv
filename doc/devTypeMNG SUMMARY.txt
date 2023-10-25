@@ -1,0 +1,194 @@
+        //		***************  dev state type  MNG SUMMARY **************   :
+        	i message vengono processati in client.on('message', msgListFact(waitListReturn,waitPromiseRes,CheckPrevMessageEnd));
+        	
+        	in  msgListFact  dapprima si vede se ci sono listener in corso di soddisfazione con un precedente messaggio :waitListReturn = true, poi si passa al esame del message per il caricamento nelle queue :
+        	- goonP();
+        	
+        	goonP() esamina il topic se registrato in adev = regTopic(topic)
+        
+        // verifica di dove pubblicano i var dev:
+        // - i type 1 ,rele (numbSubscr()) hanno topicPub=.../command si comportano per il resto come i type 2. in pratica il ctl scrive su topicPub e riceve conferma su topic .
+        //		??:  gli ext ctl non scrivono su topicPub se vogliono cambiare lo state.relais con un interrupt handler=eM.iodev.relais_[ind].int (lancia setPump())scrivendo su pub topicNodeRed 
+        //			
+        //		UUGG invece se il ctl externo vuole direttamente cambiare il dev value puo scrivere sul topicPub che è il comandtopic del dev fisico
+        //				(mentre il cmdtopic del dev type 2 è )
+        //			cosi che poi viene emesso (da shelly rele) in topic il che  conferma del cambio stato 
+        //			ma a questo punto manca il check che verifica lo scostamento dallo state.relais e si dovrebbe (todo ) lanciare un int opportuno  dopo un delay di 5 sec che reimposta il consolidate che setta il state.relais 
+        //				consolidate() è la regola che assegna il state.relais del rele considerando sia le proposte dei fv3 (program algo ) che del ext ctl,
+        //				senza lasciare che essi si sovrappongono disordinatamente nel settare il state.relais.devx .
+        //				
+        // - i type 2 var (numbSubscr()) hanno topicPub=null quindi, in conseguenza di un writesync(), pubblicano su topic (quindi ricevibili dagli ext ctl che sub il topic ) e al ricevimento (su topic e non sul cmdtopic ) essendo sender=dev  ,
+        //			  fromthisctl = true e quindi non vengono caricati in dev queue in quanto lo state si basa piuttosto sul state.relais e non il dev queue !
+        //				(non fillo il queue per risparmiare una inutile operazione in quanto uso lo state.relais per leggere lo stato)
+        //			
+        //		gli ext ctl scrivendo un pub potrebbero fillare il topic del dev x come si fà per i type 4 che usano il queue del topic come state (daleggere con readsync() ma non in type 2 che usa state.relais come state 
+        //			quindi per il type 2 dobbiamo lanciare in interrupt che setta una oggetto temporaneo eM.state.lastUserAlgo ( che rappresenta l'istanza di chi lo ha settato: il  ctl esterno NRed/HA o il anticipatealgo ) 
+        //			che poi viene usato dal master program algo per settare tutti gli state.relais , comopreso lo stesso state.relais.x 
+        //				simulando un algo ( manual algo ) setta il manual algo result che assieme al normale (interno) anticipate algo, concorrerà in consolidate() (lanciato dal master program algo), a definire il next  state.relais  
+        //		
+        //					sarà quindi un pub  sul topicNodeRed lanciato dal ctl esterno HA (homeassistant) come automation triggerato  dal cambio del select sul ext ctl entity
+        //								(il select di home assistant rappresenta la proposta del ext ctl che trasmessa via cmdtopic lancera in message receive  il interrupt che lancia un  manual algo ()
+        //									che setta eM.state.lastUserAlgo ( che rappresenterà l'istanza del ctl esterno nel consolidate() che settera il state.relais.devx )
+        //								 )
+        //							(in home assistant ho un menu/select manual force set che da istruzioni al fv3 di cambiare le regole di consolidate che poi in effetti setta tutti i numbSubscr dev compreso il dev stesso
+        //								. nb non si cambia solo il state.relais del dev perchepoi verrebbe a essere corretto dal consolidate dopo qualche minuto ? 
+        //									(nb  state.relais e' usato dai type 2 come state  al posto di dev queue ! )
+        //								  nb lo state del var device (che  comanda di norma anche un rele ) potrebbe essere copiato su un rele dev  da consolidate !
+        //								  nb il settaggio complessivo del state.relais (responsabilità di consolidate() ) viene registrato in ext ctl direttamente come property del select 
+        //									quando (comandato da chi lancia il writeSync (meglio da un consolidate che media le varie proposte proventienti dagli algo e ext interrupt(manual algo))
+        //									il writeSync srive sul dev topic (che processato (in fv3 msg receive) non  alimenta il dev queue per i type 2  , 
+        //									mentre nel msg receive del ext ctl che è il json_attributes_template del select imposta la property del select
+        //										nb la property del select puo essere copiata su un entity il cui stato rappresenta direttamente il settaggio del var dev (type 2) che è responsabilità del fv3 !
+        //								 ) 
+        //							)
+        //						che, essendo un cmdtopic in fv3 message receive, a lanciare un interrupt in base al .url che puo fare : 
+        //						- old not used now : fa manual update di state.relais () con setPump() ( not std)
+        //						- lancia un algo o direttamente aggiorna il suo lastresult eM.state.lastUserAlgo ( letto poi dal program algo in consolidate )
+        //						- anche i cmdtopic non vengono caricati in queue
+        
+        //		QUESTION : ma che senso ha un handler=eM.iodev.relais_[ind].int che lancia setPump() ???? dovrebbe lanciare un manual algo come fa il browser con evento manualAlgoProposal. 
+        //			infatti in consolidate i manulalgo setting sovrascrivono le indicazioni del algo anticipate
+        
+        // - i type 4 var (probSubscr()) hanno topicPub=null quindi,al lancio di writeSync (nb non fillano, come gli type2, lo state.relais che non ha item specificoper i probSubscr dev):
+        //			 pubblicano su topic e al ricevimento (su topic e non sul cmdtopic ) essendo controllabile sender=dev  ,  fromthisctl = false e COMUNQUE vengono caricati in dev queue 
+        //				( usato per mantenere lo stato(reperibile leggendo con readSync) )
+        //		gli ext ctl normali scrivono lo stesso sul topic e quindi fillano (direttamente senza lanciare un interrupt) il queue che funge da stato, 
+        //			nb :  ma potrebbero lanciare in futuro un cmd topic (=topic +  /NReadUser/cmd )  che comunque filla il dev queue ma anche potrebbero lanciare prima un loro interrupt ( cosi puo lanciare un algo prima di fillare il queue)
+        
+        //		added 27082023 :
+        //			si potrebbe anche settare il topicPub cosiccche potrebbero comandare anche un rele shelly senza usare uno state come fa il type1
+        //			essi possono essere writeSync da un qualsiasi dev di tipo 1 e 2 definendo l'uso del dev in getio() see ZZTTYY
+        
+        
+        //	quando ho bisogno di leggere lo status  non ho state.relais e devo chiamare readSync che legge l'ultimo valore in dev queue indipendentemente che sia stato scritto da this ctl o ext ctl
+        //	
+        
+          // question what is difference among type 1 and 2 ? . add also a topicPub property ?????
+          		- a type 2 (var dev ) essenzialmente ha un format nel publicare e ricevere i msg, entrambi hanno la capability di node-red cmdtopic ( interrupt), entrambi hanno state.relais_
+          		-  type1 obbligatoriamente ha pubtopic diverso da topic e avendo un device fisico che ricopia poi il pubtopic in topic 
+                        //      so type 1 devono avere pubtopic diverso da topic ed è meglio che non facciano un readSync per ricvare lo state che puo avere ritardo 
+                        //		ma se lo state e' modificato da altri dall'esterno allora o gli altri usano i nodered topic ( e quindi si lanciano interrupt) o se no devo readSync ogni tanto per vederese qualcuno ha modificato il topic
+                        // 	mentre i type 2 possono pub anche su topic ma essendo formattati si puo capire dachi vengono, comunque e' meglio che gli ext ctl usino il nodered topic !! 
+          		- mentre i type 4 non hanno lo state.relais_ quindi devono essere letti con readSync()  per ricavare lo state
+          		- tutti type 1,2,4 hanno la possibilità di avere un pubtopc != topic
+          		
+          		// todo : aggiungere un protocollo generico per i shelly like con possibilita di indicare un pubtopic per i type 1 (rele)
+          		
+          		
+          		
+         added 24102023:
+  * i type 2 e 4 implementano internamente un device fisico che invece ha una sua parte nel type 1, 
+      quindi realizzano all'interno del pubtopic il comportamento del device fisico che esegue il comando e poi riflette l'azione fornendo dati nel topic ( comunque disponibile all'interno e all'esterno (nodered/ha))  :
+     - si riceve il pubtopic msg (dopo aver updatato lo state.relais interno), si esegue il comando e poi si manda sul topic la risposta corrispondente al nuovo stato del dev che usualmente in payload e' il nuovo valore assegnato
+    la differenza tra type 2 e type 4 è che il type 2 mantiene in state.relais lo state interno e quindi non c'e' la necessita di leggere il queue di topic (che diventa lo state del dev type 4 ) x averlo  
+    	mentre i ctl esterni (node red e ha) dovranno comunque usare il topic x avere info sullo stato del dev
+  * il comtopic (nodered/ha cmd) processa l'evento esterno via interrupt che termina con un nuovo STATE fatto da :
+  		- state.relais / lastxxxalgo/ lancio di ulteriori pub su dev.
+  	esso permette permette di gestire l'evento/cmd esterno e informare poi gli altri algo  		
+          		
+___________________________________________________________________________________
+
+listener management : copy from mqtt.js :
+
+/*
+fc.prototype.readSync  =//  return the promise DDEERR resolving 0/1 or null if reject
+ () {
+    return getgpio(this.cl);
+    async function getgpio(clas){//  returns DDEERR=rread(true), the readSync returned promise .
+
+
+
+            // ****   MNG SUMMARY  sunto 113052023
+            // chiamo rread ricursivamente (nel caso lo richiamo (rread) se un valore non mi soddisfa e allora lo richiedo ma senza guardare il current queue , ossia forzo un listener )
+            // se trovo queue allora  prendo last val (a meno che non ci sia per un dev var 'ctlpresent')
+            // altrimenti attendo la risoluzione di un listener che aggiungo alla lista 
+            // caricamento valore letto  secondo tipo (rele/var/probe) e protocollo 
+            // chiudo chiamando ending( valore da caricare ). nb se null significa ho letto valore erraro o nullo , sta per reject !
+
+
+                                    retProm=new Promise(function (res,rej){// promise DDEERR1 
+                                                resRetList=res;});//  the resolving func reference: the cb called to resolve the promise calling res()
+
+                                    async function rread(checkQueueFirst=true)// rread() returns the promise DDEERR
+                                        {
+                                            if (checkQueueFirst && curlength > 0) 
+                                            {
+                                                re = mqttInst.status[gp][curlength - 1];
+                                                if (re == '>ctlpresent')
+                                                     return rread(false);
+                                            } else {// add a listener  
+                                                re = await stList(); // await the promise XXTT
+                                            }
+                                            // converti il valore letto re ( o perchè presente in queue o perche risolto dal listener dopo un periodo secondo tipo (rele/var/probe) e protocollo 
+                                            .....
+                                                return ending(re);// the same re
+                                            ....
+                                                resetListener = true;// or just add a new listener in listener queue  ,     MMJJUU
+                                                return rread(false);// relaunch rread
+                                            ...
+                                            if (re == '>ctlpresent')
+                                                resetListener = true;// or just add a new listener in listener queue  ,     MMJJUU
+                                                return rread(false);// relaunch rread
+
+                                            
+                                            function stList() {//(dev,token){
+                                                            // we dont have any value in queue nor a valid value. so add a listener promise that will resolve when a valid value fills the dev queue
+                                                            // or reject if the waiting algo that request the readSync  cant goon 
+                                                            // return the promise that  is added to the dev listener list, the promise is resolved when the listener ,is called with the next  msg
+                                                            return new Promise((res, rej) => // XXTT resolved when the cb/listener is called by a following  coming msg thread. qui e' un listener di una funzionalità gia attivata 
+                                                                                            // (cioe non devo chiamare un funzione e passarli il cb , giusto add un listeren in una lista che verra chiamata)
+
+
+                                                                    {theListener =  // the XXTT listener promise resolving function ( will call res() : resRetList !)
+                                                                        (function (id_) {   // closure , the listener resolving function factory
+ 
+                                                                                        return function (lastmsg, test = 0) {// the listener  promise resolving function ( will call res()!). is sync function , so return to the caller (IIOOPP) after eventually added a new listener 
+
+
+                                                                                                if (!fired) {
+                                                                                                    listCall++;
+                                                                                                    console.log(' stlist() : listener x dev : ', dev, ', registered to wait for next message, in request ts #', ts, ', in listener position # ', listCall, ' is called by  the message the listener was waiting for.  so cb with message: ', lastmsg);
+
+
+
+
+
+                                                                                                    res(lastmsg);// resolve the waiting XXTT quando si chiama il listener con un prossimo msg
+   
+                                                                                                    fired = true;
+                                                                                                    return retProm;// the returned pro
+                                                                                                else return
+                                                                                        })(ts)// the id 
+
+                                                                    if (resetListener) {// riproporre il listener !
+                                                                        resRetList(resetListener);// say to message income code to reset (riproporre )the listener perche il msg non va bene : MMJJUU
+                                                                        console.log(' stlist() : listener x dev : ', dev, ', resolving promise, say to message income to reset the current listener that must wait for a following message, in request ts #', ts);
+                                                                    } else {
+                                                                        console.log(' stlist() : listener x dev : ', dev, ', say to message income to set a new ( not resetted) listener to wait for next message, in request ts #', ts);
+                                                                        //in this case we were reading frm msg queue because not null . so we can just add to current listener array a new listener 
+                                                                        mqttInst.statusList[dev].push(theListener);// set for first time the listener in message incom
+
+
+                                                                    }
+                                                                    // set the timeout :
+                                                                    const myto = setTimeout(() => {
+                                                                                if (resetListener) resRetList(theListener);    // better PPLLKK  
+                                                                                res('');// timeout readsync result :  would be better reject ! or  null ????
+                                                                                }, to);
+
+
+
+
+                                         function ending(value) {
+                                            resRetList(null);// no iterate listener 
+                                            console.log(' ** readsync()  , using instance ', mqttInst.id, ' for portid ', gp, ', is ending . reading val: ', value, ', now current dev queue is : ', mqttInst.status[gp], ' req id ', ts, ' listener chained ', listCall);
+                                            console.log(' ** readsync()  ,debug  mqttTopPub is  ', mqttInst.mqttTopPub);
+                                            return valCorrection(value);
+                                            }
+                                        }// ends rread()
+                                return rread(true);// returned by getgpio()
+                                }   
+
+
+    }
+*/   	

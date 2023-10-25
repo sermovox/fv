@@ -1,6 +1,8 @@
 let mqtt=require('../mqtt');// nb this module should be init by fv3 itself !!!  ceck it !
-let Gpio=false,rs485='rs485.py';// rs485 sh script on base dir
-const PRTLEV=5;// print log level 
+const custDev=require('./custDevDef');
+let Gpio=false,rs485='rs485.py',pdate;// rs485 sh script on base dir
+const PRTLEV=5,DEBUG=true;// print log level 
+
 
  /*                               // >>> so in relaisEv there are the names !
 await getio(16, 'out'),
@@ -19,12 +21,12 @@ await getio(6, 'out')
 // adding a not state custom device to act when a regular dev (numbSubscr or probSubscr of type 4 ) is writeSync
 const deasync= require('deasync');// thats mandatory using async exec()
 const { exec } = require('child_process');
-
+/*
 let custDev = {// custom devices cmd ctl triggered by a set on a regular dev
   66: async function (set_v = 0) {// state value are inverted , inversion active:  0<>1.
     // this ctl will start stop all splits by modbus ctl
     let set_;
-    if (set_v == 1) set_ = 0; else set_ = 1;
+    if (set_v == 1) set_ = 0; else set_ = 1;// invert 0 <> 1 
     const adds = ['2', '3', '4', '5'];// addresses
     console.log(' getio.js, on portid=110 writeSync() force a customdev write with param ', set_);
     //adds.forEach((val, ind) => {
@@ -67,7 +69,7 @@ let custDev = {// custom devices cmd ctl triggered by a set on a regular dev
   }
 
 };
-
+*/
 /*;
 
 let fff={66:async function(set_=0)// custom dev interface to add action on cust device (shell interface) attivabili su std writesync di  state supported  numbsubscr and probsubscr devs
@@ -111,74 +113,80 @@ let fff={66:async function(set_=0)// custom dev interface to add action on cust 
 async function getio(num, iotype, ind, ismqtt = false,mqttInst) {// returns promise , resolving into   {ctl,devNumb:ind,type:'gpio'}
                                                                 //   .ctl=, gives:{readSync,writeSync} working on io in  closure clos 
                                                         // iotype = 'out'   'in-var' dice dove trovare la cfg di model (mqttnumb o mqttprob)e come costruire il ctl 
-                                                        // num is the portid
-    let ctl,custF=null;
-    if (ismqtt){
-  
-      let retu,injCustDev=null;
-        if(mqttInst.avail) {
-        // antipattern: retu=await mqtt.fact(num);//
-          if(num==66)
-          console.log('lopo');
-          console.log('lopo is ',num,' ',ind);
-        custF=custDev[num];
-        // nb if the not state devto add is a std shelly dev we can simply add a std type 4 var dev with topic and pubtopic the topic of shelly dev !!!!!!!!!!!!!!!!!
+                                                        // num is the portid, can be null usually if ismqtt false
+    let ctl
+    // ,custF=custDev[num]
+    ;
+  if (ismqtt) {
 
-        if(custF){injCustDev=injCustDev_;}
+    let retu, injCustDev = null;
+    if (mqttInst.avail) {
+      // antipattern: retu=await mqtt.fact(num);//
+      //if (num == 66)  console.log('lopo');
+      console.log('lopo is ', num, ' ', ind);
+    
+      // nb if the not state devto add is a std shelly dev we can simply add a std type 4 var dev with topic and pubtopic the topic of shelly dev !!!!!!!!!!!!!!!!!
 
-        retu=mqttInst.fact(num,ind,iotype,injCustDev);// returns promise , resolving into   {ctl,devNumb:ind,type:'gpio'}
-                                        //  if iotype='out' : a state.relais pump/rele or var mqtt dev 
-                                        //    or if (iotype='in-var' : a probe or var  mqtt dev 
-                                        //    or if (iotype='int' , num=0   : a ctl interface using a dummy var
-                                        // iotype: is the capability requested and must match the dev registration data done in init()
+      // if (custF) { injCustDev = injCustDev_; }
 
-                                        if(num==66)
-                                        console.log('lopo');
-        }else retu= null;
-      return retu;//
-  
-  
-    } else {// embed raspberry gpio, presently only 'out' iotype, type 1
-  
-            // aa
-               /*
-      return function clos() {
-  
-        const myio = new Gpio(num, iotype);// static closure obj
-         // never null
-        return {
-          readSync: function () { return myio.readSync(); },
-          writeSync: function () { return myio.writeSync(); }
-        }
-              // aa   }();
-        */
-  
-        // bb
-        console.log(' creating gpio parm: ',num,iotype);
-        if(Gpio){
-          ctl=new Gpio(num, iotype);custF=custDev[num];
-          if(custF){addCustDev(ctl,custF);}
-          return {ctl,devNumb:ind,type:'gpio'}; // as async will return a Promise.resolve(aval)
-      }else return {ctl:null,devNumb:ind,type:'gpio'};// in no raspberry return a dummy obj with .ctl=null
-  
-  
+      retu = mqttInst.fact(num, ind, iotype, injCustDev_);// returns promise , resolving into   {ctl,devNumb:ind,type:'gpio'}
+      //  if iotype='out' : a state.relais pump/rele or var mqtt dev 
+      //    or if (iotype='in-var' : a probe or var  mqtt dev 
+      //    or if (iotype='int' , num=0   : a ctl interface using a dummy var
+      // iotype: is the capability requested and must match the dev registration data done in init()
+
+      if (num == 66) console.log('lopo');
+    } else retu = null;
+    return retu;//
+
+
+  } else {// embed raspberry gpio, presently only 'out' iotype, type 1
+
+    // aa
+        /*
+    return function clos() {
+    
+    const myio = new Gpio(num, iotype);// static closure obj
+    // never null
+    return {
+    readSync: function () { return myio.readSync(); },
+    writeSync: function () { return myio.writeSync(); }
     }
-  function injCustDev_(ctl){
-    addCustDev(ctl,custF);
+      // aa   }();
+    */
+
+    // bb
+    console.log(' creating gpio parm: ', num, iotype);
+    if (Gpio && num != null && num > 0 && num < 28) {
+      ctl = new Gpio(num, iotype); 
+      injCustDev_(ctl,num);// add in writesync custF, name=num in gpio
+      return { ctl, devNumb: ind, type: 'gpio' }; // as async will return a Promise.resolve(aval)
+    } else {
+      console.log(' getio, dev number ', ind, ', creating null ctl , type: ', iotype, ' but  forcing to gpio');
+      return { ctl: null, devNumb: ind, type: 'gpio' };// in no raspberry return a dummy obj with .ctl=null
+    }
+
   }
 
-  function addCustDev(ctl,custF){// add customdev write operation before call std writeSync . 
+
+  function injCustDev_(ctl,custName){// run writeSync(val) deAsync it. todo: would be better migrate this call inside writeSync passing 
+    let custF=custDev[custName];
+    if(custF) addCustDev(ctl,custF);
+  }
+
+  function addCustDev(ctl,custF){// changes the writeSync() to add custom dev write operation (then followed by call std writeSync) . 
                                 // see https://stackoverflow.com/questions/21819858/how-to-wrap-async-function-calls-into-a-sync-function-in-node-js-or-javascript
     const ws=ctl.writeSync.bind(ctl);// std writeSync
-    ctl.writeSync=function(val){// reset writeSync. sarebbe tutto piu facile se usassimo un exec sincrona !!!
+    ctl.writeSync=function(val,addparm=null){// reset writeSync. sarebbe tutto piu facile se usassimo un exec sincrona !!!
       //function AnticipatedSyncFunction(){
         var ret,answ;
        
-        setTimeout(function(){// unresponsive shell cmd 
+       
+        setTimeout(function(){// unresponsive shell cmd , anyway return true
             ret = true; },1500);
 
-            custF(val).then(()=>ret=true).catch(()=>ret=false);// 
-          answ=ws(val);// waiting for timeout or promise custF run std writeSync
+            custF(val,rs485,addparm,exec).then(()=>ret=true).catch(()=>ret=false);// 
+          answ=ws(val);// waiting for timeout or promise custF run std writeSync . ws(val)=ctl.ws(val) ?, so why bind ?
         while(ret === undefined) {// wait anyway for custDev[num]
           deasync.runLoopOnce();
         }
@@ -214,12 +222,14 @@ item=await getio(6, 'out');relais_.push(item);
 
   module.exports =  {init:// no|, arrow function take this from outer object , the obj n which you call the function !!
                           // (gp)=>{
-                            function (gp,rs485_){
+                            function (gp,rs485_,pdate_){
                               rs485=rs485_;
-                              Gpio=gp;return this;},
+                              Gpio=gp;
+                              pdate=pdate_;
+                              return this;},
                   getctls:function(mqttInst,gpionumb,mqttnumb,isProbe=false,mqttWebSock){// isProb : look cfg in mqttprob , not in mqttnumb ! so in this case mqttnumb=cfg.mqttprob not mqttnumb=cfg.mqttnumb
                                                                     // mqttnumb=mqttnumb/mqppprob   the dev ids descriptions x the 2 type of device
-                                                                    // gpionumb  is the alternative in case of mqttnumb                                                
+                                                                    // gpionumb  is the raspberry alternative in case of mqttnumb                                                
 
 
                                                                     // old :
@@ -290,7 +300,7 @@ function fillctls() {// main run
 
 for(i=0;i<numOfDev;i++){
 // first ctl :
-if(mqttInst&&mqttInst.avail&&mqttnumb[i]){// try first to get the mqtt device 
+if(mqttInst&&mqttInst.avail&&mqttnumb[i]){// try first to get the mqtt device if mqttnumb[i]!=null
 // use a mqtt device topic as gpio as registered in BBVV
 // attach the mqtt io ctl in some relais index, here 0
 
@@ -337,7 +347,7 @@ resolve(//(GGDDSS)  BGT returns the devices subscribed in untill to. some dev ca
   devmap:resolved});// devmap=[{devNumb,devType,portnumb},,,,],release the ctl array , max time to resolve the ctl has got, some item can be null
 }, to);
 // >>>  or wait x all before max time to resolve the SSSDD promise 
-Promise.all(promises)
+Promise.all(promises)// send all resolved promise resu and its descriptors resolved
 .then((results) => {
 clearTimeout(myto);
 console.timeEnd('mqtt connection');
@@ -359,12 +369,13 @@ function fillProm(pr){// called for increasing index 0,1,2,,,,numOfDev by fillct
                       //    - resolved[resu[it.devNumb]=
                       //           >>>  at the end return/resolve (GGDDSS) in  {ctls:resu,devmap:resolved}  
 ///
-resolved.push(null); // create the item for index =it.devNumb
+resolved.push(null); // create the item for index =it.devNumb that must be the munber on which thr pr works !
 pr.then((it)=>{// when resolved fill items of resolved[devNumb]={devNumb,devtype,portnumber},resu[devNumb]=ctl
   // it={ctl:new fc(gp,ind)/null,devNumb:index,type:'mqtt'};
   // it={ctl:new Gpio(num, iotype)/null,devNumb:ind,type:'gpio'}
   
-  /* 05052023 got  : it={ctl:{cfg:mqttnumb/mqttprob[dev],
+  /* 05052023 got in mqtt case
+                : it={ctl:{cfg:mqttnumb/mqttprob[dev],       PRX
                              cl:1,
                               devnumb:0,
                               gpio:11,
@@ -381,19 +392,77 @@ pr.then((it)=>{// when resolved fill items of resolved[devNumb]={devNumb,devtype
                         devNumb:0,
                         type:'out'
                       }
-      
+   14102023 mqtt case :
+   {
+  ctl: {
+    gpio: 54,
+    devNumb: 2,
+    type: "in-var",
+    cfg: {
+      portid: 54,
+      subtopic: "var_gas-pdc_",
+      varx: 3,
+      isprobe: false,
+      clas: "var",
+      protocol: "mqttstate",
+    },
+    mqttInst: {},
+    int: null,
+    cl: 4,
+    isOn: false,
+  },
+  devNumb: 2,
+  type: "mqtt",
+  topic: "@Casina_API@ctl_var_gas-pdc_3",
+  cl_class: "var",
+  protocol: "mqttstate",
+}
   */
-  
+  //if(DEBUG)
+  if(it.ctl){it.ctl.writeSync_=function(val){
+    console.log(' writeSync , at ' ,pdate().toLocaleString(),', called for plant:  on plant ',mqttInst.plantName,' , dev number/index : ',it.devNumb,' value: ',val);  
+    return it.ctl.writeSync(val);
+  }
+
+  }
+
+
   console.log(' getio.js, fillctls() , got it a new  ctl dev resolved.  devInfo Origin (mqttnumb/mqttprob): ',it.type,' , dev number/index : ',it.devNumb,' is ctl null? : ',it.ctl==null);//,' promise resolved in def time in :',JSON.stringify(it.ctl,null,2));
-  if(it.ctl)console.log(' ..... , not null ctl : devid/portid/gpio ',it.ctl.gpio,', on plant ',mqttInst.plantName,' , FEATURES : dev type= ctl.cl (rele var/probe var used in readsync ) ',it.ctl.cl,',  class ',it.cl_class,', protocol ',it.protocol,' ,mqtt registered topic ',it.topic);//,' promise resolved in def time in :',JSON.stringify(it.ctl,null,2));
+  if(it.ctl)console.log(' ..... , not null ctl : portio/devid/portid/gpio ',it.ctl.gpio,', on plant ',mqttInst.plantName,' , FEATURES : dev type= ctl.cl (rele var/probe var used in readsync ) ',it.ctl.cl,',  class ',it.cl_class,', protocol ',it.protocol,' ,mqtt registered topic ',it.topic);//,' promise resolved in def time in :',JSON.stringify(it.ctl,null,2));
   
-  if(it.ctl)console.log(' ..... it has .readSync: ',!!it.ctl.readSync);
+  if(it.ctl)console.log(' ..... it has .readSync: ',!!it.ctl.readSync,' and writeSync(): ',!!it.ctl.writeSync);
   
   resu[it.devNumb]=it.ctl;// the available ctl array, 
+
+/* ex of resolved array  items :
+                                        { devNumb: 4, devType: 'gpio', portnumb: 26 },
+																			  {
+																			    devNumb: 5,
+																			    devType: 'mqtt',
+																			    portnumb: {
+																			      portid: 66,
+																			      clas: 'var',
+																			      varx: 4,
+																			      isprobe: false,
+																			      protocol: 'mqttstate',
+																			      subtopic: 'var_split_'
+																			    }
+																			  },
+                        nb portnumb can be null if ctl is null  / number / descr obj in models.js
+*/
   resolved[it.devNumb]={devNumb:it.devNumb,devType:it.type};
   if(it.ctl==null){console.log(' nb ( used in debug) ctl of type gpio are null if this server is not raspberry: ' );
+  // portnumb property:  can be null if ctl is null  / number / descr obj in models.js
   resolved[it.devNumb].portnumb=null;// no hw device found, use a dummy device reading always 0
-  }else if(it.type=='mqtt')resolved[it.devNumb].portnumb=mqttnumb[it.devNumb];else resolved[it.devNumb].portnumb=gpionumb[it.devNumb];
+  }else if(it.type=='mqtt')
+    if(it.devNumb<mqttnumb.length)
+    resolved[it.devNumb].portnumb=mqttnumb[it.devNumb];// must be on mqttnumb
+    else{
+      if(it.ctl.gpio==0)// is a dummy portid=0  see models.js > mqttWebSock:        {portid:0,subtopic:'mqtt_websock_',varx:0,isprobe:false,clas:'int',protocol:'mqttxwebsock'}, 
+      resolved[it.devNumb].portnumb=mqttWebSock;
+    }
+
+  else resolved[it.devNumb].portnumb=gpionumb[it.devNumb];
   });// the available ctl status . mapping relaisEv to some dev
   
   promises.push(pr);

@@ -42,7 +42,7 @@ cfgs.cfgMarsonLuigi={ name:'MarsonLuigi_API',//run in raspberry
       //{portid:11,clas:'out',protocol:'shelly',subtopic:'shelly1-34945475FE06'},// clas 'out' or 'var' , same dim than gpionumb
         null,// use gpionumb !                                                                                // subtopic: other protocol, different from shelly, can have different feature ex subscriptTopic and PubTopic !
       null,null,null,null,
-             {portid:66,clas:'var',varx:4,isprobe:false,protocol:'mqttstate',subtopic:'var_split_'}, // ex of a shelly like dev . agganciato al customdevice shell per accendere gli split 
+             {portid:66,clas:'var',varx:4,isprobe:false,protocol:'mqttstate',subtopic:'var_split_'}, // ex of a shelly like dev . agganciato al customdevice shell per accendere gli split : custDev.66
                         // question what is difference among type 1 and 2 ? : 
                         //              -       different topic formatting type 1 
                         //              -       obbligatoriamente ha pubtopic diverso da topic e avendo un device fisico che ricopia poi il pubtopic in topic 
@@ -57,7 +57,9 @@ cfgs.cfgMarsonLuigi={ name:'MarsonLuigi_API',//run in raspberry
                                                                                 // nbnb clas e isprobe sono correlati !! > semplificare !
                                                                                 // clas='var'/'probe'or 'in'
 
-      {portid:54,subtopic:'var_gas-pdc_',varx:3,isprobe:false,clas:'var',protocol:'mqttstate'}],// a var
+      {portid:54,subtopic:'var_gas-pdc_',varx:3,isprobe:false,clas:'var',protocol:'mqttstate'},
+      {portid:777,subtopic:'var_state_',varx:0,isprobe:false,clas:'var',protocol:'mqttstate'}// state var , usually portid=777
+        ],
 
                 // a var  add also write capabiliy , so can be used as gen state var to modify with mqtt app/node red . as mqtt num will ha a frame below relay state in browser !
         pythonprob:[2,4,8],// virtual modbus python probs  x : g , n , s  virtual device zones 
@@ -84,25 +86,33 @@ cfgs.cfgMarsonLuigi={ name:'MarsonLuigi_API',//run in raspberry
                      
                         // or a function(state) returning [true,false,null,,,,]
         ,virt2realMap:[0,1,2,3,4,5,6,7],// std virtual group , map only if >=0 , some bugs: so use identity only
-        virt2realProbMap:[-1,1000,-1,1001,-1,-1,-1],// algo works on index virt2realProbMap[0] of :
+        // virt2realProbMap:[-1,1000,-1,1001,-1,-1,-1],// algo works on index virt2realProbMap[0] of :
+        virt2realProbMap:[2,1000,-1,1001,-1,-1,-1],// algo works on virtual index 1 ,rindex= virt2realProbMap[1] is the index in :
                                 //  mqttprob
-                                //  or ( if>1000) es 1003 > pythonprob[3] is the address to inquire modbus 
-                                //  to find probs relating to g, virtual index 2 of gpionumb/mqttnumb pump dev
-                                //  index 1 is the same but relating to n , virtual index 3 of gpionumb/mqttnumb pump dev
-                                // better:
+                                //  or ( if>1000) pythonprob   
+                                //  to find probs relating to :
+                                //      g, virtual index 2 of gpionumb/mqttnumb pump dev
+                                //              the g temp prob is got by a python shell referring to address pythonprob[virt2realProbMap[1]]
+                                //      n , virtual index 3 of gpionumb/mqttnumb pump dev
+                                //              the n temp prob is got by a python shell referring to address pythonprob[virt2realProbMap[3]]
+                                //      s  virtual index 4 of gpionumb/mqttnumb pump dev
+                                // better if < 1000 : 
                                 // virtual modbus python probs used by algo.  x : g , n , s  virtual zones temp/humid device map to  mqttprob dev
-                                // algo wants to find mqttprob index of :[g temp,g humid,n temp,n humidg, s temp,s humid]
+                                // algo wants to find mqttprob and look at virt2realProbMap whose index are so mapped :
+                                //  index of virt2realProbMap > [ha state dummy var device,g temp,g humid,n temp,n humidg, s temp,s humid]
                                 // -1 for undefined
+                                // virtualindex 0 is reserved to state pub var dev on mqttprob[virtualindex[0]]
 
         relaisDef:[false,false,false,false,false,false,false,true],// dafault value (if none algo propose true/false)
         invNomPow:6,
         huawei:{inv:"1000000035350464",bat:"1000000035350466"}// devid bunis 
         };
+
 cfgs.cfgMarsonLuigi_={ name:'MarsonLuigi_API_',// run in no raspberry
         apiPass:'xxxx',// to do
         // index : the index of a device . iesimo device is got with getctls(x,y) that chooses from iesimo x or y 
         // portid : the id of a device, must be unique >0. 
-      gpionumb:[12,16,20,21,26,19,13,6],// (dev id or portid) raspberry device info. number is the raspberry gpio , null means no connection to dev available
+        gpionumb:[ null,null,null,null, null,null,null,null],// (dev id or portid) raspberry device info. number is the raspberry gpio , null means no connection to dev available
       //mqttnumb:[11,null,null,null,null,null,null,null],// mqtt device info/id/port. number is the device id to subscribe
 
       /* mqtt staff 
@@ -142,7 +152,7 @@ cfgs.cfgMarsonLuigi_={ name:'MarsonLuigi_API_',// run in no raspberry
       {portid:54,subtopic:'var_gas-pdc_',varx:3,isprobe:false,clas:'var',protocol:'mqttstate'}],// a var
 
                 // a var  add also write capabiliy , so can be used as gen state var to modify with mqtt app/node red . as mqtt num will ha a frame below relay state in browser !
-        pythonprob:[2,4,8],// virtual modbus python probs  x : g , n , s  virtual device zones 
+        pythonprob:[2,4,8],// virtual modbus python probs  x : g , n , s  virtual device zones temperatures
       relaisEv:['heat','pdc','g','n','s','split'
         ,'gaspdcPref','acs'
         ],// dev name x mqttnumb cfg  will appears in browser list of relays // >>>>>>>>> todo   add here and in fv3 a new item : heatht !!!!!!!!!!!!!!
@@ -166,15 +176,22 @@ cfgs.cfgMarsonLuigi_={ name:'MarsonLuigi_API_',// run in no raspberry
 
                         // or a function(state) returning [true,false,null,,,,]
         ,virt2realMap:[0,1,2,3,4,5,6,7],// std virtual group , map only if >=0 , some bugs: so use identity only
-        virt2realProbMap:[-1,1000,-1,1001,-1,-1,-1],// algo works on index virt2realProbMap[0] of :
+        //virt2realProbMap:[-1,1000,-1,1001,-1,-1,-1],// algo works on index virt2realProbMap[0] of :
+        virt2realProbMap:[3,-1,-1,-1,-1,-1,-1],// algo works on virtual index 1 ,rindex= virt2realProbMap[1] is the index in :
                                 //  mqttprob
-                                //  or ( if>1000) es 1003 > pythonprob[3] is the address to inquire modbus 
-                                //  to find probs relating to g, virtual index 2 of gpionumb/mqttnumb pump dev
-                                //  index 1 is the same but relating to n , virtual index 3 of gpionumb/mqttnumb pump dev
-                                // better:
+                                //  or ( if>1000) pythonprob   
+                                //  to find probs relating to :
+                                //      g, virtual index 2 of gpionumb/mqttnumb pump dev
+                                //              the g temp prob is got by a python shell referring to address pythonprob[virt2realProbMap[1]]
+                                //      n , virtual index 3 of gpionumb/mqttnumb pump dev
+                                //              the n temp prob is got by a python shell referring to address pythonprob[virt2realProbMap[3]]
+                                //      s  virtual index 4 of gpionumb/mqttnumb pump dev
+                                // better if < 1000 : 
                                 // virtual modbus python probs used by algo.  x : g , n , s  virtual zones temp/humid device map to  mqttprob dev
-                                // algo wants to find mqttprob index of :[g temp,g humid,n temp,n humidg, s temp,s humid]
+                                // algo wants to find mqttprob and look at virt2realProbMap whose index are so mapped :
+                                //  index of virt2realProbMap > [ha state dummy var device,g temp,g humid,n temp,n humidg, s temp,s humid]
                                 // -1 for undefined
+                                // virtualindex 0 is reserved to state pub var dev on mqttprob[virtualindex[0]]
 
         relaisDef:[false,false,false,false,false,false,false,true],// dafault value (if none algo propose true/false)
         invNomPow:6,
@@ -185,7 +202,7 @@ cfgs.cfgCasina={ name:'Casina_API',// duplicated FFGG
         apiPass:'xxxx',// to do, better use .env
         // index : the index of a device . iesimo device is got with getctls(x,y) that chooses from iesimo x or y 
         // portid : the id of a device, must be unique >0. 
-      gpionumb:[12,16,20,21,26,19,13,6],// (dev id or portid) raspberry device info. number is the raspberry gpio , null means no connection to dev available
+        gpionumb:[ null,null,null,null, null,null,null,null],// (dev id or portid) raspberry device info. number is the raspberry gpio , null means no connection to dev available
       //mqttnumb:[11,null,null,null,null,null,null,null],// mqtt device info/id/port. number is the device id to subscribe
 
       /* mqtt staff 
@@ -215,7 +232,7 @@ cfgs.cfgCasina={ name:'Casina_API',// duplicated FFGG
                         // TODO : add also a topicPub property ?????
       // {portid:10,clas:'var',topic:'gas-pdc',varx:3,protocol:'mqttstate'} ex of 'out' var
       {portid:55,subtopic:'var_gas-pdc_',varx:4,isprobe:false,clas:'var',protocol:'mqttstate'},// a var
-      null],// mqtt device info/id/port. number is the device id to subscribe
+      {portid:12,clas:'out',protocol:'shelly',subtopic:'_shelly1-34945475FE06'}],// mqtt device info/id/port. number is the device id to subscribe
 
 
       mqttprob:[{portid:110,subtopic:'_shellyht-1E6C54',varx:null,isprobe:true,clas:'probe',protocol:'shellyht_t'},//a probe,  the shelly ht probes to register (read only) 
@@ -257,14 +274,18 @@ cfgs.cfgCasina={ name:'Casina_API',// duplicated FFGG
         virt2realProbMap:[3,0,1,-1,-1,-1,-1],// algo works on virtual index 1 ,rindex= virt2realProbMap[1] is the index in :
                                 //  mqttprob
                                 //  or ( if>1000) pythonprob   
-                                //  to find probs relating to g, virtual index 2 of gpionumb/mqttnumb pump dev
-                                //  virtual index 3 is the same but relating to n , virtual index 3 of gpionumb/mqttnumb pump dev
-                                // better:
+                                //  to find probs relating to :
+                                //      g, virtual index 2 of gpionumb/mqttnumb pump dev
+                                //              the g temp prob is got by a python shell referring to address pythonprob[virt2realProbMap[1]]
+                                //      n , virtual index 3 of gpionumb/mqttnumb pump dev
+                                //              the n temp prob is got by a python shell referring to address pythonprob[virt2realProbMap[3]]
+                                //      s  virtual index 4 of gpionumb/mqttnumb pump dev
+                                // better if < 1000 : 
                                 // virtual modbus python probs used by algo.  x : g , n , s  virtual zones temp/humid device map to  mqttprob dev
-                                // algo wants to find mqttprob index of :[g temp,g humid,n temp,n humidg, s temp,s humid]
+                                // algo wants to find mqttprob and look at virt2realProbMap whose index are so mapped :
+                                //  index of virt2realProbMap > [ha state dummy var device,g temp,g humid,n temp,n humidg, s temp,s humid]
                                 // -1 for undefined
-
-                                // virtualindex 0 is reservet to state pub var dev
+                                // virtualindex 0 is reserved to state pub var dev on mqttprob[virtualindex[0]]
 
         relaisDef:[false,false,false,false,false,false,false,true],// dafault value (if none algo propose true/false)
         invNomPow:5,
@@ -276,7 +297,7 @@ cfgs.cfgDefFVMng={ name:'cfgDefFVMng',// duplicated FFGG. now better use constru
         apiPass:'xxxx',// to do, better use .env
         // index : the index of a device . iesimo device is got with getctls(x,y) that chooses from iesimo x or y 
         // portid : the id of a device, must be unique >0. 
-      gpionumb:[12,16,20,21,26,19,13,6],// (dev id or portid) raspberry device info. number is the raspberry gpio , null means no connection to dev available
+        gpionumb:[ null,null,null,null, null,null,null,null],// (dev id or portid) raspberry device info. number is the raspberry gpio , null means no connection to dev available
       //mqttnumb:[11,null,null,null,null,null,null,null],// mqtt device info/id/port. number is the device id to subscribe
 
       /* mqtt staff 
@@ -487,7 +508,7 @@ function defFVMng(user)// factory of a std plant tempalte of FV app
        this.apiPass='xxxx';// to do, better use .env
         // index : the index of a device . iesimo device is got with getctls(x,y) that chooses from iesimo x or y 
         // portid : the id of a device, must be unique >0. 
-      this.gpionumb=[12,16,20,21,26,19,13,6];// useless here
+      this.gpionumb=[ null,null,null,null, null,null,null,null];// useless here
       // (dev id or portid) raspberry device info. number is the raspberry gpio , null means no connection to dev available
       //mqttnumb:[11,null,null,null,null,null,null,null],// mqtt device info/id/port. number is the device id to subscribe
 

@@ -168,22 +168,24 @@ const api={// see https://javascript.info/promise-chaining
       }
   });
   if(PRTLEV>5) console.log('sendstatus() pretty is: ',prettyjson);
-    fn.socket.emit('status',fn.state,prettyjson);// send the status to the browser too, also if the related plant section is not jet visible !
+    if(fn.socket)fn.socket.emit('status',fn.state,prettyjson);// send the status to the browser too, also if the related plant section is not jet visible !
     if(fn.socketNR)fn.socketNR.emit('state',fn.state);// in case a node-red is listening with websocket
 
-    // x home assistant state :
-
+    // x send  home assistant state :
     let statedev=null,stind;
     // old : if(inp&&inp.probMapping) old map=inp.probMapping;// [2,4]
-    if(fn.iodev&&fn.iodev.probs_&&new_scripts.app.plantconfig.virt2realProbMap&&(stind=new_scripts.app.plantconfig.virt2realProbMap[0])>=0){
+    if(fn.iodev&&fn.iodev.probs_&&new_scripts.app.plantconfig.virt2realProbMap&&(stind=new_scripts.app.plantconfig.virt2realProbMap[0])>=0){// the dev to send to home assistant 
         let desTemp=21;// def
-        if(fn.state.lastProgramAlgo.desT)
-              desTemp=fn.state.lastProgramAlgo.desT[0];
+        if(fn.state.lastProgramAlgo&&fn.state.lastProgramAlgo.desT)
+              desTemp=fn.state.lastProgramAlgo.desT[0];// get desidered temp
+              else desTemp='';//  non available
         if((statedev= fn.iodev.probs_[stind])!=null){//!== undefined) {
-            statedev.writeSync({state:{anticipate:new_scripts.anticipate != false&&new_scripts.anticipate != null,
+            statedev.writeSync_({state:{anticipate:new_scripts.anticipate != false&&new_scripts.anticipate != null,// send to ha the status it expects
                 program:new_scripts.program != false&&new_scripts.program != null,
             battery:new_scripts.aiax.battery,
-            desTemp// desidered temp , giorno only !
+            inverter:new_scripts.aiax.inverter,
+            desTemp,// desidered temp , giorno only !
+            relays:new_scripts.relays// the pump browser state
         }});
     }}
 

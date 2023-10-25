@@ -10,6 +10,7 @@ OR_Present=parseInt(process.env.OR_Present)||0;
 const SubAfterPlantReq=true;// code implem alternative
 const defVar='off',// or -7777  default first write value for var device
 debug_int=false;// if false , no debug, so process interrupts normally.
+const PRTLEV=7;// print log level, >5 many prints! 
 
 const { emit } = require('process');
 const { resolve } = require('path');
@@ -115,7 +116,7 @@ let ok=35<=text.length;
    //  if(!devid)devid=null;
 
 
-   if(devid==null) {console.log("isProbe(): mqtt Received message on  non probe topic: " + text);return null;}
+   if(devid==null) {console.log("isProbe(): mqtt Received message on  non registered topic: " + text);return null;}
    else return devid;
   
    }
@@ -157,7 +158,7 @@ if (client) {
     console.log("mqtt client connecting .... , so registering message listener ...");
     
     let waitListReturn = false,
-        waitPromiseRes;// resolve che si mettera a disposizione se il precedente msh non ha resettato ancora i listener
+        waitPromiseRes;// resolve che si mettera a disposizione se il precedente msg non ha resettato ancora i listener
     const CheckPrevMessageEnd = false; // debug 
     
     client.on('message', msgListFact(waitListReturn,waitPromiseRes,CheckPrevMessageEnd));
@@ -218,15 +219,16 @@ function msgListFact(waitListReturn, waitPromiseRes, CheckPrevMessageEnd) {
                 // in var dev topic, can be base topic ( dont contain any '/') or cmd topic
 
                 let dev = adev.portid, mqttInst = adev.mqttInst,
+                    plant =mqttInst.plantName,// can be useful, type 1 has not the plantname on msg (on/off)!!
                     ctlpack = adev.ctlpack, avar = false,// ctlpack={ctl:new fc(gp,ind,inorout,cfg,that),devNumb:ind,type:'mqtt'};
                     fromthisctl = false,// serve a capire nei msg contenenti il sender (var dev) se esso proviene da un pub di questo ctl, non sempre usato: di solito i var dev usano il meccanismo node-red quando un ext ctl vuole cambiare stato pubs un message con topic command topicNodeRed (il dev è un virt var dev, isCmdTopic=true )
                     // 18072023 : cambiato uso : ora serve solo  per sapere se per i dev var solo di tipo 2 al ricevimento in topic del writesync (topicPub=null) lo devo caricare in queue
 
                     isCmdTopic = false;// simulera il subscription  di un virtual shelly node-red . il nodered comanda questo virt device fisico che simula un cambio stato genera un call a questo listener che diventa il  listener del suo subscription. constatato che è meritevole di interruput ( probabile state change) lo lo chiama 
-                if (ctlpack.type == 'mqtt') if (ctlpack.ctl.cl == 2||ctlpack.ctl.cl == 0) {
+                if (ctlpack.type == 'mqtt') if (ctlpack.ctl.cl == 2||ctlpack.ctl.cl == 0) {// type 2 and 0 are var dev
                     avar = true;
                     // fromthisctl = true;                }
-                } else if (ctlpack.ctl.cl == 4) avar = true;// is a var dev
+                } else if (ctlpack.ctl.cl == 4) avar = true;// type 4 is a var dev too
                 //  avar = ctlpack.type == 'mqtt' && (ctlpack.ctl.cl == 2 || ctlpack.ctl.cl == 4),// is a var dev
                 isCmdTopic = false;// simulera il subscription  di un virtual shelly node-red . il nodered comanda questo virt device fisico che simula un cambio stato genera un call a questo listener che diventa il  listener del suo subscription. constatato che è meritevole di interruput ( probabile state change) lo lo chiama 
 
@@ -249,7 +251,7 @@ function msgListFact(waitListReturn, waitPromiseRes, CheckPrevMessageEnd) {
                         //if(message_.plant&&message_.plant.user&&message_.plant.user==dev){
                         if (fromthisctl) {// user = dev !
                             //console.log(' mqtt Received message x dev ',dev,' thats a var , coming from itself, so discard it ');
-                            console.log(' mqtt Received message x dev ', dev, ' thats a var , coming from itself');//so can readsync the fotmatted value (payload) if is not a presence  ');
+                           //  console.log(' mqtt Received message x dev ', dev, ' thats a var , coming from itself');//so can readsync the fotmatted value (payload) if is not a presence  ');
                             // return;//msg=null;   // discard incoming msg
                             // no now we process , will be rread that will manae the msg content (decide se è un signal '>ctlpresence' o un valore 'on/'off e torna 0/1/''(=N/A))
                         }
@@ -263,9 +265,10 @@ function msgListFact(waitListReturn, waitPromiseRes, CheckPrevMessageEnd) {
 
                 //old :if (fromthisctl) {// user = dev !
                 if (!isCmdTopic) {// can be var (we calc if is  ) or rele (or probes ?) : 
-                    if (!fromthisctl)
+                    if (!fromthisctl)fillqueue();
+                    else 
+                     console.log(' mqtt Received message x dev ', dev, ' thats a var , coming from itself so wont fill its queue ');//so can readsync the fotmatted value (payload) if is not a presence  ');
 
-                        fillqueue();
                 }
 
                 else {// isCmdTopic  , news now also rele dev can have cmdtopic !!. // cmd topic dont write to dev queue, just interrupt ! valid now for var and also for rele dev !!!
@@ -407,15 +410,15 @@ function msgListFact(waitListReturn, waitPromiseRes, CheckPrevMessageEnd) {
                     // TODO pay attention that msg can be string(on/off for shelly) or number(payload for var) : not goog !!! better nly string ??
                     if (mqttInst.status[dev]) {// // if queue exists > subscribed  so put msg in buffer!
                         if (mqttInst.status[dev].push(msg) > 10) mqttInst.status[dev] = mqttInst.status[dev].slice(-2);// add queue
-                        console.log(" Inserted current message (", msg, ") , in current msg queue for device:", dev, " is: ", mqttInst.status[dev]);
-                    } else console.error(" Received message , current msg queue for device:", dev, " had not been subscribed ");// never happen
+                        console.log(" Inserted current message (", msg, ") , in current msg queue for plant ",plant,", device:", dev, " is: ", mqttInst.status[dev]);
+                    } else console.error(" Received message , current msg queue for plant ",plant,",device:", dev, " had not been subscribed ");// never happen
 
                 }
 
 
             } else {
                 //  ...write here code  for topic different from gpio (cfg in gpio) and probe-var (cfg in mqttprob) devices
-                console.log(" Received message , no dev was registered with current msg  topic: " + topic.toString());
+                console.log(" Received message for plant ",plant,", no dev was registered with current msg  topic: " + topic.toString());
 
 
             }
@@ -560,293 +563,425 @@ let fc= function (gp,ind,inorout,cfg,mqttInst){// mqtt gpio constructor new fc()
 
 }
 
-    fc.prototype.readSync  =// dont need  async return a promise resolving 0/1
-                        function (to=100){// timeout
-    // in case of a previous write the msg queue is cleared so the effect of a write can be read also waiting some time !
-    let mqttInst=this.mqttInst,// the plant mqtt inst is registred on this dev ctl
-    that=this,// this dev ctl
-    gp=this.gpio;// portid , ex 11, warning il portid è unico a livello di plant !!!!!!!!!!!!!!!!!!! infatti la sua queue e'  nella mqttinstance
-    let ts=new Date().getTime(),listCall=0;// // ts is really the id of the request , just for tracking the listeren called
+
+/*
+fc.prototype.readSync  =//  return the promise DDEERR resolving 0/1 or null if reject
+ () {
+    return getgpio(this.cl);
+    async function getgpio(clas){//  returns DDEERR=rread(true), the readSync returned promise .
 
 
-    if(mqttInst.status[gp]&&client.connected//if(gpio[gp]&&client.connected
-        // &&status[gp]
-        ){// still registered, subscribed, connected 
-    let resolRead;
-    //mqttInst=this.mqttInst;// the plant mqtt inst
 
-    resolRead=getgpio(this.cl);// get last queue entry when available in a short time (< maxtime), according with  dev type cl
+                                        // ****   MNG SUMMARY  sunto 113052023
+                                        // chiamo rread ricursivamente (nel caso lo richiamo (rread) se un valore non mi soddisfa e allora lo richiedo ma senza guardare il current queue , ossia forzo un listener )
+                                        // se trovo queue allora  prendo last val (a meno che non ci sia per un dev var 'ctlpresent')
+                                        // altrimenti attendo la risoluzione di un listener che aggiungo alla lista 
+                                        // caricamento valore letto  secondo tipo (rele/var/probe) e protocollo 
+                                        // chiudo chiamando ending( valore da caricare ). nb se null significa ho letto valore erraro o nullo , sta per reject !
 
-    console.log('mqtt readsync read value from queue or listener, using getgpio(cl=',this.cl,')');// promise : ',resolRead);
+
+                                    retProm=new Promise(function (res,rej){// promise DDEERR1 
+                                                resRetList=res;});//  the resolving func reference: the cb called to resolve the promise calling res()
+
+                                    async function rread(checkQueueFirst=true)// rread è funzione iterattiva, chiama se stessa finche .... 
+                                                                            //      quindi ritorna o l'ultimo valore nel queue (solo al primo  call : checkQueueFirst=true)
+                                                                            //      o la risoluzione del promise XXTT che avviene tramite la chiamata di 
+                                                                            //          theListener: the promise XXTT  resolving function ( will call res() di XXTT
+                                                                            //          viene aggiunto nel queue (mqttInst.statusList[dev].push(theListener)) dei listener che saranno chiamati quando arriva un nuovo messaggio
+                                                                            //          .....un listener quando verrà chiamato da un successivo msg 
+                                                                            //          a meno che il listener trova valore non buono come value (un presence o altro)
+                                                                            //          al che riprova iterando rread(false) e anrda a cercare di tornare il listener successivo : ,,,
+                                        {
+                                            if (checkQueueFirst && curlength > 0) 
+                                            {
+                                                re = mqttInst.status[gp][curlength - 1];
+                                                if (re == '>ctlpresent')
+                                                     return rread(false);
+                                            } else {// add a listener  
+                                                re = await stList(); // await the promise XXTT
+                                            }
+                                            // converti il valore letto re ( o perchè presente in queue o perche risolto dal listener dopo un periodo secondo tipo (rele/var/probe) e protocollo 
+                                            .....
+                                                return ending(re);// iterazione terminata: RETURN the last queue entry o il valore risolto del listener  !!!!!!!!!!!    
+                                            ....
+                                                resetListener = true;// or just add a new listener in listener queue  ,     MMJJUU
+                                                return rread(false);// relaunch rread iterately
+                                            ...
+                                            if (re == '>ctlpresent')
+                                                resetListener = true;// or just add a new listener in listener queue  ,     MMJJUU
+                                                return rread(false);// relaunch rread
+
+                                            
+                                            function stList() {//(dev,token){
+                                                            // we dont have any value in queue nor a valid value. so add a listener promise that will resolve when a valid value fills the dev queue
+                                                            // or reject if the waiting algo that request the readSync  cant goon 
+                                                            // return the promise that  is added to the dev listener list, the promise is resolved when the listener ,is called with the next  msg
+                                                            return new Promise((res, rej) => // XXTT resolved when the cb/listener is called by a following  coming msg thread. qui e' un listener di una funzionalità gia attivata 
+                                                                                            // (cioe non devo chiamare un funzione e passarli il cb , giusto add un listeren in una lista che verra chiamata)
+
+
+                                                                    {theListener =  // the XXTT listener promise resolving function ( will call res() : resRetList !)
+                                                                        (function (id_) {   // closure , the listener resolving function factory
+ 
+                                                                                        return function (lastmsg, test = 0) {// theListener: the  promise resolving function ( will call res()!). is sync function , so return to the caller (IIOOPP) after eventually added a new listener 
+
+
+                                                                                                if (!fired) {
+                                                                                                    listCall++;
+                                                                                                    console.log(' stlist() : listener x dev : ', dev, ', registered to wait for next message, in request ts #', ts, ', in listener position # ', listCall, ' is called by  the message the listener was waiting for.  so cb with message: ', lastmsg);
+
+
+
+
+
+                                                                                                    res(lastmsg);// resolve the waiting XXTT quando si chiama il listener con un prossimo msg
+   
+                                                                                                    fired = true;
+                                                                                                    return retProm;// the returned pro
+                                                                                                else return
+                                                                                        })(ts)// the id 
+
+                                                                    if (resetListener) {// riproporre il listener !
+                                                                        resRetList(resetListener);// say to message income code to reset (riproporre )the listener perche il msg non va bene : MMJJUU
+                                                                        console.log(' stlist() : listener x dev : ', dev, ', resolving promise, say to message income to reset the current listener that must wait for a following message, in request ts #', ts);
+                                                                    } else {
+                                                                        console.log(' stlist() : listener x dev : ', dev, ', say to message income to set a new ( not resetted) listener to wait for next message, in request ts #', ts);
+                                                                        //in this case we were reading frm msg queue because not null . so we can just add to current listener array a new listener 
+                                                                        mqttInst.statusList[dev].push(theListener);// set for first time the listener in message incom
+
+
+                                                                    }
+                                                                    // set the timeout :
+                                                                    const myto = setTimeout(() => {
+                                                                                if (resetListener) resRetList(theListener);    // better PPLLKK  
+                                                                                res('');// timeout readsync result :  would be better reject ! or  null ????
+                                                                                }, to);
+
+
+
+
+                                         function ending(value) {
+                                            resRetList(null);// no iterate listener 
+                                            console.log(' ** readsync()  , using instance ', mqttInst.id, ' for portid ', gp, ', is ending . reading val: ', value, ', now current dev queue is : ', mqttInst.status[gp], ' req id ', ts, ' listener chained ', listCall);
+                                            console.log(' ** readsync()  ,debug  mqttTopPub is  ', mqttInst.mqttTopPub);
+                                            return valCorrection(value);
+                                            }
+                                        }// ends rread()
+                                return rread(true);// returned by getgpio()
+                                }   
+
+
+    }
+*/
+
+
+
+fc.prototype.readSync =//  return the promise DDEERR resolving 0/1 or null if reject
+    function (to = 100) {// timeout
+        // in case of a previous write the msg queue is cleared so the effect of a write can be read also waiting some time !
+        let mqttInst = this.mqttInst,// the plant mqtt inst is registred on this dev ctl
+            that = this,// this dev ctl
+            gp = this.gpio;// portid , ex 11, warning il portid è unico a livello di plant !!!!!!!!!!!!!!!!!!! infatti la sua queue e'  nella mqttinstance
+        let ts = new Date().getTime(), listCall = 0;// // ts is really the id of the request , just for tracking the listeren called
+
+
+        if (mqttInst.status[gp] && client.connected//if(gpio[gp]&&client.connected
+            // &&status[gp]
+        ) {// still registered, subscribed, connected 
+            let resolRead;
+            //mqttInst=this.mqttInst;// the plant mqtt inst
+
+            resolRead = getgpio(this.cl);// get last queue entry when available in a short time (< maxtime), according with  dev type cl
+
+            console.log('mqtt readsync read value from queue or listener, using getgpio(cl=', this.cl, ')');// promise : ',resolRead);
             return resolRead;// nb resolve value must be 0 or 1 !!!
-    }else return Promise.resolve(null);// data not available
+        } else return Promise.resolve(null);// data not available
 
 
 
 
 
-    async function getgpio(clas){// get last entry in that.status[gpio] queue array, leave in array only last msg OR fill a listener for coming msg
-        // nb first time we receive a  msg,  queue is filled and we  wont  use listener if future
-        //   nb msg in queue can be very old !!! 
-        // , returns 0 or 1 !
+        async function getgpio(clas) {//  returns DDEERR=rread(true), the readSync returned promise . get last entry in that.status[gpio] queue array, leave in array only last msg OR fill a listener for coming msg
+            // nb first time we receive a  msg,  queue is filled and we  wont  use listener if future
+            //   nb msg in queue can be very old !!! 
+            // , returns 0 or 1 !
 
-        // sunto 113052023
-        // chiamo rread ricursivamente (nel caso lo richiamo se un valore non mi soddisfa e allora lo richiedo ma senza guardare il current queue , ossia forzo un listener )
-        // se trovo queue allora  prendo last val (a meno che non ci sia per un dev var 'ctlpresent')
-        // altrimenti attendo la risoluzione di un listener che aggiungo alla lista 
-        // caricamento valore letto  secondo tipo (rele/var/probe) e protocollo 
-        // chiudo chiamando ending( valore da caricare ). nb se null significa ho letto valore erraro7nullo
+            // ****   this is a copy see :  MNG SUMMARY  sunto 113052023
+            // chiamo rread ricursivamente (nel caso lo richiamo (rread) se un valore non mi soddisfa e allora lo richiedo ma senza guardare il current queue , ossia forzo un listener )
+            // se trovo queue allora  prendo last val (a meno che non ci sia per un dev var 'ctlpresent')
+            // altrimenti attendo la risoluzione di un listener che aggiungo alla lista 
+            // caricamento valore letto  secondo tipo (rele/var/probe) e protocollo 
+            // chiudo chiamando ending( valore da caricare ). nb se null significa ho letto valore erraro o nullo , sta per reject !
 
-let ret=0;// def return
+            let ret = 0;// def return
 
-let resRetList,// the resolving func
-resetListener=false;             // reset the listener x next msg, true when after lauch stList() we need to launch anothe stList()
-                                // when true we can just continue with another reset or just resolve the readsync
-let theListener, // the listener
-retProm=new Promise(function (res,rej){// resolve when the rread knows if resolve the readsync or reset a listener 
+            let resRetList,// the resolving func of  promise DDEERR1
+                resetListener = false;             // reset(riproponi) the listener x next msg, true when after lauch stList() we need to launch anothe stList()
+            // when true we can just continue with another reset or just resolve the readsync
+            let theListener, // the listener
+                retProm = new Promise(function (res, rej) {// promise DDEERR1 : returned by getgpio(clas). when the rread reads a following msg so knows if resolve the readsync or reset a listener 
 
-resRetList=res;
+                    resRetList = res;//  the resolving func: the cb called to resolve the promise calling res()
+                });
 
-});
+            async function rread(checkQueueFirst = true) {// rread() returns ...
+                // the returned value depends from the dev type ( rele,var,probs) and from device protocol extraction from state[dev] queue 
+                // example in mqttstate protocol for var device ( (clas == 2||clas == 4) {// a var in mqttnumb ) : we return 
+                let re;                                 // checkQueueFirst if false dont look at a current queue , just wait for next val
 
-async function rread(checkQueueFirst=true){// the returned value depends from the dev type ( rele,var,probs) and from device protocol extraction from state[dev] queue 
-                                            // example in mqttstate protocol for var device ( (clas == 2||clas == 4) {// a var in mqttnumb ) : we return 
-let re;                                 // checkQueueFirst if false dont look at a current queue , just wait for next val
-
-        /* now when a  var subscribe, are sent 2 message :
-        1: '>ctlpresent'
-        2: no more :the def var , it will be set at first write !
-
-        se vogliamo inviare (con .subscribe() ) il presence sullo stesso template, dobbiamo lavorare su message handler( client.on('message', ...) e readsync() x evitare 
-            che venga letto quando si vuole leggere un valore con readsync.  2 strategie:
-        a) inserirla nel queue (client.on('message',,)) quando arriva il >ctlpresent ,  e quindi impedire di leggerlo dal readsync, lanciando un listener stList() anche piu volte (se il >ctlpresent viene mandato 2 volte dal brocker),
-        b) non inserire >ctlpresent nel queue  da parte del  (client.on('message',,)) .
-        b) e' da implementare ancora  
-
-
-        */
-
-
-
-
-// const defVar=0;// or -7777
-if(mqttInst.status[gp]){//is subscribed 
-   let curlength=mqttInst.status[gp].length;
-//console.log('  readsync() : getgpio wants read buffer for dev: ',gp,', , its  dim is: ',curlength);// todo 05052023  called 2 times ???
-console.log(' readsync() :  rread()  is reading for dev: ',gp,', current queue : ',mqttInst.status[gp],' ,request ts # ',ts);// todo 05052023  called 2 times ???
-if (checkQueueFirst)console.log(' ......   rread()  will now try to get the top of current queue ',mqttInst.status[gp]);
-else console.log(' ......   rread()  will now add a listener waiting for a next message ');
-if(checkQueueFirst&&curlength>0){re= mqttInst.status[gp][curlength-1];//  WARNING ::
-
-                                                //  last message in queue , <<<<  hope a message caused after a write operation, eventually rewrite the same value
-                                                // till get a read = the last  write
-if (clas == 1||clas== 3){// rele or  probe after read last val dont change  the queue , next read will will find any way the last message on top of the queue
-  // no :   mqttInst.status[gp].length=0;
-}else if (clas == 2||clas== 4){// a var
-
-   /* mqttInst.status[gp].length--;// delete presence x now, look for previous if any
-    rread(true);
-    */
-   // re= mqttInst.status[gp][curlength-1];
-    if (re == '>ctlpresent'){// if last meggage is this client presence msg , iscrivi un listener per ricevere il messaggio successivo 
-        //re=defVar;mqttInst.status[gp].push(defVar);
-
-
-        //re= await stList();// the def write that must follow
-        console.log(' readsync() : warning, for request ',ts,', a listener read a presence, >ctlpresent, value from queue, so add a listener to be called on  next message');
-        return rread(false);
-    }
-}
-
-
-}else {
-
-
-
-    if (clas == 2||clas== 4){// a var , dont wait for future val just set a def 
+                /* now when a  var subscribe, are sent 2 message :
+                1: '>ctlpresent'
+                2: no more :the def var , it will be set at first write !
         
-             // no var was sent by nore red so take initiative and set the value of default : -7777 or just 0 ??
-             // when node red send some msg will be put in top 
-             // so will be one var proposed by fv3 and one var suggested by node red  > add different clas !
-             // si potrebbe anche cambiare il canale per il presence come x shelly ex    aggiungendo /presence al topic !!! >> add different clas !!!
-             // so now class 2 and 4 is var proposed by fv3 , and presence msg here to see the start 
-             // so :
-        /*
-             mqttInst.status[gp].length=0;
-             mqttInst.status[gp].push(defVar);
-            re=defVar;
-            */
-            re= await stList();// POLP
-     }else{
-
-
-// wait till get a msg or timeout
-// add a promise in dev queue with a token associated to last write (better leave the write to add this listener ,
-// then here we can .then the promise with that token 
-
-/* error : no need to return a promise in a async call !!!!!!!!!!!!!!!!
-return  new Promise((res,rej)=>{// the listener cb
-// register with token
-// old : statusList[gp].push(function(){ return function(lastdata) });
-stList(gp,123,res); })*/  
-// easier: (yu can simplify all promises  returning only one promise here without using an async !)
-re= await stList();//(gp,123);// add a listener for device gp. when a msg arrives the listener will be called and resolves, then the current queue (should be void ) will be filled by the last msg
-
-// todo 06052023 what todo with the queue that is filled by 
-     }
-
-
-}
-
-// caricamento valore letto  secondo tipo (rele/var/probe) e protocollo 
-
-    if (clas == 1) {// rele
-        if (that.cfg.protocol == 'shelly') { if (re == 'on') return ending(1); else return ending(0); }
-        else if (that.cfg.protocol == 'ro') { return ending(re);// the same re
-        }else return ending(null);// unknown
-    }// relays value: 0/1
-    else if (clas == 2 || clas == 4) {// a var in mqttnumb or mqttprob
-        if (re == '>ctlpresent') {// must come after POLP,  >>>>>    is a signal in incoming mqtt stream ,  used in var device 
-            // no more wait a next msg :  return rread(false);// discard (coming from this inst. or other)  ctl presence
-            if (curlength > 0) console.error('can be an error in rread() processin a var ');
-
-            console.log(' readsync() , dev: ', gp, ', current queue : ', mqttInst.status[gp], ' ,request ts # ', ts, '. warning a listener  fired with   still a presence/signal msg, so add another listener to be called on a new next message in a new listener list');
-            //  mqttInst.status[gp].push(defVar);// anyway add def in top  queue
-            resetListener = true;// or just add a listener in list queue
-            return rread(false);// relaunch rread
-        }
-        else {
-            if (that.cfg.protocol == 'mqttstate') // the msg is a value not a signal , according to proocol return a value (usually a var has integer)
-            // return a int or ''/null 
-            // {if (re == 'on') return ending( 1); else return ending( 0);}
-            {
-                if (re == '') return ending(null);// '' or null
-                else { return ending(re); }// usually a integer 
-            }
-            else return ending(null);// unknown
-        }
-
-    } else if (clas == 3) {// probe in mqttprob
-        if (that.cfg.protocol == 'shelly'||true) { return ending(re); }
-        else return ending(null);// unknown protocol
-
-
-    } else if (clas == 0) {// ctl interface , future use , read the msg
-        if (that.cfg.protocol == 'mqttxwebsock') { return ending(re); }
-        else return ending(null);// unknown protocol
-
-
-    } 
-
-
-else return ending( null);// error !
-
-}else return ending( null);// not (still?) subscribed
-
-
-    function stList() {//(dev,token){// return a promise that  add to a dev listener list, the promise is resolved when the listener ,is called with the next  msg
-        // todo : add a reject to fire after a max time is reached
-        // when a msg arrives the listener will be called and resolves, then the current queue (should be void ) will be filled by the last msg
-
-        return new Promise((res, rej) => {// resolved when the cb/listener is called by another thread. qui e' un listener di una funzionalità gia attivata 
-            // (cioe non devo chiamare un funzione ee passarli il cb , giuso add un listeren in una lista che verra chiamata)
-            let dev = gp;
-            // let ts=new Date().getTime();// old name
-            console.log(' stlist() listener . now adding a listener x dev : ', dev, 'in current mqttinst.statuslist: ', mqttInst.statusList, ' , request id(ts) ', ts);
-            console.error(' stlist() listener no ERROR. now adding a listener x dev : ', dev, 'in current mqttinst.statuslist: ', mqttInst.statusList);// 05052023   dev is the devid x debug only
-
-            theListener = theListener || (function (id_) {   // closure 
-                let id = id_, fired = false;
-                return function (lastmsg, test = 0) {// the listener . is sync function , so return to the caller (IIOOPP) after eventually added a new listener 
-                    // and eventually delete itself ref 
-                    // 05052023   dev is the devid , test to have the function id to recognize it when delete the listener reference in array
-
-                    if (test == 0) {// process listened msg
-                        if (!fired) {
-                            listCall++;
-                            console.log(' stlist() : listener x dev : ', dev, ', registered to wait for next message, in request ts #', ts, ', in listener position # ', listCall, ' is called by  the message the listener was waiting for.  so cb with message: ', lastmsg);
+                se vogliamo inviare (con .subscribe() ) il presence sullo stesso template, dobbiamo lavorare su message handler( client.on('message', ...) e readsync() x evitare 
+                    che venga letto quando si vuole leggere un valore con readsync.  2 strategie:
+                a) inserirla nel queue (client.on('message',,)) quando arriva il >ctlpresent ,  e quindi impedire di leggerlo dal readsync, lanciando un listener stList() anche piu volte (se il >ctlpresent viene mandato 2 volte dal brocker),
+                b) non inserire >ctlpresent nel queue  da parte del  (client.on('message',,)) .
+                b) e' da implementare ancora  
+        
+        
+                */
 
 
 
 
+                // const defVar=0;// or -7777
+                if (mqttInst.status[gp]) {//is subscribed 
+                    let curlength = mqttInst.status[gp].length;
+                    //console.log('  readsync() : getgpio wants read buffer for dev: ',gp,', , its  dim is: ',curlength);// todo 05052023  called 2 times ???
+                    console.log(' readsync() :  rread()  is reading for dev: ', gp, ', current queue : ', mqttInst.status[gp], ' ,request ts # ', ts);// todo 05052023  called 2 times ???
+                    if (checkQueueFirst) console.log(' ......   rread()  will now try to get the top of current queue ', mqttInst.status[gp]);
+                    else console.log(' ......   rread()  will now add a listener waiting for a next message ');
+                    if (checkQueueFirst && curlength > 0) {
+                        re = mqttInst.status[gp][curlength - 1];// check if the value is valid x read
 
-                            res(lastmsg);
-                            // todo rej if timeout !!
-                            fired = true;
-                            return retProm;// the returned promise will be resolved after rread knows if continue with another listener on next message if cant find a good val to read 
-                        } else return;
-                    } else {// return id to be recognized
-                        console.log(' stlist() : listener x dev : ', dev, ', registered to wait for next message, in request ts #', ts, ', is called to give its id ', id);
+                        //  last message in queue , <<<<  hope a message caused after a write operation, eventually rewrite the same value
+                        // till get a read = the last  write
+                        if (clas == 1 || clas == 3) {// rele or  probe after read last val dont change  the queue , next read will will find any way the last message on top of the queue
+                            // no :   mqttInst.status[gp].length=0;
+                        } else if (clas == 2 || clas == 4) {// a var
 
-                        return id;
+                            /* mqttInst.status[gp].length--;// delete presence x now, look for previous if any
+                             rread(true);
+                             */
+                            // re= mqttInst.status[gp][curlength-1];
+                            if (re == '>ctlpresent') {// if last meggage is this client presence msg , iscrivi un listener per ricevere il messaggio successivo 
+                                //re=defVar;mqttInst.status[gp].push(defVar);
+
+
+                                //re= await stList();// the def write that must follow
+                                console.log(' readsync() : warning, for request ', ts, ', a listener read a presence, >ctlpresent, value from queue, so add a listener to be called on  next message');
+                                return rread(false);
+                            }
+                        }
+
+
+                    } else {// add a listener 
+
+
+
+                        if (clas == 2 || clas == 4) {// a var , dont wait for future val just set a def 
+
+                            // no var was sent by node red so take initiative and set the value of default : -7777 or just 0 ??
+                            // when node red send some msg will be put in top 
+                            // so will be one var proposed by fv3 and one var suggested by node red  > add different clas !
+                            // si potrebbe anche cambiare il canale per il presence come x shelly ex    aggiungendo /presence al topic !!! >> add different clas !!!
+                            // so now class 2 and 4 is var proposed by fv3 , and presence msg here to see the start 
+                            // so :
+                            /*
+                                 mqttInst.status[gp].length=0;
+                                 mqttInst.status[gp].push(defVar);
+                                re=defVar;
+                                */
+                            re = await stList();// POLP    XXTT 
+                        } else {
+
+
+                            // wait till get a msg or timeout
+                            // add a promise in dev queue with a token associated to last write (better leave the write to add this listener ,
+                            // then here we can .then the promise with that token 
+
+                            /* error : no need to return a promise in a async call !!!!!!!!!!!!!!!!
+                            return  new Promise((res,rej)=>{// the listener cb
+                            // register with token
+                            // old : statusList[gp].push(function(){ return function(lastdata) });
+                            stList(gp,123,res); })*/
+                            // easier: (yu can simplify all promises  returning only one promise here without using an async !)
+                            re = await stList();//  XXTT , temp_  to reject resolve with null !
+                            // (gp,123);// add a listener for device gp. when a msg arrives the listener will be called and resolves, then the current queue (should be void ) will be filled by the last msg
+
+                            // todo 06052023 what todo with the queue that is filled by 
+                        }
+
+
                     }
 
-                }
-            })(ts)// the id 
-
-            if (resetListener) {
-                resRetList(resetListener);// say to message income to reset the listener
-                console.log(' stlist() : listener x dev : ', dev, ', resolving promise, say to message income to reset the current listener to wait for next message, in request ts #', ts);
-            } else {
-                console.log(' stlist() : listener x dev : ', dev, ', say to message income to set for first time the listener to wait for next message, in request ts #', ts);
-                //in this case we were reading frm msg queue because not null . so we can just add to current listener array a new listener 
+                    // **********************  TODO TODO 
+                    // manca il catch al re= await stList() di sopra : stabiliscono che il processo che sta aspettando il dato non puo piu continuare e dovra abortire il algo in corso !!!!
+                    //  in particolare si potra abortire il processo al sopraggiungere di un nuovo readsync o dopo un certo tempo a da un algo che per continuare vuole abortire i processi in attesa su i listener del device
+                    // waiting to implement the reject we can resolve anyway returning null in XXTT !
 
 
+                    // converti il valore letto re ( o perchè presente in queue o perche risolto dal listener dopo un periodo secondo tipo (rele/var/probe) e protocollo 
+
+                    if (clas == 1) {// rele
+                        if (that.cfg.protocol == 'shelly') { if (re == 'on') return ending(1); else return ending(0); }
+                        else if (that.cfg.protocol == 'ro') {
+                            return ending(re);// the same re
+                        } else return ending(null);// unknown
+                    }// relays value: 0/1
+                    else if (clas == 2 || clas == 4) {// a var in mqttnumb or mqttprob
+                        if (re == '>ctlpresent') {// must come after POLP,  >>>>>    is a signal in incoming mqtt stream ,  used in var device 
+                            // no more wait a next msg :  return rread(false);// discard (coming from this inst. or other)  ctl presence
+                            if (curlength > 0) console.error('can be an error in rread() processin a var ');
+
+                            console.log(' readsync() , dev: ', gp, ', current queue : ', mqttInst.status[gp], ' ,request ts # ', ts, '. warning a listener  fired with   still a presence/signal msg, so add another listener to be called on a new next message in a new listener list');
+                            //  mqttInst.status[gp].push(defVar);// anyway add def in top  queue
+                            resetListener = true;// or just add a new listener in listener queue  ,     MMJJUU
+                            return rread(false);// relaunch rread
+                        }
+                        else {
+                            if (that.cfg.protocol == 'mqttstate') // the msg is a value not a signal , according to proocol return a value (usually a var has integer)
+                            // return a int or ''/null 
+                            // {if (re == 'on') return ending( 1); else return ending( 0);}
+                            {
+                                if (re == '') return ending(null);// '' or null
+                                else { return ending(re); }// usually a integer 
+                            }
+                            else return ending(null);// unknown
+                        }
+
+                    } else if (clas == 3) {// probe in mqttprob
+                        if (that.cfg.protocol == 'shelly' || true) { return ending(re); }
+                        else return ending(null);// unknown protocol
 
 
-                /* error 
-                let todo2 = true;
-                if (todo2) {
-                    if (resetListener) resRetList(theListener);   // better PPLLKK  
-                } else {
-                    */
-                    mqttInst.statusList[dev].push(theListener);// set for first time the listener in message incom
-                
-
-            }
-            // set the timeout :
-            const myto = setTimeout(() => {
-                //resolved.forEach((val)=>{if(val)push(resu)})
-
-                console.log(' stlist() : listener x dev : ', dev, ', registered to wait for next message, in request ts #', ts, ', in listener position # ', listCall, ' is timeout.  so cb with void message');
+                    } else if (clas == 0) {// ctl interface , future use , read the msg
+                        if (that.cfg.protocol == 'mqttxwebsock') { return ending(re); }
+                        else return ending(null);// unknown protocol
 
 
-                // todo : delete its 
+                    }
 
-                // delete itself:
-                let todo1 = true;
-                if (todo1) {
-                    if (resetListener) resRetList(theListener);    // better PPLLKK  
-                } else {
-                    let ind = -1;
-                    mqttInst.statusList[dev].forEach((val, ind_) => {
-                        if (val(0, 1) == ts) ind = ind_;// this listerer index
+
+                    else return ending(null);// error !
+
+                } else return ending(null);// not (still?) subscribed
+
+
+                function stList() {//(dev,token){
+                    // we dont have any value in queue nor a valid value. so add a listener promise XXTT that will resolve when a valid value fills the dev queue
+                    // or reject if the waiting algo that request the readSync  cant goon (ex un altro algo e' chiamato, o tempo espirato): TODO 
+                    //  in particolare si potra abortire il processo al sopraggiungere di un nuovo readsync o dopo un certo tempo a da un algo che per continuare vuole abortire i processi in attesa su i listener del device
+                    // waiting to implement the reject we can resolve anyway returning null !
+
+
+
+                    // return the promise that  is added to the dev listener list, the promise is resolved when the listener ,is called with the next  msg
+                    // todo : add a reject to fire after a max time is reached
+                    // when a msg arrives the listener will be called and resolves, then the current queue (should be void ) will be filled by the last msg
+
+                    return new Promise((res, rej) => {// XXTT resolved when the cb/listener is called by a following  coming msg thread. qui e' un listener di una funzionalità gia attivata 
+                        // (cioe non devo chiamare un funzione e passarli il cb , giusto add un listeren in una lista che verra chiamata)
+                        let dev = gp;
+                        // let ts=new Date().getTime();// old name
+                        console.log(' stlist() listener . now adding a listener x dev : ', dev,);
+                        if (PRTLEV > 5) console.log('.... in current mqttinst.statuslist: ', mqttInst.statusList, ' , request id(ts) ', ts);
+                        // console.error(' stlist() listener no ERROR. now adding a listener x dev : ', dev, 'in current mqttinst.statuslist: ', mqttInst.statusList);// 05052023   dev is the devid x debug only
+
+                        theListener = theListener || // the XXTT listener promise resolving function ( will call res() di XXTT !)
+                            (function (id_) {   // closure , the listener resolving function factory
+                                let id = id_, fired = false;
+                                return function (lastmsg, test = 0) {// the listener  promise XXTT  resolving function ( will call res()!). is sync function , so return to the caller (IIOOPP) after eventually added a new listener 
+                                    // and eventually delete itself ref 
+                                    // 05052023   dev is the devid , test to have the function id to recognize it when delete the listener reference in array
+
+                                    if (test == 0) {// process listened msg, std path
+                                        if (!fired) {
+                                            listCall++;
+                                            console.log(' stlist() : listener x dev : ', dev, ', registered to wait for next message, in request ts #', ts, ', in listener position # ', listCall, ' is called by  the message the listener was waiting for.  so cb with message: ', lastmsg);
+
+
+
+
+
+                                            res(lastmsg);// resolve the waiting XXTT 
+                                            // todo rej if timeout !!, here reject just resolving with null !!
+                                            fired = true;
+                                            return retProm;// the returned promise will be resolved after rread knows if continue with another listener on next message if cant find a good val to read 
+                                        } else return;
+                                    } else {// return id to be recognized
+                                        console.log(' stlist() : listener x dev : ', dev, ', registered to wait for next message, in request ts #', ts, ', is called to give its id ', id);
+
+                                        return id;
+                                    }
+
+                                }
+                            })(ts)// the id 
+
+                        if (resetListener) {
+                            resRetList(resetListener);// say to message income code to reset (riproporre )the listener perche il msg non va bene : MMJJUU
+                            console.log(' stlist() : listener x dev : ', dev, ', resolving promise, say to message income to reset the current listener that must wait for a following message, in request ts #', ts);
+                        } else {
+                            console.log(' stlist() : listener x dev : ', dev, ', say to message income to set a new ( not resetted) listener to wait for next message, in request ts #', ts);
+                            //in this case we were reading frm msg queue because not null . so we can just add to current listener array a new listener 
+
+
+
+
+                            /* error 
+                            let todo2 = true;
+                            if (todo2) {
+                                if (resetListener) resRetList(theListener);   // better PPLLKK  
+                            } else {
+                                */
+                            mqttInst.statusList[dev].push(theListener);// set for first time the listener in message incom
+
+
+                        }
+                        // set the timeout :
+                        const myto = setTimeout(() => {
+                            //resolved.forEach((val)=>{if(val)push(resu)})
+
+                            console.log(' stlist() : listener x dev : ', dev, ', registered to wait for next message, in request ts #', ts, ', in listener position # ', listCall, ' is timeout.  so cb with void message');
+
+
+                            // todo : delete its 
+
+                            // delete itself:
+                            let todo1 = true;
+                            if (todo1) {
+                                if (resetListener) resRetList(theListener);    // better PPLLKK  
+                            } else {
+                                let ind = -1;
+                                mqttInst.statusList[dev].forEach((val, ind_) => {
+                                    if (val(0, 1) == ts) ind = ind_;// this listerer index
+                                });
+                                if (ind >= 0) {
+                                    console.log(' stlist() : this listener x dev : ', dev, ', is timeout so reviewing the list list of dim ', mqttInst.statusList[dev].length);
+                                    mqttInst.statusList[dev].splice(ind, 1);// delete it without wait for a probable  never coming msg !
+                                    console.log(' stlist() : this listener x dev : ', dev, ',  id ', ts, ', as overridden by timeout cannot process a next msg and  will delete its reference set in listener array index ', ind, ' , so the current listener list is now of dim ', mqttInst.statusList[dev].length);
+                                }
+                            }
+                            res('');// timeout readsync result :  would be better reject !
+                        }, to);
                     });
-                    if (ind >= 0) {
-                        console.log(' stlist() : this listener x dev : ', dev, ', is timeout so reviewing the list list of dim ', mqttInst.statusList[dev].length);
-                        mqttInst.statusList[dev].splice(ind, 1);// delete it without wait for a probable  never coming msg !
-                        console.log(' stlist() : this listener x dev : ', dev, ',  id ', ts, ', as overridden by timeout cannot process a next msg and  will delete its reference set in listener array index ', ind, ' , so the current listener list is now of dim ', mqttInst.statusList[dev].length);
-                    }
                 }
-                res('');// timeout readsync result :  would be better reject !
-            }, to);
-        });
+
+                function ending(value) {
+                    resRetList(null);// no iterate listener 
+                    console.log(' ** readsync()  , using instance ', mqttInst.id, ' for portid ', gp, ', is ending . reading val: ', value, ', now current dev queue is : ', mqttInst.status[gp], ' req id ', ts, ' listener chained ', listCall);
+                    console.log(' ** readsync()  ,debug  mqttTopPub is  ', mqttInst.mqttTopPub);
+                    return valCorrection(value);
+                }
+
+
+            }// ends rread()
+            return rread(true);// returned by getgpio()
+
+        }// ends getgpio()
+
     }
-
-function ending (value) {
-    resRetList(null);// no iterate listener 
-    console.log(' ** readsync()  , using instance ',mqttInst.id,' for portid ',gp,', is ending . reading val: ',value,', now current dev queue is : ',mqttInst.status[gp],' req id ',ts,' listener chained ',listCall);
-    console.log(' ** readsync()  ,debug  mqttTopPub is  ',mqttInst.mqttTopPub);
-    return valCorrection(value);
-}
-
-
-}// ends rread()
-return rread(true);
-
-}// ends getgpio()
-
-}
 
 fc.prototype.writeSync = function (val_) {// val_=0/1, or object in some protocol. can return false if in error 
     // will send a topic KKUU as registered in init() conf data for the device 
@@ -1109,15 +1244,19 @@ mqttClass.prototype.fact = function(gp,ind,inorout='out',injCustDev){// // gp=po
         if(custF){addCustDev(ctl,custF);}
             */
 
-        let ctl=new fc(gp,ind,inorout,cfg,that);
+        let ctl=new fc(gp,ind,inorout,cfg,that);// todo : idea : add injCustDev, so we can trace the success or not of that in setting type 2 message back in topic !!
         console.log('polo ctl was ',ctl)
-        if(injCustDev)injCustDev(ctl);
+        if(injCustDev){
+            let dnam;
+            if(cfg.custDev)dnam=cfg.custDev;else dnam=gp;
+            injCustDev(ctl,dnam);
+        }
         console.log('polo ctl is ',ctl)
         let ctlpack= {ctl,devNumb:ind,type:'mqtt'};// depend on inorout the model cfg is different (see  mqttnumb,mqttprob in plantconfig)
                     
 
 
-        return new Promise((res,rej)=>{// resolved in  a dev ctl  
+        return new Promise((res,rej)=>{// resolved in  a dev ctl  afer subscriptions
 
             if(SubAfterPlantReq){// std,  subscribe here not in onConnect !
 
@@ -1150,7 +1289,7 @@ mqttClass.prototype.fact = function(gp,ind,inorout='out',injCustDev){// // gp=po
                 }
             }
         }
-        function subscred(resu){ // >>>>>>> numbSubscr()/probSubscr() MUST call this cb to have a valid ctl
+        function subscred(resu){ // >>>>>>> numbSubscr()/probSubscr() MUST call this cb to have a valid ctl.  resolves the dev controller
             console.log(' **** dev factory mqttInst.fact() for plant ',that.plantName,' relaised/resolved the devid/portid ',gp,' after subscribing on topic ',resu.topic);
             console.log(' **** according model info: ',cfg,' \nfound  in ',infosrc,' a device of type: ',resu.cl_class,' protocol ',cfg.protocol);
             ctlpack.topic=resu.topic;ctlpack.cl_class=resu.cl_class;ctlpack.protocol=cfg.protocol;
@@ -1288,6 +1427,8 @@ function numbSubscr(val, that, ctlpack, subscred) {// al subscribe del topic ass
 
     } else return false;// end clas checks
 
+
+    // register income info  to process msg on dev income topics 
     if (topic) {
         that.mqttTop[portid] = topic;// the topic of a port
         if (invTopic[topic]) log.error('numbSubscr() , error, found a device with already registered topic by someother plant !!!')
@@ -1298,7 +1439,7 @@ function numbSubscr(val, that, ctlpack, subscred) {// al subscribe del topic ass
     return true;// ??
 
 
-   function stdVarExtCmd() {// var and int (mqtt websocket interface) std protocol
+   function stdVarExtCmd() {// var and int (mqtt websocket interface) std protocol. set the subcribes , sends presence in topicNodeRedPubish
 
         
         topicNodeRed = topic + nodeRedp;

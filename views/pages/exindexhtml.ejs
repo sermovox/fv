@@ -141,11 +141,12 @@
             </p>
 
             <br><br>
-            <p><input type="checkbox" id="Tacs" name="Tacs"> Termostato 4: HT zona acs &ensp; delay (hours) <input type="number"
+            <p><input type="checkbox" id="Tacs" name="Tacs"> Termostato 4:  acs &ensp; delay (hours) <input type="number"
                 id="delay4" placeholder=1 size="4">
                 <br> &nbsp; &ensp; &emsp;
                 program:  <input type="text" id="PGMacs" name="PGMacs" value='{"8:30":20,"17:00":22}' size="30" oninput="setprname1(4,this.value)"> , valid JSON: 
-                <textarea id="validate4" name="valid4" rows="1" cols="7"></textarea>,&nbsp; tollerance: <input type="number" id="TacsTollerance" name="TacsTollerance" placeholder="0.7" size="3"> 
+                <textarea id="validate4" name="valid4" rows="1" cols="7"></textarea>,
+                <br>&nbsp; anticipate acs proposal tollerance: <input type="number" id="TacsTollerance" name="TacsTollerance" placeholder="0.7" size="3"> gradi . probe ref temp is fixed at 21.11 gradi !
                 <br>&nbsp; &ensp;&nbsp; &ensp;  manual set: <input type="number" id="TacsMan" name="TacsMan" placeholder="20" size="4"> validity: <input type="number" id="TacsVal" name="TacsVal" placeholder="3" size="2"> h
                 
               </p>
@@ -719,27 +720,23 @@ if(this.value){res=this.value;
         // for (let x in triggers) {// should be = to extract
         //  el=trigger[x];} 
 
-        extract2.forEach((val, ind) => {// extract in triggers2 keys in  extract2, assign .triggers2[key] to form el named key.
+        extract2.forEach((val, ind) => {// extract in triggers2 keys (val) in  extract2, assign .triggers2[key] to form el named key according with  data values
                                         // only the key='lastT' assign the value of .lastT[1] to lastT element
-          let el = triggers2_[val],cont;
-          if (el) {
+          let el = triggers2_[val],cont;// el is the form[val] input html element
+          if (el) {// triggers2=state.program.triggers2={ Tgiorno,PGMgiorno,Tnotte,PGMnotte,Tacs,PGMacs,lastT:["10/10/2023, 10:00:07 PM", {giorno:21.13,notte:21.13}],,,,}
             if(val=='lastT'&&triggers2[val]){// .lastT 
                 cont=JSON.stringify(triggers2[val][1]);
-                triggers2_[val].value=cont;}
+                triggers2_[val].value=cont;}//  triggers2_[val]=el !
             else if(val=='PGMgiorno'&&triggers2[val]){
-
-
 
                 /*
                 if(triggers2.triggers2.TnotteToll){// insert tollerance obj
                   triggers2.triggers2.TnotteTol={};
-
-
                      if(triggers2.PGMgiornoToll)sched.giorno.toll=triggers2.PGMgiornoToll;// tolleranze (un valore x all), same keys of sched.giorno.sched
                   
                 }*/
                 let tollerance=0;
-                if(triggers2&&triggers2.TgiornoToll){// {"8:30":1.5,,,}  // TODO  is still not deined now 
+                if(triggers2&&triggers2.TgiornoToll){// {"8:30":1.5,,,}  // TODO  is still not defined now 
                   // get first val 
                   let ks=Object.keys(triggers2.TgiornoToll);
                   for(let ii=0;ii<ks.length;ii++){
@@ -750,7 +747,7 @@ if(this.value){res=this.value;
                   }
                   }
                 }
-                triggers2_.TgiornoTollerance.value=tollerance;
+                triggers2_.TgiornoTollerance.value=tollerance;// set also TgiornoTollerance in case it is not set jet
                 }
                 triggers2_[val].value=JSON.stringify(triggers2[val]);
               }
@@ -779,7 +776,7 @@ if(this.value){res=this.value;
                   let ks=Object.keys(triggers2.TacsToll);
                   for(let ii=0;ii<ks.length;ii++){
                   if(triggers2.TacsToll[ks[ii]]>tollerance)
-                  {tollerance=triggers2.triggers2.TacsToll[ks[ii]];// first found is x all !!
+                  {tollerance=triggers2.TacsToll[ks[ii]];// first found is x all !!
                   if(triggers2.PGMacs[ks]!=null){// must be same keys
                     triggers2.PGMacs[ks]+=1000;// add toll
                   }
@@ -791,7 +788,7 @@ if(this.value){res=this.value;
                 triggers2_[val].value=JSON.stringify(triggers2[val]);
 
             }else if (el.type == 'checkbox') triggers2_[val].checked = triggers2[val];
-            else triggers2_[val].value = triggers2[val];
+            else triggers2_[val].value = triggers2[val];// residual case : just copy the property val into triggers2_
           }
         });
 
@@ -805,8 +802,6 @@ if(this.value){res=this.value;
         }
       }
     });
-
-
 
     function startctl() {
       // client =  from token/client :
@@ -827,8 +822,6 @@ if(this.value){res=this.value;
         feat = document.getElementById("myFeat").value;
       socket.emit("startuserplant", mydemo, feat); //send push button status to back to server
     }
-
-
 
     function startrep() {
       if(lastState.anticipate)  {alert(' please stop before reset');return;}
@@ -865,7 +858,7 @@ if(this.value){res=this.value;
         let count=0;
       //triggers_=document.getElementById("triggers").elements;
       // let extract=["PdCTrig","temp","PdCTrig1","FVPower","Tmax","Psav","Bsav"],triggers={};// extract
-      extract2.forEach((val, ind) => {
+      extract2.forEach((val, ind) => {// copy triggers2_ form keys into triggers2 (to sent it) . why do not init/reset triggers2={} ??
         count++;
         let el = triggers2_[val];// form name val
         if (el) {
@@ -876,7 +869,7 @@ if(this.value){res=this.value;
       });
         
     if(count>0){
-    if(triggers2.PGMgiorno){// transform the json in obj, add   triggers2.TgiornoToll
+    if(triggers2.PGMgiorno){// transform the PGMgiorno json in obj, add   triggers2.TgiornoToll
     
     try {
       triggers2.PGMgiorno=JSON.parse(triggers2.PGMgiorno);//document.getElementById("myprogram").value);
@@ -885,9 +878,9 @@ if(this.value){res=this.value;
       triggers2.Tgiorno=false;
       //  alert(e); // error in the above string (in this case, yes)!
     }
-    if(triggers2.PGMgiorno&&triggers2_.TgiornoTollerance&&triggers2_.TgiornoTollerance.value){
+    if(triggers2.PGMgiorno&&triggers2_.TgiornoTollerance&&triggers2_.TgiornoTollerance.value){// value !=0
       // add triggers2.TgiornoToll
-    triggers2.TgiornoToll={};// {'8:30':0,"10:50":1.5}
+    triggers2.TgiornoToll={};// {'8:30':0,"10:50":1.5}  set delta T for each pgm entry 
     let ks=Object.keys(triggers2.PGMgiorno);// PGMgiorno= {'8:30':0,"10:50":1022} >  {'8:30':0,"10:50":22}
                   for(let ii=0;ii<ks.length;ii++){
                     /* old : if >1000 allora setta TgiornoToll con TgiornoTollerance altrimenti 0 
@@ -897,7 +890,7 @@ if(this.value){res=this.value;
                     triggers2.TgiornoToll[ks[ii]]=triggers2_.TgiornoTollerance.value;
                   }else triggers2.TgiornoToll[ks[ii]]=0;
                   */
-                 // now simply fill TgiornoToll con TgiornoTollerance
+                 // now simply fill all TgiornoToll entries con TgiornoTollerance
                     triggers2.TgiornoToll[ks[ii]]=triggers2_.TgiornoTollerance.value;
                   }
                   }
