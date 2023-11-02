@@ -3384,7 +3384,7 @@ ___________________________________________
 																							  devNumb=0,// array index 0,1,2
 																							  type=inorout,
 																							  cfg,
-																							  cl=0/1(clas='out')/2(a var)/3(clas='in'OR'prob'),
+																							  cl=0(clas='int')/1(clas='out')/2,4(a var)/3(clas='in'OR'prob'),
 																							  isOn,
 																							  readsync,
 																							  writesync,
@@ -5367,4 +5367,272 @@ todo :
   nb un pubshell si ottiene anche col meccanismo  virt2realProbMap in models.js !
     _____________________________
     
+   run typescript : see https://code.visualstudio.com/docs/typescript/typescript-tutorial   https://medium.com/@vitaliykorzenkoua/working-with-websocket-in-node-js-using-typescript-1aebb8a06bd6
+   				https://code.visualstudio.com/docs/typescript/typescript-compiling
+   
+   npm install -g typescript        tsc --version
+
+
+   
+   npm install @types/node --save-dev
+   npm install @types/ws --save-dev
+   
+   check node version : node -v      nvm -ls
+   
+   eventually :  Inside, create a JSON filed named tsconfig.json
+		   {
+		     "compilerOptions": {
+		        "lib": ["es6", "dom"],
+		        "outDir": "lib"
+		     },
+		     "include": ["src"]
+                    }
+   
+   
+   
+   run : 
+   tsc --lib ES2015  helloworld.ts 
+
+
+________________________________
+
+homeassistant-ws-1 :
+or follow https://pauloe-me.medium.com/typescript-npm-package-publishing-a-beginners-guide-40b95908e69c and https://blog.bitsrc.io/keep-your-promises-in-typescript-using-async-await-7bdc57041308
+
+create dir homeassistant-ws-1
+
+ but install and cfg ts comp like above
+ 
+
+   run : 
+   tsc --lib ES2015  /src/index.ts 
+   
+   ___________________________________
+   
+homeassistant-ws-git
+ 
+ dont do npm install but clone as see in : https://stackoverflow.com/questions/49300853/how-to-get-the-sources-of-a-npm-package-locally-when-developing
+ 
+ 
+ >>>>>  AAQQ project=homeassistant-ws-git  chalk=homeassistant-ws
+ 
+
+			Asumming '~/projects' is your projects folder, first clone chalk:
+
+			cd ~/projects
+			git clone https://github.com/chalk/chalk.git
+
+			Then create your project:
+
+			mkdir my-project && cd my-project
+			npm init
+
+			And set your project to use your local chalk. Look for package.json file inside my-project and include chalk in dependencies:
+
+			"dependencies": {
+			    "chalk": "file:../chalk"
+			    ....
+			    ....
+
+			Then install chalk in your project:
+
+			cd ~/my-project
+			npm install chalk
+
+			Or simply 'npm install' to install all your dependencies. Every time you need to include in your project changes you made on chalk type again 'npm install chalk'.
+			 It copies ~/chalk on ~/my-project/node_modules and uses it.
+
+			You can continue working on your project and on chalk.
+
+ 
+ 
+ 
+ ..... so finally :
+ npm i isomorphic-ws ws
+ npm install
+ 
+_______________________________
+
+riassumendo project homeassistant-ws-git
+la installazione AAQQ con clone su  ../homeassistant-ws      fallita per problemi package , provato a installare su chalk ma non va
+allora su my-project=homeassistant-ws-2 install da npm secondo istruzioni npm  e tutto ok 
+provato a modificare il /src/index.ts sul homeassistant-ws-git/homeassistant-ws-2/node_modules/homeassistant-ws/src/index.ts : 
+	import ws invece che :
+		import WebSocket from 'isomorphic-ws';
+		
+ e dopo ricompilato /src/index.ts  (vero ?)
+ > funziona usando require in homeassistant-ws-2/index.js
+ 
+ question :
+ - aggiungere .on('close', secondo ws package :
+ 
+ 
+ 
+ 
+ 
+ - il npm install homeassistant-ws  scarica anche il src ?
+ - provare a usare l'originale :  import WebSocket from 'isomorphic-ws';  usa  ws.onmessage   invece che ws.on('message', come in ws
+ - provare a rifare la creazione del progetto come  nuovo progetto !
+ - testare How to detect and close broken connections?  come da ws docu
+ 	ma usare i event su un timer di 3 minuti e poi chiudere la conversazione con :
+
+			Just like the server example above your clients might as well lose connection without knowing it. You might want to add a ping listener on your clients to prevent that. A simple implementation would be:
+
+			import WebSocket from 'ws';
+
+			function heartbeat() {
+			  clearTimeout(this.pingTimeout);
+
+			  // Use `WebSocket#terminate()`, which immediately destroys the connection,
+			  // instead of `WebSocket#close()`, which waits for the close timer.
+			  // Delay should be equal to the interval at which your server
+			  // sends out pings plus a conservative assumption of the latency.
+			  this.pingTimeout = setTimeout(() => {
+			    this.terminate();
+			  }, 30000 + 1000);
+			}
+
+			const client = new WebSocket('wss://websocket-echo.com/');
+
+			client.on('error', console.error);
+			client.on('open', heartbeat);
+			client.on('ping', heartbeat);
+			client.on('close', function clear() {
+			  clearTimeout(this.pingTimeout);
+			});
+			
+riprovato a fare clone in homeassistant_new seguendo istruzioni di clone:
+npm init 
+cp index.js from homeassistant-ws-2
+ npm i --save homeassistant-ws
+ modify tsc conf in module homeassistant-ws :
+ 	"target": "ES2017"
+ cd node_modules/homeassistant-ws/
+ 	modificare export : 
+ 	// exports.default = createClient;  no good 
+	module.exports =createClient;
+ 
+ tsc    anche se da errori 
+ poi tornati in homeassistant_new :
+ node index.js > pippo.log
+ _______________________
+
+correct a null session in  log :
+	/home/luigi/localdev/fv20/fv3.js:3684
+	    console.log(' startuserplant , user ',user,', plant: ',plant_,' changing session/socket context data. old/new session are: ',eM.getcontext.getSession().id,'/',session.id);
+		                                                                                                                                                   ^
+
+	TypeError: Cannot read properties of null (reading 'id')
+	    at Socket.<anonymous> (/home/luigi/localdev/fv20/fv3.js:3684:156)
+	    at Socket.emit (node:events:513:28)
+	    at Socket.emitUntyped (/home/luigi/localdev/fv20/node_modules/socket.io/dist/typed-events.js:69:22)
+	    at /home/luigi/localdev/fv20/node_modules/socket.io/dist/socket.js:614:39
+	    at process.processTicksAndRejections (node:internal/process/task_queues:77:11)
+    
+
+nb     // reset update or new ?  todo
+    eM.getcontext={.....
+ ___________________________-
+ rules 
+  se batteria bassa anticipate PW+10% se quasicarica e mezza giornata di sole pw-5%
+  _______________________________________-
+  
+  ws to ha management summary
+  
+   l'interfaccia verso ha ha 2 sezioni :
+   - devices : sostanzialmente realizza sulla falsariga dei dev mqtt la connessione col device che sara' 
+    -type 1
+     i mqtt invia command topic che vengono raccolti :
+     	da trigger mqtt    
+ 
+ 
+ 
+ 
+ _______________________________
+ 
+ dev def in models.js 
+ 
+ 
+ here how 
+ 	- numbSubscr(val, that, ctlpack, subscred) 
+ 	- probSubscr
+ 	-  ...
+ 	
+ 	works to set mqtt staff x a device
+ 	
+ 	let  { portid, varx, isprobe, clas, protocol, subtopic } = val,	// val=cfg in models.js
+ 									// clas=   'out'/'var'/'probe'/'int'
+ 
+ 	so in this tab we see how calc topics and register info (regtopic) recovered at msg incoming : goonP() 
+ 	
+ 	 regtopic[topic]={
+ 	 		ctlpack:{ctl:
+ 	 			    new fc(gp,ind,inorout,cfg,that)			// ctlpack is built by  getio(num, iotype, ind, ismqtt = false,mqttInst)  in build()
+ 	 		
+ 	 		 	 		ctl=new fc(gp,ind,inorout,cfg)= 
+							 {gpio=11,// called also 
+							  devNumb=0,// array index 0,1,2
+							  type=inorout,
+							  cfg,// in models.js
+							  cl=0(clas='int')/1(clas='out')/2,4(a var)/3(clas='in'OR'prob'),
+							  isOn,
+							  readsync,
+							  writesync,
+							  lastwrite,  // the last writeSync
+							  intx,,,// some interrupt handlers : intwebsock,int0,int1,,,,
+							  }
+ 	 					
+ 	 			     or
+ 	 			     
+ 	 			    :new Gpio(num, iotype)/null,
+ 	 			    
+ 	 			    
+ 	 			 devNumb:ind,
+ 	 			 type:'gpio'/'mqtt'?
+ 	 			},
+ 	 		
+ 	 		portid,
+ 	 		mqttInst, = adev.mqttInst,
+ 	 		}
+ 	 		
+ 	 		
+ 	 		 	 	nb  getio è chiamato in abilita() che builda devices_:
+ 	 					devices_={myctls_= getio.getctls(mqttInst,gpionumb,mqttnumb,false,mqttWebSock),myprobs_= getio.getctls(mqttInst,null,mqttprob,true,null)}
+ 	 					
+ 	 					usato in abilita2(devices_={myctls,myprobs,pythonprob} ) :
+ 	 											
+ 	 		
+ todo tabs :
+  
+		 group		clas		protocol	 	calculated >>		type ( )  		topic/topicPub/topicNodeRed 		regtopic
+		 
+		 
+		 
+		 
+		 mqttnumb
+		 
+		 
+		 
+		 
+		 
+		 mqttprob
+		 
+		 
+		 
+		 
+		 mqttWebSock
+		 
+ 
+ 
+ in msg incoming : goonP() uses:
+ 
+ 	register info (regtopic) to:
+ 	
+ 	- decide to fill queue
+ 	
+ 	- decide to call interrupt 
+ 	
+ 		per i dev type=0/1/2 , if topic è un cmdtopic in funzione del  message_.url chiamo il int handler , es:  ctlpack.ctl.intWebSoc/int1/int0(def)
+ ___________________________
+ 
  	 

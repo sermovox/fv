@@ -263,6 +263,7 @@ function msgListFact(waitListReturn, waitPromiseRes, CheckPrevMessageEnd) {
                 let topicNodeRed = adev.topicNodeRed;
                 isCmdTopic = topicNodeRed && topicNodeRed == topic; // if topic==topicNodeRed we have a cmd topic in case of var dev (and rele too ?) !!!
 
+                
                 //old :if (fromthisctl) {// user = dev !
                 if (!isCmdTopic) {// can be var (we calc if is  ) or rele (or probes ?) : 
                     if (!fromthisctl)fillqueue();
@@ -573,43 +574,139 @@ fc.prototype.readSync  =//  return the promise DDEERR resolving 0/1 or null if r
 
 
                                         // ****   MNG SUMMARY  sunto 113052023
-                                        // chiamo rread ricursivamente (nel caso lo richiamo (rread) se un valore non mi soddisfa e allora lo richiedo ma senza guardare il current queue , ossia forzo un listener )
-                                        // se trovo queue allora  prendo last val (a meno che non ci sia per un dev var 'ctlpresent')
-                                        // altrimenti attendo la risoluzione di un listener che aggiungo alla lista 
-                                        // caricamento valore letto  secondo tipo (rele/var/probe) e protocollo 
-                                        // chiudo chiamando ending( valore da caricare ). nb se null significa ho letto valore erraro o nullo , sta per reject !
+                                        // - chiamo rread ricursivamente , rread :
+                                        	- recupera il messaggio re :
+                                        		- solo la prima volta  (solo al primo  iterazione di rread() : checkQueueFirst=true) 
+                                        			> il last in current queue 
+                                        			(a meno che non ci sia per un dev var 'ctlpresent')
+                                        			 get last entry in that.status[gpio] queue array, leave in array only last msg 
+                                        		e poi 
+                                        		- il valore re=await ( stList()=promise XXTT ) ,  di un futuro msg processato da theListener(lastmsg, test = 0) in input processing 
+                                        			  re sarà la risoluzione del promise XXTT che avviene tramite 
+                                        			  	la chiamata fatta in msg income processing  di  theListener=mqttInst.statusList[dev][i]:
+                                                                  		theListener(msg,test=0) : tornerà in msg processing :
+                                                                  			- la promise DDEERR1 quando !fired,  al primo call di theListener con un messaggio 
+				                                                  		     la promise DDEERR1 verra risolta chiamando:  resRetList(resetListener=true/false);
+				                                                  		     	resetListener:
+				                                    					      true > quando ... , say to message income code to reset (riproporre )the listener perche 
+				                                    					      				il msg non va bene : MMJJUU
+				                                    					      false > quando ......   ex in ending
+				                                    			- return undef se fired , cioe alle successive chiamate di theListener /messaggi  ??  
+				                                    			- return id se test=1 
+				                                    			
+				                                    		theListener (msg,test=0) will
+				                                    			- alla prima chiamata  (fired=false:
+				                                    				res(lastmsg);// risolvo con il msg XXTT che lo assegna a re
+				                                    				 return the promise retProm = DDEERR1 
+				                                    			- successivamente verra ritornato undefined ???????
+				                                    					      
+								 la promise XXTT :
+								 	- crea/restore 	theListener,
+								 	- se resetListener=false (inizio) :
+								 		mqttInst.statusList[dev].push(theListener);// set for first time the listener in message incom
+
+								 	- altrimenti risolvo DDEERR1 con true
+								 	
+								 		nb  resetListener viene posto =true 
+								 			- prima di reiterare rread() quando si trova un re non valido (es a presence or meta command)
+								 				> quindi dopo aver aggiunto theListener in statusList al prima iterazione di rread 
+								 					resetListener diventa true nelle successive iterazioni ? ?
+                                                                  	
+                                                                  	-  setTimeout()  risolve XXTT con ''
+                                                         
+                                                 - in base al protocollo si estrae il valore corretto e:
+                                                 
+                                                 	ending(val) , se interpreto bene re 
+                                                        ending(null) se non interpreto
+                                                        resetListener = true;  return rread(false); se trovo un presence in msg 
+                                                        
+                                                        
+                                                        ending(x) will:
+                                                        	 resRetList(null);// risolve DDEERR1 in msg income  , no iterate listener 
+
+								 return valCorrection(value); 
+
+                                        quindi riassumendo 
+                                        
+                                        lancio readSync() che ritorna getgpio(this.cl);  che ritorna rread(true)
+                                        	- rread(true) gira la prima volta e 
+                                        		- recupera il re= msg in queue 
+                                        		- o gira stList()  che : 
+                                        		    aggiunge theListener alla lista 
+                                        		    e si attende che in income process si chiami theListener 
+                                        			theListener crea theLIstener lo aggiunge a mqttInst.statusList e attende che il income process lo chiami 
+                                        				quando theListener è chiamato  
+                                        				- risolve con msg il XXTT che lo assegna a re e 
+                                        				- ritorna al msgincome la promice DDEERR1 
+							-  esamina re: 
+								-se e' ok si chiama ending(val) che 
+									- resRetList(null): risolve DDEERR1 con null  in msg income  , no iterate listener 
+									- risolve rread 
+								- se non e' ok 
+									-  resetListener = true; e reitero  return rread(false): 
+										rread gira di nuovo e giro stList() che :
+											risolvo DDEERR1 (messaggio precedente) con true
+											e quando arrivera un msg il theListener verra ancora chiamato  :
+											 theListener   che ritorna al message income undefined  (fired=true:)
+											 MA NON RISOLVE XXTT ?????????
 
 
-                                    retProm=new Promise(function (res,rej){// promise DDEERR1 
-                                                resRetList=res;});//  the resolving func reference: the cb called to resolve the promise calling res()
+                                    retProm=new Promise(function (res,rej){// promise DDEERR1 ritornata nel receiving msg da theListener(lastmsg, test = 0)
+                                                resRetList=res;});//  the resolving func reference: the cb called to resolve the promise DDEERR1 calling res()
 
-                                    async function rread(checkQueueFirst=true)// rread è funzione iterattiva, chiama se stessa finche .... 
-                                                                            //      quindi ritorna o l'ultimo valore nel queue (solo al primo  call : checkQueueFirst=true)
-                                                                            //      o la risoluzione del promise XXTT che avviene tramite la chiamata di 
-                                                                            //          theListener: the promise XXTT  resolving function ( will call res() di XXTT
-                                                                            //          viene aggiunto nel queue (mqttInst.statusList[dev].push(theListener)) dei listener che saranno chiamati quando arriva un nuovo messaggio
-                                                                            //          .....un listener quando verrà chiamato da un successivo msg 
-                                                                            //          a meno che il listener trova valore non buono come value (un presence o altro)
-                                                                            //          al che riprova iterando rread(false) e anrda a cercare di tornare il listener successivo : ,,,
+                                    async function rread(checkQueueFirst=true)// rread è funzione iterattiva, chiama se stessa finche torna re valido 
+                                                                            //      **** rread summary :
+                                                                            //       si recupera re :  
+                                                                                        -   ultimo valore nel queue (solo al primo  iterazione di rread() : checkQueueFirst=true)
+                                                                                        	 get last entry in that.status[gpio] queue array, leave in array only last msg 
+ 
+                                                                            //          o 
+                                                                            //          - if (resetListener=false) {// def/init value:  non riproporre il listener !
+                                                                                          > say to message income to set a new ( not resetted) listener to wait for next message, in request ts #', ts);
+         
+                                                                            //            re sarà la risoluzione del promise XXTT che avviene tramite la chiamata di 
+                                                                            //            theListener: the promise XXTT  resolving function ( will call res() di XXTT
+                                                                            //            viene aggiunto nel queue (mqttInst.statusList[dev].push(theListener)) dei listener che saranno chiamati quando arriva un nuovo messaggio
+                                                                            //            .....un listener quando verrà chiamato da un successivo msg in incomin msg :
+                                                                            //  
+                                                                            //              theListener(lastmsg, test = 0):// ritorna DDEERR1 ! 
+                                                                                                :
+                                                                                                se fired=false (?)
+                                                                                                 res(lastmsg);// resolve the waiting XXTT 
+                                                                                                return retProm;// ritorna promise  DDEERR1 in incoming msg calling da theListener(msg,)
+                                                                                                    sarà risolta quando chiameremo resRetList(valore risolto) in ... quando ....
+
+                                                                                        - if (resetListener=true) {// riproporre il listener !
+                                                                            //              a meno che il listener precedente fornisce un re che è valore non buono come value (un presence o altro)
+                                                                            //              al che riprova iterando rread(false) e   :
+                                                                                              resRetList(resetListener);//..........  
+                                                                            
+                                                                                                 return to message income code chiedndo to reset (riproporre )the listener perche il msg estratto dal corrente theListener bnon va bene : MMJJUU
+
                                         {
                                             if (checkQueueFirst && curlength > 0) 
                                             {
                                                 re = mqttInst.status[gp][curlength - 1];
                                                 if (re == '>ctlpresent')
                                                      return rread(false);
+
                                             } else {// add a listener  
-                                                re = await stList(); // await the promise XXTT
+                                                re = await stList(); // await the promise XXTT che si risolve dopo che in receive msg si chiama (via  mqttInst.statusList[dev]):
+                                                                    //       theListener: the  promise XXTT resolving function 
                                             }
-                                            // converti il valore letto re ( o perchè presente in queue o perche risolto dal listener dopo un periodo secondo tipo (rele/var/probe) e protocollo 
+
+
+                                            // dopo aver recuperato dal queue o in un prossimo msg il valore re lo si converte ( o perchè presente in queue o perche risolto dal listener dopo un periodo secondo tipo (rele/var/probe) e protocollo 
+                                            // quindi dopo un esame dello stesso :
                                             .....
-                                                return ending(re);// iterazione terminata: RETURN the last queue entry o il valore risolto del listener  !!!!!!!!!!!    
+                                                return ending(re);// iterazione terminata: RETURN the last queue entry o il valore risolto re !!!!!!!!!!!    
                                             ....
                                                 resetListener = true;// or just add a new listener in listener queue  ,     MMJJUU
-                                                return rread(false);// relaunch rread iterately
+                                                return rread(false);// e relaunch rread iterately che al solito aspettera la risoluione di XXTT via theListener
                                             ...
                                             if (re == '>ctlpresent')
                                                 resetListener = true;// or just add a new listener in listener queue  ,     MMJJUU
-                                                return rread(false);// relaunch rread
+                                                return rread(false);// relaunch rread .....
 
                                             
                                             function stList() {//(dev,token){
@@ -637,12 +734,12 @@ fc.prototype.readSync  =//  return the promise DDEERR resolving 0/1 or null if r
                                                                                                     res(lastmsg);// resolve the waiting XXTT quando si chiama il listener con un prossimo msg
    
                                                                                                     fired = true;
-                                                                                                    return retProm;// the returned pro
-                                                                                                else return
+                                                                                                    return retProm;// the returned promise in incoming msg calling theListener(msg,)
+                                                                                                else return // return null  in incoming msg calling theListener(msg,)
                                                                                         })(ts)// the id 
 
                                                                     if (resetListener) {// riproporre il listener !
-                                                                        resRetList(resetListener);// say to message income code to reset (riproporre )the listener perche il msg non va bene : MMJJUU
+                                                                        resRetList(resetListener);// return to message income code to reset (riproporre )the listener perche il msg non va bene : MMJJUU
                                                                         console.log(' stlist() : listener x dev : ', dev, ', resolving promise, say to message income to reset the current listener that must wait for a following message, in request ts #', ts);
                                                                     } else {
                                                                         console.log(' stlist() : listener x dev : ', dev, ', say to message income to set a new ( not resetted) listener to wait for next message, in request ts #', ts);
@@ -793,7 +890,7 @@ fc.prototype.readSync =//  return the promise DDEERR resolving 0/1 or null if re
                                  mqttInst.status[gp].push(defVar);
                                 re=defVar;
                                 */
-                            re = await stList();// POLP    XXTT 
+                            re = await stList();// POLP    XXTT promise
                         } else {
 
 
@@ -892,12 +989,16 @@ fc.prototype.readSync =//  return the promise DDEERR resolving 0/1 or null if re
                         theListener = theListener || // the XXTT listener promise resolving function ( will call res() di XXTT !)
                             (function (id_) {   // closure , the listener resolving function factory
                                 let id = id_, fired = false;
-                                return function (lastmsg, test = 0) {// the listener  promise XXTT  resolving function ( will call res()!). is sync function , so return to the caller (IIOOPP) after eventually added a new listener 
+                                return function (lastmsg, test = 0) {// theListener :the promise XXTT  resolving function ( will call res()di XXTT !). is sync function , so return to the caller (IIOOPP) after eventually added a new listener 
                                     // and eventually delete itself ref 
                                     // 05052023   dev is the devid , test to have the function id to recognize it when delete the listener reference in array
 
                                     if (test == 0) {// process listened msg, std path
-                                        if (!fired) {
+                                        if (!fired) {// primo call con un messaggio : return the promise retProm 
+                                                    //  essa sarà risolto quando chiamo :
+                                                    //      - resRetList(resetListener=true/false);
+                                                    //          true > say to message income code to reset (riproporre )the listener perche il msg non va bene : MMJJUU
+                                                    //          false > ......   ex in ending
                                             listCall++;
                                             console.log(' stlist() : listener x dev : ', dev, ', registered to wait for next message, in request ts #', ts, ', in listener position # ', listCall, ' is called by  the message the listener was waiting for.  so cb with message: ', lastmsg);
 
@@ -909,7 +1010,7 @@ fc.prototype.readSync =//  return the promise DDEERR resolving 0/1 or null if re
                                             // todo rej if timeout !!, here reject just resolving with null !!
                                             fired = true;
                                             return retProm;// the returned promise will be resolved after rread knows if continue with another listener on next message if cant find a good val to read 
-                                        } else return;
+                                        } else return; // ritorno in msg income dopo il primo messaggio ????
                                     } else {// return id to be recognized
                                         console.log(' stlist() : listener x dev : ', dev, ', registered to wait for next message, in request ts #', ts, ', is called to give its id ', id);
 
@@ -919,7 +1020,7 @@ fc.prototype.readSync =//  return the promise DDEERR resolving 0/1 or null if re
                                 }
                             })(ts)// the id 
 
-                        if (resetListener) {
+                        if (resetListener) {// riproporre il listener perche risoluzione non soddisfacente : non era un value ma un presence o altro 
                             resRetList(resetListener);// say to message income code to reset (riproporre )the listener perche il msg non va bene : MMJJUU
                             console.log(' stlist() : listener x dev : ', dev, ', resolving promise, say to message income to reset the current listener that must wait for a following message, in request ts #', ts);
                         } else {
@@ -1003,7 +1104,7 @@ fc.prototype.writeSync = function (val_) {// val_=0/1, or object in some protoco
             else topic = this.mqttInst.mqttTopPub[dev];
         } else topic = this.mqttInst.mqttTop[dev];// same as write topic (subscription)
 
-        if (this.cl == 1) { // a rele/pump inorout='out'   see mqttnumb set
+        if (this.cl == 1) { // a rele/pump inorout='out'   see mqttnumb set , type 1
             if(intval==null)return false;
             if (this.cfg.protocol == 'shelly')
                 if (intval == 0) message = messageOff; else message = messageOn;
@@ -1023,7 +1124,7 @@ fc.prototype.writeSync = function (val_) {// val_=0/1, or object in some protoco
             });
             return true;
 
-        } else if (this.cl == 2 || this.cl == 4) {// a var in mqttnumb or mqttprob[i] 
+        } else if (this.cl == 2 || this.cl == 4) {// a var in mqttnumb or mqttprob[i] , type 2 e 4
 
 
 

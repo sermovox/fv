@@ -1,5 +1,10 @@
-let custDev = {// custom devices cmd ctl triggered by a set on a regular dev
-    66: async function (set_v = 0 ,rs485,param,exec) {// state value are inverted , inversion active:  0<>1.
+let custDev = {// custom devices cmd ctl triggered by a writesync() on a regular dev
+    66: async function (set_v = 0 ,rs485,param,exec,relais) {// state value are inverted , inversion active:  0<>1.
+                                                                // better set exec and relais with init()
+                                                                // relais is a array with fixed gpio input ctl, used to set type 4 var topic:
+                                                                //      during a writesync we add to msg info about the sensor relais
+                                                                // rs485 is a string to use in modbud custom dev 
+                                                                // param values come from browser attributes to modify the command to send to modbus: todo
         // this ctl will start stop all splits by modbus ctl
         param=param||{quiet:false,section:false};
         let set_,quite=param.quiet,section=param.section;
@@ -70,6 +75,21 @@ let custDev = {// custom devices cmd ctl triggered by a set on a regular dev
 
             });
         }
+    },
+
+    10001: async function (incomVal,rs485,param,exec,relais) {// start he a custom device type prob. 
+                                                            // can be sync ??
+                                                        // use a type 4 mqttprob var that insert in topic the val : a json with probes val extracted by some script
+                                                        // according with the optional incoming value params  set by fv3 algos
+                                                        // if we are using  rpi gpio ....
+                                                        // the other method to insert custom prob was the modbus sensor that was implemented  in fv3 algo using some config by models.js
+                                                        // see in fv3  : async function shellcmd(sh,param){// param={addr:'notte',val:18}
+
+
+        let inputgpio=relais[0];
+        let dummy=11.11;
+        incomVal.custProbeVal=dummy;// 
+
     }
 }
 

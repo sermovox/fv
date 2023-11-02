@@ -1,6 +1,8 @@
 let mqtt=require('../mqtt');// nb this module should be init by fv3 itself !!!  ceck it !
 const custDev=require('./custDevDef');
 let Gpio=false,rs485='rs485.py',pdate;// rs485 sh script on base dir
+let relais;// input gpio , temporaneamente fissi, non generati con chiamate  getctls: !
+
 const PRTLEV=5,DEBUG=true;// print log level 
 
 
@@ -185,11 +187,13 @@ async function getio(num, iotype, ind, ismqtt = false,mqttInst) {// returns prom
         setTimeout(function(){// unresponsive shell cmd , anyway return true
             ret = true; },1500);
 
-            custF(val,rs485,addparm,exec).then(()=>ret=true).catch(()=>ret=false);// 
-          answ=ws(val);// waiting for timeout or promise custF run std writeSync . ws(val)=ctl.ws(val) ?, so why bind ?
+            custF(val,rs485,addparm,exec,relais).then(()=>ret=true).catch(()=>ret=false);// 
+          // moved after .  answ=ws(val);// waiting for timeout or promise custF run std writeSync . ws(val)=ctl.ws(val) ?, so why bind ?
         while(ret === undefined) {// wait anyway for custDev[num]
           deasync.runLoopOnce();
         }
+        answ=ws(val);// waiting for timeout or promise custF run std writeSync . ws(val)=ctl.ws(val) ?, so why bind ?
+                    // in custom probes val object can be modified by custF !
 
         return answ;// test ret ?    
       //}
@@ -226,6 +230,15 @@ item=await getio(6, 'out');relais_.push(item);
                               rs485=rs485_;
                               Gpio=gp;
                               pdate=pdate_;
+                              if(Gpio)relais= //  reserved input to check the ok . todo arrays of io ctl button x input : add to prob cfg in models.js !!
+                                // can add in getio the following ctl as probes for specific plant , use a specific property in models.js , we add a handler to feed the input and extend the possibility to have gpio probes in :
+                                //       myprobs_= getio.getctls(mqttInst,null,mqttprob,true,null);//      set null pointing to gpio probes !!!
+                                // otherwise use the input to check other staff x specific plant or not using appropiate handler !!!
+                                [
+                                new Gpio(4, 'in', 'both'),// used in custdev 10001
+                                new Gpio(17, 'in', 'both')
+                                ];
+
                               return this;},
                   getctls:function(mqttInst,gpionumb,mqttnumb,isProbe=false,mqttWebSock){// isProb : look cfg in mqttprob , not in mqttnumb ! so in this case mqttnumb=cfg.mqttprob not mqttnumb=cfg.mqttnumb
                                                                     // mqttnumb=mqttnumb/mqppprob   the dev ids descriptions x the 2 type of device
@@ -392,6 +405,7 @@ pr.then((it)=>{// when resolved fill items of resolved[devNumb]={devNumb,devtype
                         devNumb:0,
                         type:'out'
                       }
+                      
    14102023 mqtt case :
    {
   ctl: {

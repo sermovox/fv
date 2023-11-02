@@ -620,6 +620,8 @@ let pumpsHandler_=[];//  relais handler , also used by anticipating algo too (ac
 var pushButton ;
 if(Gpio)pushButton= new Gpio(17, 'in', 'both'); //use GPIO pin 17 as input, and 'both' button presses, and releases should be handled
 let relais;
+
+/* now moved in getio
 if(Gpio)relais= //  reserved input to check the ok . todo arrays of io ctl button x input : add to prob cfg in models.js !!
 // can add in getio the following ctl as probes for specific plant , use a specific property in models.js , we add a handler to feed the input and extend the possibility to have gpio probes in :
 //       myprobs_= getio.getctls(mqttInst,null,mqttprob,true,null);//      set null pointing to gpio probes !!!
@@ -628,6 +630,7 @@ if(Gpio)relais= //  reserved input to check the ok . todo arrays of io ctl butto
 new Gpio(4, 'in', 'both'),
 new Gpio(17, 'in', 'both')
 ];
+*/
 
 
 
@@ -1446,7 +1449,7 @@ function anticipate(state,algo){// the algo :  store algo result on state.lastAn
   let a=2,//// basic model save battery
   ret,model_;
 if(triggers){
-if(triggers.PdCTrig1){a=2; console.log(' anticipate algo find required policy : PdCTrig1');
+if(triggers.PdCTrig1){a=2; console.log(' anticipate algo find required policy : PdCTrig1inverter: ',inverter,' consumo: ',consumo);
      model_="PdCTrig1";// add .policy=.....
      }
 
@@ -1454,11 +1457,13 @@ if(triggers.PdCTrig1){a=2; console.log(' anticipate algo find required policy : 
     ret = [false, false, false, false,false,false];// [heat,pdc,g,n,s,split] 
   else if (a == 2) {// basic model save battery
     if (triggers)
-    {let plant=state.app.plant,plantconfig=model.getconfig(plant),
+    {let plant=state.app.plantname,
+      plantconfig=model.getconfig(plant),
       fVP=parseInt(triggers.FVPower),// if positive the % of battery charging power, if negative the !cloudly  required condition
       doAntic;
       if(fVP!=NaN&&plantconfig.invNomPow!=null&&plantconfig.invNomPow!=NaN){
       let pococloudly;//=cloudly <= (100 + fVP);// es 100 +  -80 = 20
+      console.log(' anticipate algo evaluating anticipate for plant: ',plant,', values : fVP ',fVP,'cloudly: ',cloudly,' inverter: ',inverter,' consumo: ',consumo,' inv nominal power: ',plantconfig.invNomPow);
       if (fVP<0&& (pococloudly=cloudly) <= (100 + fVP+1)// negative value means confront - cloudly  , ok per  100<=100-1+1
         ||(fVP>=0&&(100*(inverter-consumo)/plantconfig.invNomPow >= fVP))// positive means confront with inverter power , potenze in %
       
@@ -3671,16 +3676,16 @@ session.save();// save socketid
     eM = recInsts.inst;
     repeat=recInsts.repeat;
     repeat1=recInsts.repeat1;
-    let prevSess;
+    let prevSess;// prev session id
 
     // reset the context = this closure (socket.on('startuserplant',closure)) 
     // must be nullified when socket disconnect so closure can be garbagecollected 
     if(eM.getcontext){
-    console.log(' startuserplant , user ',user,', plant: ',plant_,' changing session/socket context data. old/new session are: ',eM.getcontext.getSession().id,'/',session.id);
+    console.log(' startuserplant , user ',user,', plant: ',plant_,' changing session/socket context data. old/new session id are: ',eM.getcontext.getSession().id,'/',session.id);
     prevSess=eM.getcontext.getSession().id;
-    } else console.log(' startuserplant , user ',user,', plant: ',plant_,' setting session/socket context data. new session are: ',session.id);
+    } else console.log(' startuserplant , user ',user,', plant: ',plant_,' setting session/socket context data. no em.getcontext, so new session id are: ',session.id);
     // **************    ma quando recupero eM in un nuovo socket getcontext mi da la sessione e il clientDisconnect del nuovo socket visto che lo riassegno !!!!
-                  // reset
+                  // reset update or new ?  todo
     eM.getcontext={// to make available this current closure vars relating to current state of browser connection via socket  to setPump,.....
                     // sono in sostanza le variabili della closure , cioe l'handler del connection , cioe il socket, session,,,
                     // che servono al ctl fn per diallogare con uno degli i/o : il current browser socket , se c'e'
@@ -3717,16 +3722,31 @@ session.save();// save socketid
            nb getcontext.processBrow() ritorna !getcontext.discFromBrow
            inoltre  when clientdiscon it useless run function that will emit browser .emit , because no connection is available
         */
-      getSession:function(){return session;},
+      getSession:function(){return session;},// get cur session 
       getCliDiscon:function(){return clientDiscon;},// staus of socket on current closure (onconnection socket handler)
       processBrow:function(){
         if(this.discFromBrow)return false;// discard processing the browser req
         else return true;},
       discFromBrow:false ,// if true : dont process things related to browser/socket presence : connection is lost , ex:  dont process double time setPumps event in onRelais()
       // trace
-      curSess:session.id,
-      prevSess:prevSess
+      curSess:session.id,// init session id
+      prevSess:prevSess,
+
+      socket:socket,// todo migrate here socket ref. socket is valid (!=null) if session.id!=null
+      ha_ws:null  /* ha ws will receive/send mqtt staff comingfrom/goingto the ha connected with mqtt:
+                  // - browser style event emit ( like socket.emit('event', ....) from ha mqtt service triggered by some automation on topic @plant@interface_mqtt_websock/0/NReadUser/cmd
+                  //     ex  mqtt subevents coming from @Casina_API@interface_mqtt_websock_0/command cmdtopic managed in 
+                            quindi se in cfg specifico int=ws instead of  programmare il sub in numbSubscr/probSubscr e quindi in goonP() :
+                            
+
+
+                  // - browser style event on   sent to ha in topic on topic @plant@ctl_var_state_0
+                  // - device state coming triggered mqtt publish service  shellies/Casina_API-xxx/relay/0
+                  // - device command sent to topic @Casina_API@ctl_var_state_0
+                  //  no more , old way to delete !
+                  */
     }
+
 
 
     // error here eM is the closure so it il like a object static property available at every func call 
@@ -3750,6 +3770,7 @@ session.save();// save socketid
     if(eM)console.error('startuserplant , eM is built/recovered from pool ');
     if(eM)console.log('startuserplant , eM is built/recovered from pool ');
     eM.socket=socket;// update/embed the socket to connect the last browser client: todo check only 1 browser pointing to  a eM
+                    // todo : migrate to eM.getcontex.socket
 
     // UUYY add here (or in instance constructor ???)
 
@@ -3844,11 +3865,11 @@ let pythonprobs=   [...plantconfig.pythonprob];
 if(PRTLEV>5) console.log('startfv_(), got pythonprob cfg .',pythonprobs);
 
 const keepDeviceDef=true;// is true, try false
- if(keepDeviceDef&&!eM.init){// eM is not initiated (non recovered from started[name] )
+ if(keepDeviceDef&&!eM.init){// eM is not initiated (new, non recovered from started[name] )
  //  abilita(eM.state);//// abilita sezione gestione eventi ( relais_)  plant nella pagina
  abilita(eM.state).then((devices)=>{ 
 
-  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><   todo   devices > {relais_:[],probes_:[]}// probs are input devices with only syncread() , can be mqtt or modbus
+  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><   todo   devices > {relais_:[],probes_:[]}  // probs are input devices with only syncread() , can be mqtt or modbus
 
   abilita2(devices); eM.init=true;
   if(nRWaiting[plant])nRWaiting[plant]();// call the nr listener to add plant eM to node-red socket closure
@@ -3959,6 +3980,7 @@ function abilita2(devices_){// {myctls,myprobs,pythonprob} // DDQQAA
 //eM=socket.eM,
 
       probes=devices_.myprobs;// 
+
 console.log(' abilita2(),got dev ctls x models.js lists: gpionumb,mqttnumb. relais map is: ',devices.devmap);
 console.log(' abilita2(),got dev ctls x models.js lists:,mqttprob. probs map is: ',devices.devmap);
 eM.iodev.relais_=Array(devices.ctls.length).fill(null);// fill relays/pump  list in browser , inorout='out' cioe out capable
@@ -3999,7 +4021,7 @@ builddev(probes,eM.iodev.probs_,state.probMap,1); //                            
                                                 //                                                                        - to store/write or get/read intermediate var status connectable to node red
 
 function builddev(devices,ct,map,type){// fill obj map with dev id/port (see models.js) + fill ctl  in ct[index of devices], ct can be  iodev.relais_ or iodev.probs_  
-                                        // copy dev ctl of devices e probs into  ct=iodev.relais_  e iodev.probs_
+                                        // copy dev ctl of devices (devices.ctls[i]) e probs (probs.ctls[i]) into  ct=iodev.relais_[i]  e iodev.probs_[i]
                                         // fill map with the dev portid
 devices.ctls.forEach((mdev,index)=>{
   if(mdev){ct[index]=mdev;
@@ -4634,7 +4656,7 @@ function stopprogrammer() {
     // eM will run also if the client dead . when a new connection come and it refears to same plant of the running eM , attact it to the closure and goon  
    if(eM&&eM.getcontext){ console.log(' socket connection lost, plant: ',eM.state.app.plantname,', session ',eM.getcontext.getSession().id,
                                      '\n  socket.on disconnect,  so clientDiscon is set false ');
-                                     session=null;
+                                     session.id=null;//session=null;
                                      if(eM)eM.socket=null;
   }
     clientDiscon=true;

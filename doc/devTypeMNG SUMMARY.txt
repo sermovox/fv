@@ -77,14 +77,39 @@
           		
           		
          added 24102023:
-  * i type 2 e 4 implementano internamente un device fisico che invece ha una sua parte nel type 1, 
-      quindi realizzano all'interno del pubtopic il comportamento del device fisico che esegue il comando e poi riflette l'azione fornendo dati nel topic ( comunque disponibile all'interno e all'esterno (nodered/ha))  :
-     - si riceve il pubtopic msg (dopo aver updatato lo state.relais interno), si esegue il comando e poi si manda sul topic la risposta corrispondente al nuovo stato del dev che usualmente in payload e' il nuovo valore assegnato
+  * i type 2 e 4 implementano internamente un device fisico che invece ha una sua parte reale nel type 1, 
+      quindi realizzano all'interno del pubtopic il comportamento del device fisico che esegue il comando e poi riflette l'azione fornendo dati (puo essere un echo) nel topic ( comunque disponibile all'interno e all'esterno (nodered/ha))  :
+     - si riceve il pubtopic msg (dopo aver updatato lo state.relais interno , se type 2), si esegue il comando e poi si manda sul topic la risposta corrispondente al nuovo stato del dev che usualmente in payload e' il nuovo valore assegnato
     la differenza tra type 2 e type 4 è che il type 2 mantiene in state.relais lo state interno e quindi non c'e' la necessita di leggere il queue di topic (che diventa lo state del dev type 4 ) x averlo  
     	mentre i ctl esterni (node red e ha) dovranno comunque usare il topic x avere info sullo stato del dev
-  * il comtopic (nodered/ha cmd) processa l'evento esterno via interrupt che termina con un nuovo STATE fatto da :
-  		- state.relais / lastxxxalgo/ lancio di ulteriori pub su dev.
+  * il comtopic ( in genere proviene da nodered/ha cmd che chiedono a fv3 di cambiare stato in modo controllato) processa l'evento esterno via interrupt  che termina con un nuovo STATE fatto da :
+  		- state.relais / lastxxxalgo/ lancio di ulteriori pub su dev. interessati via writeSync()  (es per rispecchiare il cambio di stato)
+  			esempio il interrupt setMan lancia un handler che e come 'evento conclusivo di un exec :
+  			 - setta il result del manual algo lastManres che poi in consolidate condizionerà il update dei state.relais (che saranno seguiti da writeSync su type 1 e 2 ) e lancio di altri writeSync su type 4 (non hanno il state in state.relais) 
   	esso permette permette di gestire l'evento/cmd esterno e informare poi gli altri algo  		
+  	
+  	
+  	
+* verifica di come scrive il writesync :
+   il topic del pub sarà il :
+   - topic del device 
+   o il 
+   - mqttTopPub se settato in numbSubscr o pubsSubscr(
+
+ type 1 :  	on or off se protocol=....
+ type 2,4 :  	is FORMATTED : message=pub(val_, this.mqttInst.plantName, gp)   se protocol ='mqttstate'
+ type 0: .....
+ 
+ 
+ * verifica di cosa si scrive in message incoming  :  goonP()
+ 
+ 	isCmdTopic = topicNodeRed && topicNodeRed == topic;
+ 	 !isCmdTopic : fillqueue()
+ 	 isCmdTopic) : if (type == 4) fillqueue();
+ 	 		else fire interrupt 
+ 	
+ 
+ 
           		
 ___________________________________________________________________________________
 
