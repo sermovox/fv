@@ -526,7 +526,8 @@ io.use((socket, next) => {// 092023 : probabilmente qui si verifica che :
 
 
 //console.log('after createserver , http_.request:',http.request);
-let mqtt=require('./nat/mqtt');
+const Newmqtt=true;
+let mqtt=Newmqtt ? require('./nat/haWs'):require('./nat/mqtt');
 var fs = require('fs'); //require filesystem module
 
 
@@ -1197,6 +1198,8 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
       // if(state.lastAnticAlgo)console.log(' \n so next consolidation/optimizing with last anticipating action : ', state.lastAnticAlgo.pumps);
       //console.log('\n at last got: : ',optimRet);
     }
+    // todo set para to split depending on zones to do in consolidate
+
 
           ret[7] = !toactivate[3][0];// ! becauseis a noacs  , no  acs !!
       antret[7] = !toactivate[3][1];
@@ -2876,7 +2879,7 @@ let i,mmax=aTT.length,mapmax=map.length;
   for (i = 0; i < mmax; i++) {// scan virtual rele i-esimo  and apply changes to real rele if index map[i] named  relaisEv[map[i]],  with current state relays[relaisEv[map[i]]]
     let realind;
     if (i < mapmax) realind = map[i];// apply map only if are >=0
-    else realind = i;// identity 
+    else realind = i;// now we must use identity 
 
     // error on managing mapping virtual> real , so waiting debug :
     realind=i;//anyway till we resolve the bag
@@ -3026,7 +3029,7 @@ function setPump(pumpnumber,on,fn){// 0,1,2,3    on : changing value (true/1 or 
   // fn.state.discFromBrow=true;//old to delete.  better : set true only if the sockeck connection is connected !
   // better >>>  warn in contxt that we launch  a server request that is followed by a double req from browser if the client is connected  :
   //            a expiration time out will mantain .discFromBrow=true; for 2 s. 
-  fn.getcontext.discFromBrow=true;// so in fn.getcontext.processBrow return false if fn.state.discFromBrow=true
+  fn.getcontext.discFromBrow=true;// so in fn.getcontext.processBrow return false if fn.state.discFromBrow=true. so the browser request wont be processed 
 
   if(fn.getcontext.blocking)clearTimeout(fn.getcontext.blocking);// fn.state.discFromBrow : the server req  (onRelais ) is followed by a browswer req : 
   //    so if a previous browser timeout was set , reset it and  reset the interval of browser  blocking 
@@ -3045,7 +3048,7 @@ function setPump(pumpnumber,on,fn){// 0,1,2,3    on : changing value (true/1 or 
   onRelais(relaisEv[pumpnumber],on_,Serv_,fn);// dont wait, WARNING usually called before the duplicate call coming from browser as feedback of previous  pumpsHandler[pumpnumber] call !
   
  if(!clientDiscon)// when client disconnect it useless run function that will emit browser .emit , because no connection is available
-  fn.pumpsHandler[pumpnumber](0,on_);// 
+  fn.pumpsHandler[pumpnumber](0,on_,fn);// 
                                 // its a copy of gpio button relays handler (so we are simulating a gpio button press) that launch socket events
                                  // after set the browser pump flag will return with a socket handler that will call
                                  // onRelais(pumpnumber,on,'browser...',) : the gpio phisicalrelay
@@ -3055,6 +3058,56 @@ function setPump(pumpnumber,on,fn){// 0,1,2,3    on : changing value (true/1 or 
   
   return Promise.resolve(true);// why return promises ?
 }
+
+function watchparam(pumpName){// the handler emit the socket.emit('pump' to browser. handler for all pump gpio button >>> using a closure is a bit forcing , probably one more param is enougth
+  // >> pumpName in relaisEv
+
+// ERROR in referencing session and socket , infact should be in fn.getcontext.
+// here socket is the socket where plant was launched  with its fn , but the socket we want to send is the current socket got in setPump !!
+// garbage collection : watchparam should be on fn , so when first socket will disconnect we can garbage collect it 
+
+
+
+return function watch (err, value,fn) { // :YUIO   the handler . // added fn because the socket connecting the browser can change and is tracked by fn.getcontext.socket
+// - Watch for io hardware interrupts ( manual pumps Button ), 
+// we watch also (these handlers are put in the bank pumpsHandler[ind]  called by setPump(pumpnumber,on) ): 
+// - Anticipating algo that also can trigger pumps updates 
+// >>> emit/fires socket events pumpName
+// remember that those events  are handler  in browser .on()
+//          -.on() updates gui button then return/pass  pumpName event back to server
+//              pumpName event will call    onRelais(pump,data=true/false) to command the relays gpio
+//                                                      using relais_ gpio
+//                      see : socket.on(pump,onRelais);  pump==pumpName
+//            >> anticipating algo in setPump(pumpnumber,on) anyway will also launch onRelais(pump,data=true/false) in case the bwowser page in not (socket) connected
+//                so if the browser is connected the set gpio relay function will be called two times  with same value !!
+//      >>>> server handler commands pump relais 
+const socket=fn.getcontext.socket;// current socket
+if (err) { //if an error
+console.error('on activating pump: ',pumpName,' There was an error', err); //output error message to console
+return;
+}
+console.log(' watchparam ( server button handler, called also by algo activated setPump() ) : it is firing a socket event pump for pump: ',pumpName,' so in browser well set pump flag : ', value,' now  try to send ws (ws.id=',socket.id,') pump emit '); //output error message to console
+lightvalue = value;
+if(socket){socket.emit('pump',pumpName, lightvalue); //send button status to browser client, if available  
+          // >> pumpName in relaisEv
+           // accoppiato con onrelais  
+           // **********************************
+           // >>>>   .on('pump)  can be not set , till browser ask to connct to this plant !!!!!!!!!!!!!!!
+
+console.log(' watchparam, pump emit was sent on wsid: ',socket.id);}
+////   >>>>>>>>>>>>>>>>>>  todo : nb like light is better impleent a callback to server to set state.relais=[0,0,0,0]
+//instead of:
+//if (lightvalue == 1) {
+//  // anyway send server info about new event to process
+//  eM.emit('button', lightvalue);// utton pressed event, or a new status var value to set
+//  // todo  implement button handler !
+// //buttoncaused = true;
+//}
+
+
+
+}}
+
 
 function setManual (pump_, val, coming,checked,eM,hour)  {// this will be like the final part of a manual algo: propose a single pump value to be evaluater with all other active algo by optimize
                                                     // the proposal evaluated in consolidate() is put in state.lastUserAlgo.pumps
@@ -3634,7 +3687,7 @@ let eM,//  >>> e' settato da socket.on('startuserplant',...  ed e' legata/propie
 repeat,// active rep func x anticipate
 repeat1,// active rep func x temperature programmer
 clientDiscon=false;
-console.log('on connection got from a browser set in login, user: ',user,`new  session: ${session.id}  , connection ${socket.id}`,
+console.log('on connection got from a browser set in login, user: ',user,`new  session: ${session.id}  , socket connection id ${socket.id}`,
             '\n   so clientDiscon is set false ');
 
 console.log(`saving user and socketid ${socket.id} in session ${session.id} used by future fn ( will be associated to user plant). in case algo procedure wants to do something with session and socket if they are active`);
@@ -3681,9 +3734,9 @@ session.save();// save socketid
     // reset the context = this closure (socket.on('startuserplant',closure)) 
     // must be nullified when socket disconnect so closure can be garbagecollected 
     if(eM.getcontext){
-    console.log(' startuserplant , user ',user,', plant: ',plant_,' changing session/socket context data. old/new session id are: ',eM.getcontext.getSession().id,'/',session.id);
+    console.log(' startuserplant , user ',user,', plant: ',plant_,' recovered a plant ctl(eM/fn) running ,changing ctl session/socket browser context data. old/new session id are: ',eM.getcontext.getSession().id,'/',session.id);
     prevSess=eM.getcontext.getSession().id;
-    } else console.log(' startuserplant , user ',user,', plant: ',plant_,' setting session/socket context data. no em.getcontext, so new session id are: ',session.id);
+    } else console.log(' startuserplant , user ',user,', plant: ',plant_,' no running plant ctl found . setting session/socket context data. no em.getcontext, so new session id are: ',session.id);
     // **************    ma quando recupero eM in un nuovo socket getcontext mi da la sessione e il clientDisconnect del nuovo socket visto che lo riassegno !!!!
                   // reset update or new ?  todo
     eM.getcontext={// to make available this current closure vars relating to current state of browser connection via socket  to setPump,.....
@@ -3729,7 +3782,7 @@ session.save();// save socketid
         else return true;},
       discFromBrow:false ,// if true : dont process things related to browser/socket presence : connection is lost , ex:  dont process double time setPumps event in onRelais()
       // trace
-      curSess:session.id,// init session id
+      curSess:session.id,// init session id TODO  todo : chiarire se .id esiste , sembra essere nel prototype di session !
       prevSess:prevSess,
 
       socket:socket,// todo migrate here socket ref. socket is valid (!=null) if session.id!=null
@@ -3745,6 +3798,16 @@ session.save();// save socketid
                   // - device command sent to topic @Casina_API@ctl_var_state_0
                   //  no more , old way to delete !
                   */
+
+                  // ha_ws se not null verrà usato :
+                  //  - in writesync, es type1 , per settare il entity corrispondente di tipo switch es rssi  
+                  //                  cosi per type 2,4
+                  // - in readsync si leggerà dal queue , riempito dai ws.omessage quando attivo 
+                  //    nb se la coda è vuota do null o valore default o l'ultimo ....
+
+                  // dopo abilita2 faccio partire il wsha e se trova connessione  setto ha_ws
+                   // quando vedo che non arriva piu niente in .onmessage pongo ha_ws=null e setto interval per ritentare la connessione ogni 5 minuti
+      // ha_tocken ??
     }
 
 
@@ -3770,7 +3833,7 @@ session.save();// save socketid
     if(eM)console.error('startuserplant , eM is built/recovered from pool ');
     if(eM)console.log('startuserplant , eM is built/recovered from pool ');
     eM.socket=socket;// update/embed the socket to connect the last browser client: todo check only 1 browser pointing to  a eM
-                    // todo : migrate to eM.getcontex.socket
+                    // todo : migrate to eM.getcontex.socket the old put into eM.socket
 
     // UUYY add here (or in instance constructor ???)
 
@@ -3781,11 +3844,16 @@ session.save();// save socketid
      recoverstatus.call(eM,plantcfg,plantcnt,plantconfig,feature).then((em_) => {
      
      if (!em_.iodev){
-     console.log(' startfv_ called because device not defined in fn ctl !');
+     console.log(' startfv_ called because device are not defined jet in fn ctl !');
      startfv_(em_,oncomplete_);
     
-     }else oncomplete_();// new risparmia di settare i dev che ho gia !   ma non devo aver cambiato il models.js !
+     }else {oncomplete_();// new risparmia di settare i dev che ho gia !   ma non devo aver cambiato il models.js !
+
+      // TODO allineate the ralais/ pump. in other alternative startfv_  do that with :
+      //            startfv(eM);})// ** call setPump to allineate pump state to state.relays  JJUU 
+
      }
+    }
      ); // >>>>   recoverstatus() returns a promise resolved. we finished to write status back with promise .writeScriptsToFile
                                                                     // ctl event status: in eM.state 
                                                                     // socket in eM.socket
@@ -3876,7 +3944,7 @@ const keepDeviceDef=true;// is true, try false
   nRWaiting[plant]=null// reset
 
   //startfv(eM,session);})// ** call setPump to allineate pump state to state.relays
-  startfv(eM);})// ** call setPump to allineate pump state to state.relays
+  startfv(eM);})// ** call setPump to allineate pump state to state.relays  JJUU 
 // .catch();
  }else{
  // startfv(eM,session);// ** call setPump to allineate pump state to state.relays
@@ -4281,8 +4349,14 @@ repeatHandler1(xstart,xstop,xmin,triggers2);
     }
   });
 
+  /* put in main fv3
   function watchparam(pumpName){// the handler emit the socket.emit('pump' to browser. handler for all pump gpio button >>> using a closure is a bit forcing , probably one more param is enougth
                                         // >> pumpName in relaisEv
+
+                                // ERROR in referencing session and socket , infact should be in fn.getcontext.
+                                // here socket is the socket where plant was launched  with its fn , but the socket we want to send is the current socket got in setPump !!
+                                // garbage collection : watchparam should be on fn , so when first socket will disconnect we can garbage collect it 
+
   return function watch (err, value) { // :YUIO   the handler 
                                       // - Watch for io hardware interrupts ( manual pumps Button ), 
                                       // we watch also (these handlers are put in the bank pumpsHandler[ind]  called by setPump(pumpnumber,on) ): 
@@ -4300,28 +4374,28 @@ repeatHandler1(xstart,xstop,xmin,triggers2);
       console.error('on activating pump: ',pumpName,' There was an error', err); //output error message to console
       return;
     }
-    console.log(' watchparam ( server button handler, called also by algo activated setPump() ) : it is firing a socket event pump for pump: ',pumpName,' so in browser well set pump flag : ', value); //output error message to console
+    console.log(' watchparam ( server button handler, called also by algo activated setPump() ) : it is firing a socket event pump for pump: ',pumpName,' so in browser well set pump flag : ', value,' now  try to send ws (ws.id=',socket.id,') pump emit '); //output error message to console
     lightvalue = value;
-    if(socket)socket.emit('pump',pumpName, lightvalue); //send button status to browser client, if available  
+    if(socket){socket.emit('pump',pumpName, lightvalue); //send button status to browser client, if available  
                                                 // >> pumpName in relaisEv
                                                  // accoppiato con onrelais  
                                                  // **********************************
                                                  // >>>>   .on('pump)  can be not set , till browser ask to connct to this plant !!!!!!!!!!!!!!!
 
-
-    /*   >>>>>>>>>>>>>>>>>>  todo : nb like light is better impleent a callback to server to set state.relais=[0,0,0,0]
-    instead of:
-    if (lightvalue == 1) {
-      // anyway send server info about new event to process
-      eM.emit('button', lightvalue);// utton pressed event, or a new status var value to set
-      // todo  implement button handler !
-      //buttoncaused = true;
-    }
-    */
+                console.log(' watchparam, pump emit was sent on wsid: ',socket.id);}
+    ////   >>>>>>>>>>>>>>>>>>  todo : nb like light is better impleent a callback to server to set state.relais=[0,0,0,0]
+    //instead of:
+    //if (lightvalue == 1) {
+    //  // anyway send server info about new event to process
+    //  eM.emit('button', lightvalue);// utton pressed event, or a new status var value to set
+    //  // todo  implement button handler !
+     // //buttoncaused = true;
+    //}
+    
   
 
   }}
-
+*/
 
 
   socket.on('light', function (data) { //handler of  'light' event fired on browser ,get light switch status from client web page .   data=0/1 ?
@@ -4836,9 +4910,15 @@ async function onRelais(pump,data,coming,fn) { //pumps unique handlerget pumps s
  // now ever write  if (!curval||data != curval) 
  
   { // 0/1 != 0/1 gpio comanding relays is called,>>>>> only change gpio if current position/value is different from present hw relay value !!
-    console.log(' onRelais,  changing/confirm current rele hw position/value x ',pump,' , index ',pump_,' ,  to new value: ',data); 
-    if(fn.iodev.relais_[pump_])fn.iodev.relais_[pump_].writeSync_(valCorrection(data)); //turn LED on or off
-    console.log(' onRelais,  todo : verifying current rele  position/value changing  x ',pump,' now is: ',data); 
+    console.log(' onRelais,  changing/confirm current rele hw position/value x ',pump,' , index ',pump_,' ,  to new value (nb inverted val 0 <> 1): ',data); 
+
+   let custParm=null;
+   if(pump_=='split'){// insert cust dev param only x split  dev 
+    custParm=state.splitParam;// can use a array of custParm , 1 each state.relays. todo : better use  array for devces : state.custDevParam[] or state.custDevParam{} 
+   }
+
+    if(fn.iodev.relais_[pump_])fn.iodev.relais_[pump_].writeSync_(valCorrection(data),custParm); //turn LED on or off
+     console.log(' onRelais,  todo : verifying current rele  position/value changing  x ',pump,' now is: ',data); 
     //console.log(' ****\n browser/algo ask ',pump,' relay to change value into : ',data); // ex 0
     /*
     if (buttoncaused) {// means that the relay is requested by user raspberry button press (or algo anticipating), not corresponding seb button press
@@ -5237,6 +5317,27 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
     */
   });
   if (sol == 1) apply = applyIntermed(res,anticGap);
+
+
+    // todo set para to split depending on zones. 
+    // temporaneamente lasciamo split come sono ma attiviamo il cust split coerantemente con i zones tenendo conto che meglio attivarne piu di uno 
+    let split=relaisEv[5];// 5
+    state.splitParam={split}// copy present directive 
+    if(state.relays[split]){// directive wants to start split
+      if(res[2]||res[3])// giorno o notte activate
+      state.splitParam.custDev={custSet:0,// 0 <> 1 , invertet values !, 0 means turn on 
+        quiet:false,section:false};
+    }else{
+      state.splitParam.custDev={custSet:1,// 0 <> 1 , invertet values !, 0 means turn on 
+      quiet:false,section:false};
+
+    }
+
+
+
+
+
+
 
   console.log(' consolidate() , at hour ', date.getHours(), ', merging anticipate (', antic, '), program (', program, ') and usermanual (', user, ') applyed intermedite (', apply, ') , relays merge into: ', res);
 

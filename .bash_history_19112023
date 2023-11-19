@@ -1,0 +1,2000 @@
+stat -c %A /media/luigi/
+ls -la /media
+top
+top
+sensors
+top
+sensors
+df
+du
+baobab
+sensors
+ssh -X luigi@167.99.246.110
+sensors
+git remote -v 
+git status
+git branch --all -vv
+ssh -X luigi@167.99.246.110
+df
+fdisk -l
+sudo fdisk -l
+df
+ncdu
+QDirStat
+XDiskUsage
+Filelight
+filelight
+sudo apt install filelight
+filelight
+man cp
+pwd
+ls
+mount
+cd /media/luigi/806d0a13-c38a-48a3-b74c-afcd3fcb94ae/
+ls
+ls -la
+ls lost+found/
+sudo ls lost+found/
+sudo ls -la lost+found/
+man rsync
+ls
+rm lost+found/
+del lost+found/
+rmdir lost+found/
+sudo rmdir lost+found/
+ls
+ls -la 
+cd ..
+sudo rsync -aASXvP /home/. --exclude={"/home/luigi/Downloads/ubuntu-20.04.4-desktop-amd64.iso"} 806d0a13-c38a-48a3-b74c-afcd3fcb94ae/.
+sudo rsync -aASXvPh --dry-run /home/. --exclude={"/home/luigi/Downloads/ubuntu-20.04.4-desktop-amd64.iso"} 806d0a13-c38a-48a3-b74c-afcd3fcb94ae/.
+ls /
+sudo rsync -aASXvPh --dry-run /home/. --exclude={"/home/luigi/Downloads/ubuntu-20.04.4-desktop-amd64.iso"} 806d0a13-c38a-48a3-b74c-afcd3fcb94ae/. --delete
+sudo rsync -aASXvPh  /home/. --exclude={"/home/luigi/Downloads/ubuntu-20.04.4-desktop-amd64.iso"} 806d0a13-c38a-48a3-b74c-afcd3fcb94ae/. --delete
+cd /
+cd media/luigi/806d0a13-c38a-48a3-b74c-afcd3fcb94ae/
+ls
+mount
+df
+cd ..
+ls
+ls 506718cc-9b2a-42d4-b5a9-bae81a0f314b/
+ls -al 506718cc-9b2a-42d4-b5a9-bae81a0f314b/
+rm -r  506718cc-9b2a-42d4-b5a9-bae81a0f314b/*
+rm -rf  506718cc-9b2a-42d4-b5a9-bae81a0f314b/*
+sudo rm -rf  506718cc-9b2a-42d4-b5a9-bae81a0f314b/*
+ls -al 506718cc-9b2a-42d4-b5a9-bae81a0f314b/
+ls -la .
+man mkdir
+history
+ls /mnt
+ls -la /mnt
+mkdir -p /mnt/pippo
+man sudo
+man rsync
+df
+ls -la
+pwd
+ls Downloads/u*
+ls Downloads/ub*
+ls /home/luigi/Downloads/ubuntu-20.04.4-desktop-amd64.iso
+filelight
+ls /home/luigi/Downloads/ubuntu-20.04.4-desktop-amd64.iso
+df
+top
+df
+sudo hdparm -I /dev/sdb | grep "TRIM supported"
+nano /etc/cron.weekly/fstrim
+sudo nano /etc/cron.weekly/fstrim
+cat /proc/sys/vm/swappiness 
+top
+sensors
+top
+ssh -X luigi@167.99.246.110
+git status
+cat /proc/sys/vm/swappiness 
+git log --oneline --all
+git status
+git log --oneline --all
+sensors
+top
+sensors
+status
+git status
+ls
+touch pippo
+lshw
+sudo lshw
+sudo fdisk -l 
+umount /dev/sdd
+mount
+sudo fdisk -l 
+sudo fdisk -l /dev/sda
+sudo fdisk -l /dev/sdb
+sudo fdisk -l /dev/sdc
+sudo fdisk -l /dev/sdd
+sudo fdisk -l /dev/sdc
+ssh -X luigi@167.99.246.110
+exit
+ping www.google.it
+ping 192.168.1.1
+ping 192.168.1.81
+ping www.google.it
+ssh -X luigi@167.99.246.110
+git status
+git log --oneline --all
+lspci -k |grep -A 2 -l "VGA"
+lspci -k |grep -A 2 -i "VGA"
+ssh -X luigi@167.99.246.110
+mount
+ls 
+ls ApriImmaginiLinux.sh 
+./ApriImmaginiLinux.sh 
+sudo ./ApriImmaginiLinux.sh 
+O32971DOluigi
+sudo lspci
+ping 192.168.1.81
+upower -i /org/freedesktop/UPower/devices/battery_BAT0
+upower --dump
+curl -v 192.168.1.164:502
+ping www.google.com
+curl www.google.com
+curl -v www.google.com
+curl -v 192.168.1.164:502
+cd localdev/
+ls
+mkdir modbus
+cd modbus/
+npm install node-red-contrib-modbus
+npm fund
+ls
+npm install node-red
+ls
+node node-red
+node-red
+npm install node-red
+npm install node-red-contrib-modbus
+node-red
+npm install -g --unsafe-perm node-red node-red-admin
+npm install -g node-red-contrib-modbus
+node-red
+ssh luigi@167.99.246.110 
+ssh luigi@167.99.246.110
+ssh  luigi@sermovox.com
+time
+data
+date
+man date
+date %s
+man date
+date now %s
+date + %s
+date +%s
+time='20121107:09:08:00';date -d "$time" +%s000
+man date
+date
+date +%s
+time='2022-11-07 19:00:05';date -d "$time" +%s000
+time='2022-11-07 08:00:00';date -d "$time" +%s000
+ms_date=1667808000000; date -d @$(((ms_date + 500)/1000))
+ms_date=1667811600000; date -d @$(((ms_date + 500)/1000))
+ms_date=1667804400000; date -d @$(((ms_date + 500)/1000))
+curl --location --request POST 'https://eu5.fusionsolar.huawei.com/thirdData/getDevRealKpi' --header 'XSRF-TOKEN: x-3z8apfphbyhdljph48vs3w2rgamp0b4b2qrx85rtcb081cfuumk7qopiljliap86kbtjs65dlgc92p6mvziqruurrt3yfuil44g80b4abzljpgmkiontqm07ntg7tc04' --header 'Content-Type: application/json' --header 'Cookie: JSESSIONID=B15389A67BC2BCA262C5184288C9AF38; XSRF-TOKEN=x-3z8apfphbyhdljph48vs3w2rgamp0b4b2qrx85rtcb081cfuumk7qopiljliap86kbtjs65dlgc92p6mvziqruurrt3yfuil44g80b4abzljpgmkiontqm07ntg7tc04' --data-raw ' {
+"devIds":"1000000035350464",
+"devTypeId":"38"
+} '
+curl --location --request POST 'https://eu5.fusionsolar.huawei.com/thirdData/getDevRealKpi' --header 'XSRF-TOKEN: x-3z8apfphbyhdljph48vs3w2rgamp0b4b2qrx85rtcb081cfuumk7qopiljliap86kbtjs65dlgc92p6mvziqruurrt3yfuil44g80b4abzljpgmkiontqm07ntg7tc04' --header 'Content-Type: application/json' --header 'Cookie: JSESSIONID=B15389A67BC2BCA262C5184288C9AF38; XSRF-TOKEN=x-3z8apfphbyhdljph48vs3w2rgamp0b4b2qrx85rtcb081cfuumk7qopiljliap86kbtjs65dlgc92p6mvziqruurrt3yfuil44g80b4abzljpgmkiontqm07ntg7tc04' --data-raw ' {
+"devIds":"1000000035350464",
+"devTypeId":"38"
+} '> inv.json
+ls curl --location --request POST 'https://eu5.fusionsolar.huawei.com/thirdData/login' --header 'Content-Type: application/json' --data-raw ' {
+"userName":"MarsonLuigi_API",
+"systemCode":"Huawei@123"
+} '
+curl --location --request POST 'https://eu5.fusionsolar.huawei.com/thirdData/login' --header 'Content-Type: application/json' --data-raw ' {
+"userName":"MarsonLuigi_API",
+"systemCode":"Huawei@123"
+} '
+man curl
+curl -v --location --request POST 'https://eu5.fusionsolar.huawei.com/thirdData/login' --header 'Content-Type: application/json' --data-raw ' {
+"userName":"MarsonLuigi_API",
+"systemCode":"Huawei@123"
+} '
+ssh 192.168.1.169
+ping 192.168.1.169
+ssh 192.168.1.169
+mount
+fdisk -l
+sudo fdisk -l
+mount
+sudo dd bs=4M if=Downloads/ubuntu-22.10-desktop-amd64.iso of=/dev/sdc status=progress
+sudo fdisk -l
+mount
+sudo umount /dev/sdc
+mount
+sudo umount /dev/sdc3
+mount
+sudo fdisk -l
+sudo umount /dev/sdc1
+mount
+sudo fdisk -l
+sudo dd bs=4M if=Downloads/ubuntu-22.10-desktop-amd64.iso of=/dev/sdc status=progress
+diff Downloads/ubuntu-22.10-desktop-amd64.iso Downloads/ubuntu-22.10-desktop-amd64(1).iso
+diff Downloads/ubuntu-22.10-desktop-amd64.iso 'Downloads/ubuntu-22.10-desktop-amd64(1).iso'
+mount
+sync
+sudo dd bs=4M if=Downloads/ubuntu-22.10-desktop-amd64.iso of=/dev/sdc status=progress
+sync
+sudo fdisk -l
+mount
+sudo dd bs=4M if=Downloads/ubuntu-22.10-desktop-amd64.iso of=/dev/sdc status=progress
+sudo fdisk -l
+sudo umount /dev/sdc4
+sudo umount /dev/sdc3
+sudo umount /dev/sdc2
+sudo umount /dev/sdc1
+sudo fdisk -l
+sudo dd bs=4M if=Downloads/ubuntu-22.10-desktop-amd64.iso of=/dev/sdc status=progress
+sync
+sudo umount /dev/sdc1
+sudo dd bs=4M if=Downloads/manjaro-gnome-21.3.7-minimal-220816-linux515.iso of=/dev/sdc status=progress
+$ kksudo dd if=/dev/sda of=/dev/sdb bs=64K conv=noerror,sync
+sync
+sudo fdisk -l
+mount
+
+lount
+mount
+ssh fv@192.168.1.162
+node withtime.js 
+node withtime.js  --experimental-fetch
+node -v
+node withtime.js
+node withtime.js  --experimental-fetch
+node -v
+npm install node-fetch
+node withtime.js
+node --experimental-fetch withtime.js 
+ls -lat
+node withtime.js 
+node --experimental-fetch withtime.js 
+node closure.js 
+cd localdev/
+tsc --version
+whereis tsconfig
+node -v
+nvm install 17.5
+node -v
+node app.js --experimental-fetch
+node -v
+cd raspberry/
+node -v
+nvm alias default 17.5.0
+node withtime.js  --experimental-fetch
+top
+curl --location --request POST 'https://eu5.fusionsolar.huawei.com/thirdData/login' --header 'Content-Type: application/json' --header 'Cookie: XSRF-TOKEN=x-qp48qq45erft7sqq856mdhnveo44sbhiapbt3zem6q482qdc9dmlbuli2oir6minfxfy9ddfpf5do76qnxc8le9dnso9td7t88sa2q2oo547mlums9by7zhc2kc6sa6o' --data-raw '{
+"userName":"MarsonLuigi_API",
+"systemCode":"Huawei@123"
+}'
+ping www.google.it
+ping 192.168.100.1
+ssh luigi@192.168.1.79
+fdisk -l
+sudo fdisk -l
+mount
+ssh pi@192.168.1.162
+ssh pi@192.168.1.169
+ping 192.168.1.162
+ping 192.168.1.164
+ssh pi@192.168.1.162
+ping 192.168.1.162
+ssh-keyscan -t rsa 192.168.1.162
+ssh pi@192.168.1.162
+ssh -X luigi@167.99.246.110
+ssh pi@192.168.1.162
+ssh pi@192.168.1.79
+ssh luigi@192.168.1.79
+cd localdev/raspberry/
+ls
+scp withtime.js luigi@192.168.1.79:/home/luigi
+node webserver.js 
+ssh pi@192.168.1.79
+ssh luigi@192.168.1.79
+ssh pi@192.168.1.79
+ping www.google.it
+ping 192.168.1.79
+ping 192.168.1.1
+ping 192.168.1.79
+ssh luigi@192.168.1.79
+ls
+sshfs
+pwd
+mkdir pimount
+sudo sshfs -o allow_other,default_permissions luigi@192.168.1.79:~/ pimount
+sudo sshfs -o allow_other,default_permissions luigi@192.168.1.79:/home pimount
+scp -r localdev/raspexampl/raspi_websocket/ luigi@192.168.1.79:/home/luigi/Raspi_Websocket
+sudo ls
+top
+cd localdev/raspexampl/fv
+scp -r localdev/raspexampl/fv/public luigi@192.168.1.79:/home/luigi/fv
+scp -r public luigi@192.168.1.79:/home/luigi/fv
+ls
+scp app2.js  luigi@192.168.1.79:/home/luigi/fv
+scp app2.js .js  luigi@192.168.1.79:/home/luigi/fv
+scp fv3.js   luigi@192.168.1.79:/home/luigi/fv
+sudo sshfs -o allow_other,default_permissions luigi@192.168.1.79:/home pimount
+sudo sshfs -o allow_other,default_permissions luigi@192.168.1.79:/home ../../pimount
+sudo sshfs -o allow_other,default_permissions luigi@192.168.1.79:/home ../../../pimount
+scp -r nat luigi@192.168.1.79:/home/luigi/fv
+scp fv3.js   luigi@192.168.1.79:/home/luigi/fv
+scp nat/rest.js   luigi@192.168.1.79:/home/luigi/fv/nat
+cat fv3.js 
+ls
+ls -la
+scp fv3.js   luigi@192.168.1.79:/home/luigi/fv
+scp app2.js  luigi@192.168.1.79:/home/luigi/fv
+scp nat/rest.js   luigi@192.168.1.79:/home/luigi/fv/nat
+scp fv3.js   luigi@192.168.1.79:/home/luigi/fv
+scp app2.js  luigi@192.168.1.79:/home/luigi/fv
+ssh pi@192.168.1.79
+ssh luigi@192.168.1.79
+scp -r public luigi@192.168.1.79:/home/luigi/fv
+cd localdev/raspexampl/
+ls
+cd fv
+scp  public/index.html  luigi@192.168.1.79:/home/luigi/fv/public
+scp   luigi@192.168.1.79:/home/luigi/fv/doc.txt .
+ls
+cat doc.txt 
+sudo sshfs  luigi@192.168.1.79:/home ../../../pimount
+sudo umount ../../../pimount
+sshfs  luigi@192.168.1.79:/home ../../../pimount
+ssh luigi@192.168.1.79
+clear
+sudo fdisk -l
+ls
+ls fs
+sudo fdisk -l
+ls
+cd Downloads/testdisk-7.2-WIP/
+ls
+./testdisk_static 
+sudo ./testdisk_static 
+cd localdev/
+ls
+cd raspexampl/fv
+git push -u origin --all
+cat id_rsa/.ssh
+eval "$(ssh-agent -s)"
+cat ~/.ssh/id_rsa
+git push -u origin --all
+$ ssh -T git@github.com
+ssh
+$ ssh -T git@github.com
+$ ssh -vT git@github.com
+ssh
+git config --list
+git add -A
+ppp git push -u origin --all
+ppgit remote add origin https://github.com/sermovox/fv.git 
+echo "# fv" >> README.md
+git remote add origin https://github.com/sermovox/fv.git 
+git remote -v
+git push -u origin --all
+git remote -v
+sudo fdisk /dev/sdc
+sudo fdisk -l /dev/sdc
+mount /dev/sdc1 fs
+sudo mount /dev/sdc1 fs
+ssh  luigi@167.99.246.110
+ssh luigi@192.168.1.79
+ssh-keygen -f "/home/luigi/.ssh/known_hosts" -R "192.168.1.79"
+ssh luigi@192.168.1.79
+cd localdev/raspexampl/fv/
+git remote -v
+git push -u origin --all
+cat ~/.ssh/id_rsa
+ssh-keygen -lf ~/.ssh/id_rsa
+git remote -v
+ssh -vT git@github.com
+ls -l  ~/.ssh/
+eval $(ssh-agent)
+ssh-add -l
+ssh-add ~/.ssh/id_rsa
+ssh-add -l
+ssh-add ~/.ssh/id_rsa
+ssh-add help
+ssh-add -help
+man ssh-add
+ssh -vT git@github.com
+ls -l  ~/.ssh/
+ssh-add ~/.ssh/id_rsa
+ls -l  ~/.ssh/
+ssh-add -l
+ssh-add -l -E sha256
+ssh-add ~/.ssh/cms_keys
+ssh-add -l -E sha256
+ssh-add ~/.ssh/id_rsa
+ssh-add -l -E sha256
+ssh-add ~/.ssh/id_rsa
+ssh -vT git@github.com
+cat ~/.ssh/cms_keys.pub 
+ssh -vT git@github.com
+file  ~/.ssh/id_rsa
+file  ~/.ssh/id_rsa.pub 
+cat ~/.ssh/cms_keys.pub 
+ssh-keygen -lf ~/.ssh/id_rsa
+git push -u origin --all
+sshfs  luigi@192.168.1.79:/home ~/pimount
+ssh 192.168.1.157
+ssh rock@192.168.1.157
+ssh rock@192.168.1.69
+git push
+git status
+git push
+git log --oneline --all
+status
+git status
+git log --oneline --all
+git push
+git status
+git log --oneline --all
+git diff
+git diff HEAD
+git log --oneline --all
+git push
+git state
+git states
+git status
+git push
+git status
+sshfs  luigi@192.168.1.79:/home ~/pimount
+ssh luigi@192.168.1.79
+ls -la localdev/raspexampl/fv
+sshfs  luigi@192.168.1.79:/home ~/pimount
+ssh 192.168.1.69
+ssh 192.168.1.70
+ssh 192.168.1.68
+ssh 192.168.1.70
+
+ping 192.168.1.78
+man ip
+ip address
+ssh rock@192.168.1.155
+ssh luigi@192.168.1.79
+ssh rock@192.168.1.69
+ping 192.168.1.69
+ssh luigi@192.168.1.79
+sshfs  luigi@192.168.1.79:/home ~/pimount
+ssh luigi@192.168.1.79
+shutdown now
+sshfs  luigi@192.168.1.79:/home ~/pimount
+ls
+node interval.js 
+node interval1.js 
+git status
+git log --oneline --all
+node workingwithpromise2.js 
+touch workingwithpromise0.js 
+node workingwithpromise2.js 
+node workingwithpromise0.js 
+cat workingwithpromise0.js 
+node workingwithpromise2.js 
+sshfs  luigi@192.168.1.79:/home ~/pimount
+ssh luigi@192.168.1.79
+sshfs  luigi@192.168.1.79:/home ~/pimount
+ssh luigi@192.168.1.79
+sshfs  luigi@192.168.1.79:/home ~/pimount
+ssh luigi@192.168.1.79
+sshfs  luigi@192.168.1.79:/home ~/pimount
+ssh luigi@192.168.1.79
+sshfs  luigi@192.168.1.79:/home ~/pimount
+ping 192.168.1.79
+ping 192.168.1.80
+ping 192.168.1.81
+ping 192.168.1.83
+ping 192.168.1.78
+uname -r
+sshfs  luigi@192.168.1.79:/home ~/pimount
+uname -r
+ssh luigi@192.168.1.79
+ping 192.168.1.78
+ssh luigi@192.168.1.78
+ssh luigi@192.168.1.76
+exit
+exit
+ls
+cat install_do_voice_bot_x.txt 
+ssh luigi@192.168.1.76
+sshfs  luigi@192.168.1.79:/home ~/pimount
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ssh luigi@192.168.1.76
+ssh luigi@192.168.1.76
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ssh luigi@192.168.1.76
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ssh luigi@192.168.1.76
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ssh luigi@192.168.1.76
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ssh luigi@192.168.1.76
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ssh luigi@192.168.1.76
+sshfs  luigi@192.168.1.76:/home ~/pimount
+npm i pretty-json-stringify
+ssh luigi@192.168.1.76
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ssh luigi@192.168.1.76
+ssh -X luigi@167.99.246.110 
+sudo apt update
+sudo apt install mosquitto-clients
+mosquitto_pub -h bot.sermovox.com -t test -m "hello again" -p 8883 --capath /etc/ssl/certs/ -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t test -m "hello again5" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t test -m "hello again7" -p 8883 --capath /etc/ssl/certs/ -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t test -m "hello again5" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t test -m "hello again7" -p 8883 --capath /etc/ssl/certs/ -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t test -m "hello again33" -p 1883  -u sermovox -P sime01
+man mosquitto-pub
+mosquitto_pub -h bot.sermovox.com -t test -m "hello again33" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t test -m "hello again7" -p 8883 --capath /etc/ssl/certs/ -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t test -m "hello again33" -p 1883  -u sermovox -P sime01
+mosquitto_pub -l -h bot.sermovox.com -t test -m "hello again33" -p 1883  -u sermovox -P sime01
+mosquitto_pub --help
+mosquitto_pub -l -h bot.sermovox.com -t test -m "hello again33" -p 1883  -u sermovox -P sime01
+mosquitto_pub  -h bot.sermovox.com -t test -m "hello again33" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t test -m "hello again7" -p 8883 --capath /etc/ssl/certs/ -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t test -m "hello again7" -p 8884 --capath /etc/ssl/certs/ -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t test -m "hello again7" -p 8883 --capath /etc/ssl/certs/ -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t test -m "hello again77" -p 8883 --capath /etc/ssl/certs/ -u sermovox -P sime01
+mosquitto_pub  -h bot.sermovox.com -t test -m "hello again33" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "toggle" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0 -m "toggle" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0 -m "" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0 -m "status" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/info -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/info -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/info -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t test -m "hello again77" -p 8883 --capath /etc/ssl/certs/ -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 8883 --capath /etc/ssl/certs/ -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 8883 --capath /etc/ssl/certs/ -u sermovox -P sime01
+exit
+cat /etc/ssl/certs
+ls /etc/ssl/certs
+ls /etc/ssl/certs | more
+ls /etc
+ls /etc/ssl
+ls /etc/ssl/certs
+exit
+ping 192.168.1.150
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+ls
+ls ..
+ls ../node_modules/
+cd ..
+npm install mqtt --save
+cd fv
+node fv3.js
+cd ..
+npm install onoff
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ssh luigi@192.168.1.76
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+touch LuigiMarson_API.json
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t s test sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t  test sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t s test -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t test -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t teTest -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t t Test -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+ls
+cd ..
+ls
+npm install dotenv --save
+cd fv/
+mosquitto_sub -t Test -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+ssh luigi@192.168.1.76
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ssh luigi@192.168.1.76
+xxmosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 8883 --capath /etc/ssl/certs/ -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Test -m "hello world" -p 8883 --capath /etc/ssl/certs/ -u sermovox -P sime01
+ping www.google.com
+ping www.sermovox.bot
+node-red
+apt list | grep node
+pwd
+cd localdev/
+ls
+cd raspexampl/
+ls
+cat package.json 
+ls node_modules/
+cd ..
+ls
+cd ..
+pwd
+node-red -v
+cd localdev/
+node-red -v
+ls
+cd modbus/
+ls
+sudo nano /etc/systemd/system/node-red.service
+sudo systemctl start node-red
+ls
+node-red
+nvm ls
+node-red
+nvm use 14.17.3
+node-red
+ssh -X luigi@167.99.246.110 
+sshfs  luigi@192.168.1.76:/home ~/pimount
+npm i express
+npm i express-session
+npm i passport
+npm i passport-local
+top
+sshfs  luigi@192.168.1.76:/home ~/pimount
+mkdir view
+install ejs@3.1.6
+npm install ejs
+cd views
+cd view
+cd ..
+ls
+rn view views
+mv view views
+ls
+cd views/
+ls
+ls partials/pages
+mv partials/pages/ .
+ls
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ssh luigi@192.168.1.76
+ssh luigi@192.168.1.67
+ssh luigi@192.168.1.76
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ping 192.168.1.76
+ping 192.168.1.79
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ssh luigi@192.168.1.79
+ls
+ping 192.168.1.76
+ssh luigi@192.168.1.76
+cd localdev/
+ls
+mkdir basicexpress
+cd basicexpress/
+npm init
+install express
+npm install express
+ls
+nano index.js
+node index.js 
+nano index.js
+node index.js 
+DEBUG=* node <your-server-file>.js
+DEBUG=* node index.js
+nano index.js
+DEBUG=* node index.js
+nano index.js
+nvm ls
+nvm install --lts
+nvm ls
+DEBUG=* node index.js
+nano index.js
+DEBUG=* node index.js
+nano index.js
+fg
+DEBUG=* node index.js
+ls nat cd /home/luigi/localdev/raspexampl/fv ; /usr/bin/env 'NODE_OPTIONS=--require /usr/share/code/resources/app/extensions/ms-vscode.js-debug/src/bootloader.bundle.js --inspect-publish-uid=http' 'VSCODE_INSPECTOR_OPTIONS={"inspectorIpc":"/tmp/node-cdp.3623-6.sock","deferredMode":false,"waitForDebugger":"","execPath":"/home/luigi/.nvm/versions/node/v17.5.0/bin/node","onlyEntrypoint":false,"autoAttachMode":"always","fileCallback":"/tmp/node-debug-callback-f12b50b1ce4e6c91"}' /home/luigi/.nvm/versions/node/v17.5.0/bin/node ./fv3.js 
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ssh luigi@192.168.1.76
+sshfs  luigi@192.168.1.76:/home ~/pimount
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+nvm ls
+npm i express-session
+npm i passport
+
+npm install ejs
+ls
+ssh luigi@192.168.1.76
+ssh luigi@192.168.1.79
+exit
+ssh luigi@192.168.1.76
+cat .env
+ls nat
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+ssh luigi@192.168.1.76
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ssh luigi@192.168.1.79
+ssh luigi@192.168.1.76
+node fv3.js > logging1.txt
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ssh luigi@192.168.1.76
+ssh luigi@192.168.1.79
+ssh luigi@192.168.1.76
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ssh luigi@192.168.1.76
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ssh luigi@192.168.1.76
+exit
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ssh luigi@192.168.1.76
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ssh luigi@192.168.1.76
+clear
+git status
+git commit --amend --no-edit 
+git status
+git log --graph --decorate --oneline   
+ssh luigi@192.168.1.76
+cd localdev/
+ls
+cd raspexampl/
+ls
+cd fv
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+ls -lat
+ls -lat doc
+node-red -v
+cd ..
+node-red -v
+sudo nano /etc/systemd/system/node-red.service
+cd ..
+node-red -v
+cd ..
+node-red -v
+cd localdev/ics/
+ls package.json 
+cat  package.json 
+ssh luigi@192.168.1.76
+node-red -v
+cd localdev/modbus/
+node-red -v
+ls
+ls -la
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+ls
+pwd
+node-red -v
+sudo systemctl start node-red
+cd ..
+node-red -v
+whereis node-red
+cd ..
+node-red -v
+cd localdev/
+ls
+cd basicexpress/
+node-red -v
+node-red-start
+cd ..
+cd .node-red
+ls -la
+cd luigi
+cd .node-red
+node-red -v
+node-red
+cd ..
+node-red
+npm get prefix
+ls /home/luigi/.nvm/versions/node/v17.5.0
+ls /home/luigi/.nvm/versions/node/v17.5.0/bin
+ls /home/luigi/.nvm/versions/node/v17.5.0/bin/node
+node -v
+nvm
+nvm --version
+nvm --help
+nvm ls
+mosquitto_sub -t  test sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t s test -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t test -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t ctl_var_gas-pdc_4 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+git status
+git commit --amend --no-edit 
+git status
+git log --graph --oneline --decorate --all
+git remote -vv
+git remote -vvv
+git remote show origin
+git push
+git remote -vv
+git remote show origin
+git log --graph --oneline --decorate --all
+git status
+git commit --amend --no-edit 
+mosquitto_sub -t ctl_var_gas-pdc_4 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+nano debug/test_subscriptions.sh
+cd localdev
+ls
+cd raspexampl/fv
+nano debug/test_subscriptions.sh
+cd debug/
+ls
+wd
+pwd
+cat test_subscriptions.sh 
+ls ../logging.txt 
+./test_subscriptions.sh 
+nano test_subscriptions.sh
+./pippo
+nano pippo
+./pippo
+nano pippo
+./pippo
+nano pippo
+./pippo
+nano pippo
+cat test_subscriptions.sh
+nano pippo
+./pippo
+nano pippo
+./pippo
+nano pippo
+./pippo
+nano pippo
+./pippo
+nano pippo
+./pippo
+nano pippo
+./pippo
+nano test_subscriptions.sh
+./test_subscriptions.sh
+nano test_subscriptions.sh
+./test_subscriptions.sh
+nano test_subscriptions.sh
+./test_subscriptions.sh
+nano test_subscriptions.sh
+./test_subscriptions.sh
+nano test_subscriptions.sh
+./test_subscriptions.sh
+nano test_subscriptions.sh
+./test_subscriptions.sh
+nano test_subscriptions.sh
+./test_subscriptions.sh
+nano test_subscriptions.sh
+./test_subscriptions.sh
+nano test_subscriptions.sh
+./test_subscriptions.sh
+nano test_subscriptions.sh
+./test_subscriptions.sh
+nano test_subscriptions.sh
+./test_subscriptions.sh
+nano test_subscriptions.sh
+./test_subscriptions.sh
+nano test_subscriptions.sh
+./test_subscriptions.sh
+nano test_subscriptions.sh
+./test_subscriptions.sh
+nano test_subscriptions.sh
+./test_subscriptions.sh
+nano test_subscriptions.sh
+./test_subscriptions.sh
+nano test_subscriptions.sh
+./test_subscriptions.sh
+nano test_subscriptions.sh
+./test_subscriptions.sh
+nano test_subscriptions.sh
+./test_subscriptions.sh
+grep 'aiax|token' logging.txt 
+grep 'aiax' logging.txt 
+grep -E 'aiax|token' logging.txt 
+node fv3.js > logging.txt
+nano debug/test_subscriptions.sh
+node fv3.js > logging.txt
+./test_subscriptions.sh
+cd localdev/raspexampl/fv/debug/
+./test_subscriptions.sh
+./test_subscriptions_var_1.sh 
+nano test_subscriptions.sh
+nano test_subscriptions_var_1.sh 
+./test_subscriptions_var_1.sh 
+mosquitto_sub -t ctl_var_gas-pdc_4 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t ct@MarsonLuigi_API@ctl_var_gas-pdc_4 sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t ct@MarsonLuigi_API@ctl_var_gas-pdc_4-u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t ct@MarsonLuigi_API@ctl_var_gas-pdc_4 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t ct@MarsonLuigi_API@ctl_var_gas-pdc_4  sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t ctl_var_gas-pdc_4 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t ct @MarsonLuigi_API@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @MarsonLuigi_API@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+sshfs  luigi@192.168.1.76:/home ~/pimount
+mosquitto_sub -t @MarsonLuigi_API@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+ssh luigi@192.168.1.76
+mosquitto_pub -h bot.sermovox.com -t @MarsonLuigi_API@ctl_var_gas-pdc_4 -m "off" -p 1883  -u sermovox -P sime01
+node fv3.js > logging.txt
+cd localdev/raspexampl/fv/debug/
+nano test_subscriptions_var_1.sh 
+nano test_subscriptions_var_2.sh 
+ps
+kill 23661
+ps
+sudo kill 23661
+ps
+sudo kill -9  23661
+ps
+nano test_subscriptions_var_2.sh 
+./nano test_subscriptions_var_2.sh 
+./test_subscriptions_var_2.sh 
+./nano test_subscriptions_var_2.sh 
+nano test_subscriptions_var_2.sh 
+./test_subscriptions_var_2.sh 
+./nano test_subscriptions_var_2.sh 
+./test_subscriptions_var_2.sh 
+mosquitto_sub -t @MarsonLuigi_API@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+node fv3.js > logging.txt
+cd localdev/raspexampl/fv/debug/
+./test_subscriptions_var_2.sh 
+node fv3.js > logging.txt
+mosquitto_sub -t @MarsonLuigi_API@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+cd localdev/raspexampl/fv/debug/
+./test_subscriptions_var_2.sh 
+mosquitto_sub -t @MarsonLuigi_API@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_pub -h bot.sermovox.com -t @MarsonLuigi_API@ctl_var_gas-pdc_4 -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @MarsonLuigi_API@ctl_var_gas-pdc_4 -m {\"payload\":\">ctlpresent\",\"sender\":{\"plant\":\"MarsonLuigi_API\",\"user\":55}} -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @MarsonLuigi_API@ctl_var_gas-pdc_4 -m 0 -p 1883  -u sermovox -P sime01
+mosquitto_sub -t @MarsonLuigi_API@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_pub -h bot.sermovox.com -t @MarsonLuigi_API@ctl_var_gas-pdc_4 -m 0 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @MarsonLuigi_API@ctl_var_gas-pdc_4 -m 1 -p 1883  -u sermovox -P sime01
+mosquitto_sub -t @MarsonLuigi_API@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_pub -h bot.sermovox.com -t @MarsonLuigi_API@ctl_var_gas-pdc_4/NReadUser/cmd -m 1 -p 1883  -u sermovox -P sime01
+node fv3.js > logging.txt
+node-red -v
+ssh luigi@192.168.1.76
+sshfs  luigi@192.168.1.76:/home ~/pimount
+git log --graph --oneline --decorate --all
+node fv3.js > logging.txt
+mosquitto_subb -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/info -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475F7DE/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475F7DE/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475F7DE/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+34945475FE06
+mosquitto_subb -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475F7DE/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475F7DE/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475F7DE/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+node fv3.js > logging.txt
+mosquitto_sub -t shellies/shelly1-34945475F7DE/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+elay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475F7DE/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -/commandu sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0/command -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0/c -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -/commandu sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_pub -h bot.sermovox.com -t @MarsonLuigi_API@ctl_var_gas-pdc_4 -m 1 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m 1 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @MarsonLuigi_API@ctl_var_gas-pdc_4 -m 1 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @MarsonLuigi_API@ctl_var_gas-pdc_4 -m 2 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @MarsonLuigi_API@ctl_var_gas-pdc_4 -m 1 -p 1883  -u sermovox -P sime01
+ssh root@167.99.246.110
+ssh luigi@167.99.246.110
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ssh luigi@192.168.1.76
+wc -l myscript.log
+wc -l logging.txt 
+wc -l myscript.log
+ping 192.168.1.213
+lsof -i tcp:8080
+kill 558821
+lsof -i tcp:8080
+sudo kill 558821
+lsof -i tcp:8080
+sudo kill -9 558821
+lsof -i tcp:8080
+mosquitto_sub -t @MarsonLuigi_API@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @MaCasina_API@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @MarsonLuigi_API@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475F7DE/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475F7DE/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475F7DE/relay/0 -m "off" -p 1883  -u sermovox -P sime01
+top
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475F7DE/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475F7DE/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -/commandu sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0/command -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+node fv3.js > logging.txt
+mosquitto_pub -help
+mosquitto_pub --help
+du
+df
+ping 192.168.1.213
+mosquitto_sub -t master/client123/attribute/subscribeAttribute/3fkopVxPrC3Cz7u5GqztUR  -u master:mqtt_user2 -P ZSxwu2AwfGYb0EJ4D9mJK7TkSmfLZbkK -h 192.168.1.213 -p 1883 -i client123
+mosquitto_pub      master/client13/writeattributevalue/writeAttribute -u client123 -P sime01 -h 192.168.1.213 -p 1883    -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m  -p 1883  -u client123 -P sime01  
+mosquitto_pub  -h 192.168.1.213 -t    master/client13/writeattributevalue/writeAttribute/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user -P sime01 -i client123   
+mosquitto_pub  -h 192.168.1.213 -t    master/client13/writeattributevalue/writeAttribute/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user -P sime01 -i client123 -m 12
+mosquitto_pub  -h 192.168.1.213 -t    master/client13/writeattributevalue/writeAttribute/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user -P sime01 -i client123 -m 12 -p 1883
+mosquitto_pub  -h 192.168.1.213 -t    master/client123/writeattributevalue/writeAttribute/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user -P sime01 -i client123 -m 12 -p 1883
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writeAttribute/3fkopVxPrC3Cz7u5GqztUR -u "master:mqtt_user" -P sime01 -i client123 -m 12 -p 1883
+ping 192.168.1.213
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writeAttribute/3fkopVxPrC3Cz7u5GqztUR -u "master:mqtt_user" -P sime01 -i client123 -m 12 -p 1883
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writeAttribute/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user -P sime01 -i client123 -m 12 -p 1883
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writeAttribute/3fkopVxPrC3Cz7u5GqztUR. -u master:mqtt_user -P sime01 -i client123 -m 12 -p 1883
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writeAttribute/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user -P qzzBhZSI3jEvWpLar8BtqVEPl29jKota -i client123 -m 12 -p 1883
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writeAttribute/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user -P qzzBhZSI3jEvWpLar8BtqVEPl29jKota -i client123 -m "12" -p 1883
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writeAttribute/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user -P qzzBhZSI3jEvWpLar8BtqVEPl29jKota -i client123 -m "12" -p 1888
+whereis mqtt.config
+sudo whereis mqtt.config
+curl 192.168.1.213
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writeAttribute/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user -P qzzBhZSI3jEvWpLar8BtqVEPl29jKota -i client123 -m "12" -p 1883
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writeAttribute/bad10c7c-df08-4097-bd6b-066527c4701e -u master:mqtt_user2 -P jMwHyXjxXljF3tNDB4mO1GB72zRCB3ae -i client123 -m "12" -p 1883
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writeAttribute/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user2 -P ZSxwu2AwfGYb0EJ4D9mJK7TkSmfLZbkK -i client123 -m "12" -p 1883
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writeAttribute/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user2 -P ZSxwu2AwfGYb0EJ4D9mJK7TkSmfLZbkK -i client123 -m 12 -p 1883
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writestring/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user2 -P ZSxwu2AwfGYb0EJ4D9mJK7TkSmfLZbkK -i client123 -m "ciao12" -p 1883
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writestring/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user2 -P ZSxwu2AwfGYb0EJ4D9mJK7TkSmfLZbkK -i client123 -m '"ciao12"' -p 1883
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writestring/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user2 -P ZSxwu2AwfGYb0EJ4D9mJK7TkSmfLZbkK -i client123 -m "ciao12" -p 1883
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writestring/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user2 -P ZSxwu2AwfGYb0EJ4D9mJK7TkSmfLZbkK -i client123 -m "ciao13" -p 1883
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writestring/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user2 -P ZSxwu2AwfGYb0EJ4D9mJK7TkSmfLZbkK -i client123 -m "{\"ciao13\": 1234}" -p 1883
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writestring/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user2 -P ZSxwu2AwfGYb0EJ4D9mJK7TkSmfLZbkK -i client123 -m "ciao27" -p 1883
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writestring/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user2 -P ZSxwu2AwfGYb0EJ4D9mJK7TkSmfLZbkK -i client123 -m "\"ciao27\"" -p 1883
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writestring/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user2 -P ZSxwu2AwfGYb0EJ4D9mJK7TkSmfLZbkK -i client123 -m "\"ciao28\"" -p 1883
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writestring/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user2 -P ZSxwu2AwfGYb0EJ4D9mJK7TkSmfLZbkK -i client123 -m "ciao29" -p 1883
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writestring/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user2 -P ZSxwu2AwfGYb0EJ4D9mJK7TkSmfLZbkK -i client123 -m '{"ciao13": 1234}' -p 1883
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writestring/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user2 -P ZSxwu2AwfGYb0EJ4D9mJK7TkSmfLZbkK -i client123 -m '{"ciao136": 0088991234}' -p 1883
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writestring/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user2 -P ZSxwu2AwfGYb0EJ4D9mJK7TkSmfLZbkK -i client123 -m '{"ciao136": 88991234}' -p 1883
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writestring/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user2 -P ZSxwu2AwfGYb0EJ4D9mJK7TkSmfLZbkK -i client123 -m '{"ciao137": 88991234}' -p 1883
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writestring/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user2 -P ZSxwu2AwfGYb0EJ4D9mJK7TkSmfLZbkK -i client123 -m '{"ciao137": 88991234}' -p 8883
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writestring/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user2 -P ZSxwu2AwfGYb0EJ4D9mJK7TkSmfLZbkK -i client123 -m '{"ciao137": 88991234}' -p 8883 --capath /etc/ssl/certs/
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writestring/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user2 -P ZSxwu2AwfGYb0EJ4D9mJK7TkSmfLZbkK -i client123 -m '{"ciao137": 88991234}' -p 1883
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writestring/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user2 -P ZSxwu2AwfGYb0EJ4D9mJK7TkSmfLZbkK -i client123 -m '{"ciao187": 88991234}' -p 1883
+mosquitto_pub -h bot.sermovox.com -t shelly-sn -m 1 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shelly-sn -m 2 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shelly-sn -m 7 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shelly-sn -m 8 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shelly-sn -m 9 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shelly-sn -m '9' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shelly-sn -m '"9"' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shelly-sn -m '{"prova":"9"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellySN -m '{"prova":"9"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellySN -m '{"prova":"10"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellySN -m '{"prova":"11"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellySN -m '{"prova":"12"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellySN -m 'ciao' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellySN -m 'on' -p 1883  -u sermovox -P sime01
+mosquitto_sub -t shelly-sn -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shelly-sSN -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shelly-sSN -  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellySN -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ssh  luigi@192.168.1.76
+shutdown now
+ssh  luigi@192.168.1.76
+sshfs  luigi@192.168.1.76:/home ~/pimount
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ssh  luigi@192.168.1.76
+mosquitto_pub -h bot.sermovox.com -t shellySN -m 'on' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellySN -m 'off' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellySN -m 'on' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellySN -m 'popp' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellySN -m 'popposta' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/NReadUser/cmd -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/NReadUser/cmd -m "0" -p 1883  -u sermovox -P sime01
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -/commandu sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0/command -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0/NReadUser/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellySN/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellySN -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0/command -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellySN/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/NReadUser/cmd   -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub  -h 192.168.1.213 -t master/client123/writeattributevalue/writestring/3fkopVxPrC3Cz7u5GqztUR -u master:mqtt_user2 -P ZSxwu2AwfGYb0EJ4D9mJK7TkSmfLZbkK -i client123 -m '{"ciao13": 1234}' -p 1883
+mosquitto_sub -t @MarsonLuigi_API@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @MCasina_API@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475F7DE/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @MCasina_API@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @MarsonLuigi_API@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @MaCasina@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Masina@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+ssh  luigi@192.168.1.76
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475F7DE/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475F7DE/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @MarsonLuigi_API@ctl_var_gas-pdc_4 -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m 1 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m {\"payload\":\">ctlpresent\",\"sender\":{\"plant\":\"Casina_API\",\"user\":55}} -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m {\"payload\":2,\"sender\":{\"plant\":\"Casina_API\",\"user\":55}} -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{\"payload\":2,\"sender\":{\"plant\":\"Casina_API\",\"user\":55}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{\"payload\":\">ctlpresent\",\"sender\":{\"plant\":\"Casina_API\",\"user\":55}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{\"payload\":1,\"sender\":{\"plant\":\"Casina_API\",\"user\":55}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{\"payload\":\">ctlpresent\",\"sender\":{\"plant\":\"Casina_API\",\"user\":55}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{\"payload\":1,\"sender\":{\"plant\":\"Casina_API\",\"user\":55}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{\"payload\":0,\"sender\":{\"plant\":\"Casina_API\",\"user\":55}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{"payload":0,"sender":{"plant":"Casina_API","user":55}} -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{"payload":3,"sender":{"plant":"Casina_API","user":55}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m {\"payload\":0,\"sender\":{\"plant\":\"Casina_API\",\"user\":55}} -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd -m '{"payload":3,"sender":{"plant":"Casina_API","user":55}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475F7DE/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475F7DE/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+sshfs  luigi@192.168.1.76:/home ~/pimount
+mount
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475F7DE/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+sshfs  luigi@192.168.1.76:/home ~/pimount
+mosquitto_sub -t @Casina@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina@c_APItl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina@c_API_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @ poppo -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t poppo -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t pu sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@ctl_var_gas-pdc_4   -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @CaMarsonLuigiPI@ctl_var_gas-pdc_4   -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @CaMarsonLuigiPI_A@ctl_var_gas-pdc_4   -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@ctl_var_gas-pdc_4  /NReadUser/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475F7DE/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475F7DE/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475F7DE/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_sub -t shellies/shelly1-34945475F7DE/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+ssh  luigi@192.168.1.76
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+sshfs  luigi@192.168.1.212:/home ~/hamount
+mkdir -p  ~/hamount
+sshfs  luigi@192.168.1.212:/home ~/hamount
+ping 192.168.1.213
+ping 192.168.1.212
+ping 192.168.1.79
+ping 192.168.1.76
+ping 192.168.1.212
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Cde-Red-Register  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub - -t Node-Red-Register -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub  -t Node-Red-Register -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+sshfs  luigi@192.168.1.212:/home ~/hamount
+ssh  luigi@192.168.1.76
+git log --graph --oneline --decorate --all
+npm install deasync
+npm install deasync cd /home/luigi/localdev/raspexampl/fv ; /usr/bin/env 'NODE_OPTIONS=--require /usr/share/code/resources/app/extensions/ms-vscode.js-debug/src/bootloader.bundle.js --inspect-publish-uid=http' 'VSCODE_INSPECTOR_OPTIONS={"inspectorIpc":"/tmp/node-cdp.52575-43.sock","deferredMode":false,"waitForDebugger":"","execPath":"/home/luigi/.nvm/versions/node/v17.5.0/bin/node","onlyEntrypoint":false,"autoAttachMode":"always","fileCallback":"/tmp/node-debug-callback-143749841ba3f60f"}' /home/luigi/.nvm/versions/node/v17.5.0/bin/node ./fv3.js 
+ssh  luigi@192.168.1.79
+ssh  luigi@192.168.1.212
+sshfs  luigi@192.168.1.212:/home ~/hamount
+ssh  luigi@192.168.1.212
+ssh  luigi@192.168.1.79
+mosquitto_sub -t @Casina_API@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@ctl_var_gas-pdc_4  /NReadUser/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+ssh  luigi@192.168.1.76
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ssh  luigi@192.168.1.76
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ls home
+ls
+ls pimount/
+sshfs  luigi@192.168.1.76:/home ~/pimount
+cd localdev/raspberry/fv
+cd localdev/raspexampl/fv
+python3 rs485_simul.py r 2 4098 0 2
+cat rs485_simul.py 
+python3 rs485_simul.py r 2 4098 0 2
+mosquitto_sub -t @Casina_API@ctl_var_gas-pdc_4  /NReadUser/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@interface_cm_mqtt_websock_0/NReadUser/cmd  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@interface_mqtt_websock_0/NReadUser/cmd  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t t '@Casina_API@ctl_var_gas-pdc_4u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t t '@Casina_API@ctl_var_gas-pdc_4 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t t '@Casina_API@ctl_var_gas-pdc_4' -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t '@Casina_API@ctl_var_gas-pdc_4' -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t '@CaNode-Red_Register' -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t '@Cde-Red_Register' -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t '@CNo-Red_Register' -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t ' Node-Red-Register -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t Node-Red-Register -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t N '@Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd' -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t '@Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd' -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t N '@Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd' -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t '@Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd' -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@interface_mqtt_websock_0/NReadUser/cmd  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{\"payload\":1,\"sender\":{\"plant\":\"Casina_API\",\"user\":55}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{\"payload\":\"ciao\",\"sender\":{\"plant\":\"Casina_API\",\"user\":55}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{"payload":"ciao","sender":{"plant":"Casina_API","user":55}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub  -t Node-Red-Register -u sermovox -P sime01 -h bot.sermovox.com -p 1883 -m 1
+mosquitto_sub -t @Casina_API@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_pusub -t Node-Red-Register -u sermovox -P sime01 -h bot.sermovox.com -p 1883 
+mosquitto_sub -t Node-Red-Register -u sermovox -P sime01 -h bot.sermovox.com -p 1883 
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{"payload":"ciao","sender":{"plant":"Casina_API","user":55}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{"payload":"ciau","sender":{"plant":"Casina_API","user":55}}' -p 1883  -u sermovox -P sime01
+mosquitto_sub -t @Casina_API@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+sshfs  luigi@192.168.1.76:/home ~/pimount
+man tar
+pwd
+ls
+cd Documents/
+ls
+scp luigi@sermovox.com:/home/luigi/deploing_demo/demo1_cms.tar.gz savings
+cd savings/
+ls
+tar -xzvf demo1_cms.tar.gz 
+
+cd ..
+sshfs  luigi@sermovox.com:/home ~/pimount
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ping 192.168.1.76
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@interface_cmd_0/NReadUser/cmd  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@interface_cm_mqtt_websock_0/NReadUser/cmd  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{"payload":"ciao","sender":{"plant":"Casina_API","user":55}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@interface_mqtt_websock_0/NReadUser/cmd -m '{"payload":"ciao","sender":{"plant":"Casina_API","user":55}}' -p 1883  -u sermovox -P sime01
+sshfs  luigi@192.168.1.212:/home ~/hamount
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ssh  luigi@192.168.1.76
+sshfs  luigi@192.168.1.76:/home ~/pimount
+ssh  luigi@192.168.1.76
+ssh  luigi@192.168.1.79
+clear
+npm install yaml
+npm install console
+npm install stream
+git status
+git push
+git status
+sshfs  luigi@192.168.1.212:/home ~/hamount
+curl "Authorization: Bearer TOKEN" "Content-Type: application/json" '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' \
+curl "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" "Content-Type: application/json" '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' d/write_yaml
+curl www.google.com
+curl -d "user=user1&pass=abcd" -X POST https://example.com/login
+curl -d "user=user1&pass=abcd" -X POST https://example.com/login
+curl -d "user=user1&pass=abcd" -X POST https://example.com/login
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.212:8123/api/services/shell_command/write_yaml
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1Non/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.212:8123/api/services/shell_command/write_yaml
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1Non/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.212:8123/api/
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1Non/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.217:8123/api/
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1Non/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.217:8123/api/config/
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1Non/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.212:8123/api/config/
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1Non/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.212:8123/api/
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1Non/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.212:8123/api/config/
+curl   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A"   -H "Content-Type: application/json" http://192.168.1.212:8123/api/
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1Non/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.212:8123/api/services/shell_command/write_yaml
+curl   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A"   -H "Content-Type: application/json" http://192.168.1.212:8123/api/
+curl   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCf6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A"   -H "Content-Type: application/json" http://192.168.1.212:8123/api/
+curl   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A"   -H "Content-Type: application/json" http://192.168.1.212:8123/api/
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.212:8123/api/services/shell_command/write_yaml
+curl -H H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
+curl -H H "Content-Type: applicationjson" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
+curl -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' \\
+192.168.1.214:8080/register
+___________________________
+curl -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' \\
+___________________________
+curl -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.212:8123/api/services/shell_command/write_yaml
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
+curl -X POST -H "Content-Type: application/json" -d '{ "key": "value" }' https://192.168.1.212:8123/api/webhook/genyaml
+curl -X POST -H "Content-Type: application/json" -d '{ "key": "value" }' http://192.168.1.212:8123/api/webhook/genyaml
+curl -X POST -H "Content-Type: application/json" -d '{ "key": "value" }' http://192.168.1.212:8123/api/webhook/yaml_generator
+curl -X POST -H "Content-Type: application/json" -d '{ "key": "value" }' http://192.168.1.212:8123/api/webhook/genyaml
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.212:8123/api/services/shell_command/write_yaml
+curl -X POST -H "Content-Type: application/json" -d '{ "filename": "value" }' http://192.168.1.212:8123/api/webhook/genyaml
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
+curl -X POST -H "Content-Type: application/json" -d '{ "filename": "value" }' http://192.168.1.212:8123/api/webhook/genyaml
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
+curl -X POST -H "Content-Type: application/json" -d '{ "yaml": "value" }' http://192.168.1.212:8123/api/webhook/genyaml
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
+curl -X POST -H "Content-Type: application/json" -d '{ "yaml": "value" }' https://reqbin.com/echo/post/json
+curl -X POST -H "Content-Type: application/json" -d '{ "yaml": "value" }' https://echo.zuplo.io/
+curl -X POST -H "Content-Type: application/json" -d '{ "yaml": "value" }' http://echo.zuplo.io/
+curl -X POST -H "Content-Type: application/json" -d '{ "yaml": "value" }' https://echo.zuplo.io/
+curl -X POST -H "Content-Type: application/json" -d '{ "yaml": "value" }' http://postman-echo.com/post
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
+curl -X POST -H "Content-Type: application/json" -d '{ "yaml": "value" }' http://postman-echo.com/post
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
+curl -X POST -H "Content-Type: application/json" -d '{ "yaml": "value" }' http://192.168.1.212:8123/api/webhook/genyaml
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
+curl -X POST -H "Content-Type: application/json" -d '{ "yaml": "value" }' http://postman-echo.com/post
+curl -X POST -H "Content-Type: application/json" -d '{ "yaml": "value" }' http://192.168.1.212:8123/api/webhook/genyaml
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
+curl -X POST -H "Content-Type: application/json" -d '{ "yaml": {"key":"value"} }' http://192.168.1.212:8123/api/webhook/genyaml
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
+curl -X POST -H "Content-Type: application/json" -d '{ "yaml": "{\"mqtt\":{\"switch\":[{\"name\":\"sunshine_startgenerator\",\"qos\":1,\"state_topic\":\"£shellies/shelly1-34945475FE06/relay/0£\",\"value_template\":\"\\\"{% if value == 'on' %} on {% else %} off {% endif %}\\\" \",\"payload_on\":\" \\\"on\\\"\",\"payload_off\":\"\\\"off\\\"\",\"state_on\":\"\\\"on\\\"\",\"state_off\":\"\\\"off\\\"\",\"command_topic\":\"£shellies/shelly1-34945475FE06/relay/0/command£\",\"json_attributes_topic\":\"£shellies/shelly1-34945475FE06/relay/0£\",\"json_attributes_template\":\"£{ \\\"jsonattr\\\": \\\"{{value}}\\\"}£\"}],\"select\":[{\"name\":\"sunshine_optimizing\",\"command_topic\":\"£Node-Red-Register£\",\"json_attributes_topic\":\"&@DefFVMng_API@var_gas-pdc_4&\",\"json_attributes_template\":\"£{ \\\"jsonattr\\\": \\\"{{value}}\\\"}£\",\"options\":[\"0\",\"1\"]}]},\"automation\":{\"automation\":[{\"alias\":\"fv3_optimize_sunshine_optimizing\",\"id\":\"fv3_optimize_sunshine_optimizing\",\"initial_state\":true,\"trigger\":[{\"platform\":\"£state£\",\"entity_id\":\"£select.sunshine_optimizing£\"}],\"action\":[{\"service\":\"£mqtt.publish£\",\"data\":{\"topic\":\"&@DefFVMng_API@var_gas-pdc_4/NReadUser/cmd&\",\"payload\":\"£{\\\"payload\\\":{{ states.select.sunshine_optimizing.state }},\\\"sender\\\":{\\\"plant\\\":\\\"DefFVMng_API\\\",\\\"user\\\":55},\\\"url\\\":\\\"setMan\\\",\\\"checked\\\":1}£\"}}]}]}}" }' http://192.168.1.212:8123/api/webhook/genyaml
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
+curl -X POST -H "Content-Type: application/json" -d '{ "yaml": "{\"mqtt\":{\"switch\":[{\"name\":\"sunshine_startgenerator\",\"qos\":1,\"state_topic\":\"£shellies/shelly1-34945475FE06/relay/0£\",\"value_template\":\"\\\"{% if value == 'on' %} on {% else %} off {% endif %}\\\" \",\"payload_on\":\" \\\"on\\\"\",\"payload_off\":\"\\\"off\\\"\",\"state_on\":\"\\\"on\\\"\",\"state_off\":\"\\\"off\\\"\",\"command_topic\":\"£shellies/shelly1-34945475FE06/relay/0/command£\",\"json_attributes_topic\":\"£shellies/shelly1-34945475FE06/relay/0£\",\"json_attributes_template\":\"£{ \\\"jsonattr\\\": \\\"{{value}}\\\"}£\"}],\"select\":[{\"name\":\"sunshine_optimizing\",\"command_topic\":\"£Node-Red-Register£\",\"json_attributes_topic\":\"&@DefFVMng_API@var_gas-pdc_4&\",\"json_attributes_template\":\"£{ \\\"jsonattr\\\": \\\"{{value}}\\\"}£\",\"options\":[\"0\",\"1\"]}]},\"automation\":{\"automation\":[{\"alias\":\"fv3_optimize_sunshine_optimizing\",\"id\":\"fv3_optimize_sunshine_optimizing\",\"initial_state\":true,\"trigger\":[{\"platform\":\"£state£\",\"entity_id\":\"£select.sunshine_optimizing£\"}],\"action\":[{\"service\":\"£mqtt.publish£\",\"data\":{\"topic\":\"&@DefFVMng_API@var_gas-pdc_4/NReadUser/cmd&\",\"payload\":\"£{\\\"payload\\\":{{ states.select.sunshine_optimizing.state }},\\\"sender\\\":{\\\"plant\\\":\\\"DefFVMng_API\\\",\\\"user\\\":55},\\\"url\\\":\\\"setMan\\\",\\\"checked\\\":1}£\"}}]}]}}" }' http://192.168.1.212:8123/api/webhook/genyaml
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
+echo 'abcde$$$$$$$$fff$$gg' | tr '$' ' '
+echo 'abcde$ò$$$$$$ò$fff$$gg' | tr 'ò' '\n '
+echo 'ab\ncde$ò$$$$$$ò$fff$$gg' | tr 'ò' '\n '
+echo "ab\\nsdf" | tr 'ò' '\n '
+echo 'abcde$ò$$$$$$ò$fff$$gg' | tr 'ò' '\n'
+echo 'abcde$ò$$$$$$ò$fff$$gg' | tr 'ò' '\n '
+echo 'abcde$ò$$$$$$ò$fff$$gg' | tr 'ò' '\n'
+echo 'abcde$ò$$$$$$ò$fff\n$$gg' 
+echo 'abcde$ò$$$$$$ò$fff\\n$$gg' 
+echo 'abcde$ò$$$$$$ò$fff\\\n$$gg' 
+echo 'abcde$ò$$$$$$ò$fff\\\\n$$gg' 
+echo "abcde$ò$$$$$$ò$fff\n$$g"
+echo "abcdeg\nhhòpfff\nllg"
+echo 'abcde$ò$$$$$$ò$fff$$gg' | tr 'ò' '\''
+ll
+;
+q
+echo 'abcde$ò$$$$$$ò$fff$$gg' | tr 'ò' '\''
+ll
+;
+q
+echo 'abcde$ò$$$$$$ò$fff$$gg' | tr 'ò' '\''
+echo 'abcde$ò$$$$$$ò$fff$$gg' | tr 'ò' 'u'
+echo 'abcde$ò$$$$$$ò$fff$$gg' | tr 'ò' "\'"
+echo 'abcde$ò$$$$$$ò$fff$$gg' | tr 'ò' "'"
+echo 'abcde$ò$$$$$$ò$fff$$gg' | tr 'ò' "a"
+echo 'abcde$ò$$$$$$ò$fff$$gg' | tr 'e' "a"
+echo 'abcde$ò$$$$$$ò$fff$$gg' | tr 'ò' "a"
+echo 'abcde$ò$$$$$$ò$fff$$gg' | tr 'ò' "'"|tr "''" "'" 
+echo 'abcde$ò$$$$$$ò$fff$$gg' | tr 'ò' "'"|tr "''" "@" 
+echo 'abcde$ò$$$$$$ò$fff$$gg' | tr 'ò' "'"|tr "'" "@" 
+echo 'abcde$ò$$$$$$ò$fff$$gg' | tr 'ò' '\''
+echo 'abcde$ò$$$$$$ò$fff$$gg' | tr 'ò' "'"|tr "'" "@" 
+echo 'abcde$ò$$$$$$ò$fff$$gg' | tr 'c' "'"
+echo 'abcde$ò$$$&$$$ò$fff$$gg' | tr '&' "'"
+echo 'abcde$ò$$$&$$$ò$fff$$gg' | tr '&' "\n"
+echo 'abcde$ò$$$&$$$ò$fff$$gg' | tr '&' "\n" >> test.txt
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
+/bin/bash -c "echo 'pippo poppo' | tr '^' "\n"| tr '£' "'"
+/bin/bash -c "echo 'pippo poppo' | tr '^' \"\n\"| tr '£' \"'\" "
+/bin/bash -c "echo 'pippo^ poppo' | tr '^' \"\n\"| tr '£' \"'\" "
+/bin/bash -c "echo 'pippo^ £poppo£' | tr '^' \"\n\"| tr '£' \"'\" "
+/bin/bash -c "echo 'pippo^ £poppo£' | tr '^' \"\n\"| tr 'i' \"'\" "
+/bin/bash -c "echo 'pippo^ ipoppoi' | tr '^' \"\n\"| tr 'i' \"'\" "
+echo 'abcde$ò$$$$$$ò$fff$$gg' | tr 'ò' '\''
+echo 'abcde$ò$$$$$$ò$fff$$gg' | tr 'ò' "'"
+echo 'abcde$ò$$$$^$$ò$fff$$gg' | tr '^' "'"
+echo 'abcde$ò$$$$$$ò$fff$$gg' | tr '£' '\''
+echo 'abcde$ò$$$$$$ò$fff$$gg' | tr '£' "\n"
+echo 'abcde$ò$$$£$$$ò$fff$$gg' | tr '£' "\n"
+echo 'abcde$ò$$$£^$$$ò$fff$$gg' | tr '^' "\n"
+echo 'abcde$ò$$$£^$$%$ò$fff$$gg' | tr '%' "\n"
+/bin/bash -c "echo 'pippo^ %poppo%' | tr '^' \"\n\"| tr '%' \"'\" "
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
+/bin/bash -c "echo 'pippo^ %poppo%' | tr '^' \"\n\"| tr '%' \"'\" "
+/bin/bash -c "echo 'pippo^ §poppo%' | tr '^' \"\n\"| tr '§' \"'\" "
+/bin/bash -c "echo 'pippo^ *poppo%' | tr '^' \"\n\"| tr '*' \"'\" "
+/bin/bash -c "echo 'pippo^ **po*ppo%' | tr '^' \"\n\"| ${first//Suzy/$second}
+/bin/bash -c "echo 'pippo^ **po*ppo%' | tr '^' \"\n\"| tr '*' \"'\" "
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
+/bin/bash -c "echo 'pippo^ **po*ppo%' | tr '^' \"\n\"| tr '*' \"'\" "
+/bin/bash -c "cat test.txt|echo 'pippo^ **po*ppo%' | tr '^' \"\n\"| tr '*' \"'\" "
+/bin/bash -c "cat test.txt|echo | tr '^' \"\n\"| tr '*' \"'\" "
+echo
+/bin/bash -c "echo < test.txt | tr '^' \"\n\"| tr '*' \"'\" "
+echo < test.txt
+cat test.txt
+echo < test.txt
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
+/bin/bash -c "cat test.txt|echo | tr '^' \"\n\"| tr '*' \"'\" "
+/bin/bash -c "echo < test.txt | tr '^' \"\n\"| tr '*' \"'\" "
+/bin/bash -c "echo 'pippo^ **po*ppo%' | tr '^' \"\n\"| tr '*' \"'\" "
+/bin/bash -c "echo 'pipp"o^ **po*ppo%' | tr '^' \"\n\"| tr '*' \"'\" "
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
+/bin/bash -c "echo < test.txt | tr '^' \"\n\"| tr '*' \"'\" "
+/bin/bash -c "echo 'pipp"o^ **po*ppo%' | tr '^' \"\n\"| tr '*' \"'\" "
+/bin/bash -c "cat test.txt|echo 'pippo^ **po*ppo%' | tr '^' \"\n\"| tr '*' \"'\" "
+/bin/bash -c "echo 'pippo^ **po*ppo%' | tr '^' \"\n\"| tr '*' \"'\" "
+/bin/bash -c "echo 'pippo^ " **po*ppo%' | tr '^' \"\n\"| tr '*' \"'\" "
+/bin/bash -c "echo 'pippo^ \" **po*ppo%' | tr '^' \"\n\"| tr '*' \"'\" "
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
+/bin/bash -c "echo 'pippo^ \" **po*ppo%' | tr '^' \"\n\"| tr '*' \"'\" "
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
+/bin/bash -c "echo 'pippo^ \" **po*ppo%' | tr '^' \"\n\"| tr '*' \"'\" "
+/bin/bash -c "echo \"${\"ciao £$%^?==JKKKKMMM\"/Suzi/\"$^\"}\" "
+/bin/bash -c 'echo "${"ciao £$%^?==JKKKKMMM"/Suzi/"^"}" '
+/bin/bash -c 'echo "${"ciao £$%^?==JKKKKMMM"/"X"/"^"}" '
+/bin/bash -c 'echo "${"ciao £$%^?==JKKKKMMM"/"^"/"X"}" '
+echo "${"ciao £$%^?==JKKKKMMM"/"^"/"X"}" 
+echo "${\"ciao £$%^?==JKKKKMMM\"/\"^\"/\"X\"}" 
+echo "o{\"ciao £$%^?==JKKKKMMM\"/\"^\"/\"X\"}" 
+echo "${\"ciao £$%^?==JKKKKMMM\"/\"^\"\"X\"}" 
+var='a/b/c/d'
+echo "${var//\//\\/}"
+echo "${var/^/\/n}"
+var='a/b/c/d pippo^ e %'
+echo "${var/^/\/n}"|echo "${var/^/\/n}"
+sed -i 's/bash/shell/g' testFile.txt
+cat input.txt | sed -e 's/foo/bar/g'
+echo "o{\"ciao £$%^?==JKKKKMMM\"/\"^\"/\"X\"}"  | sed -e 's/foo/bar/g'
+echo "o{\"ciao £$%^?==JKKKKMMM\"/\"^\"/\"X\"}"  | sed -e 's/^^/\/n/g'
+echo "o{\"ciao £$%^?=^^ cioa ^^ pirla=JKKKKMMM\"/\"^\"/\"X\"}"  | sed -e 's/^^/\/n/g'
+echo "o{\"ciao £$%^?=^^ cioa ^^ pirla=JKKKKMMM\"/\"^\"/\"X\"}"  | sed -e 's/^^/*/g'
+echo "o{\"ciao £$%^?=^^ cioa ^^ pirla=JKKKKMMM\"/\"^\"/\"X\"}"  | sed -e 's/ciao/*/g'
+echo "o{\"ciao ^^ £$%^?=^^ cioa ^^ pirla=JKKKKMMM\"/\"^\"/\"X\"}"  | sed -e 's/ciao/*/g'
+echo "o{\"ciao ^^ £$%^?=^^ cioa ^^ pirla=JKKKKMMM\"/\"^\"/\"X\"}"  | sed -e 's/^^/*/g'
+echo "o{\"ciao ££ £$%^?=^^ cioa ^^ pirla=JKKKKMMM\"/\"^\"/\"X\"}"  | sed -e 's/££/*/g'
+echo "o{\"ciao ££ £$%^?=^^ cioa ^^ pirla=JKKKKMMM\"/\"^\"/\"X\"}"  | sed -e 's/£/*/g'
+echo "£\"{\"data\":\"{{data.json}}\"}\"£"  | sed -e 's/£/*/g' 
+echo "£\"{\"data\":\"{{data.json}}\"}\"£"  | sed -e 's/£/'/g' 
+echo "£\"{\"data\":\"{{data.json}}\"}\"£"  | sed -e 's/£/\'/g' 
+echo "£\"{\"data\":\"{{data.json}}\"}\"£"  | sed -e "s/£/'/g" 
+echo "£\"{\"data\":\"{{data.json}}\"}\"££\"{\"data\":\"{{data.json}}\"}\"£"  | sed -e "s/£/'/g" 
+echo "£\"{\"data\":\"{{data.json}}\"}\"£ ££  £\"{\"data\":\"{{data.json}}\"}\"£"  | sed -e "s/££/\/n/g" 
+echo "£\"{\"data\":\"{{data.json}}\"}\"£ ££  £\"{\"data\":\"{{data.json}}\"}\"£"  | sed -e "s/££/\/n/g" | sed -e "s/£/\'/g"
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
+/bin/bash -c 'echo "${"ciao £$%^?==JKKKKMMM"/Suzi/"^"}" '
+/bin/bash -c "echo 'pippo^ **po*ppo%' | tr '^' \"\n\"| tr '*' \"'\" "
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
+echo "£\"{\"data\":\"{{data.json}}\"}\"£ ££  £\"{\"data\":\"{{data.json}}\"}\"£"  | sed -e "s/££/\/n/g" | sed -e "s/£/\'/g"
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register
+mosquitto_sub -t shellies/shellyht-1E6C54/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shellyht-1E6C54/sensor/temperature -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shellyht-1E6C54/sensor/battery -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+ssh  luigi@192.168.1.212
+ssh  luigi@192.168.1.76
+ssh  luigi@192.168.1.79
+mosquitto_sub -t shellies/shellyht-1E6C54/sensor/battery -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shellyht-1E6C54/sensor/temperature -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+sshfs  luigi@192.168.1.212:/home ~/hamount
+sshfs  luigi@192.168.1.79:/home ~/pimount
+node fv3.js > logging.txt cd /home/luigi/localdev/raspexampl/fv ; /usr/bin/env 'NODE_OPTIONS=--require /usr/share/code/resources/app/extensions/ms-vscode.js-debug/src/bootloader.bundle.js --inspect-publish-uid=http' 'VSCODE_INSPECTOR_OPTIONS={"inspectorIpc":"/tmp/node-cdp.5127-2.sock","deferredMode":false,"waitForDebugger":"","execPath":"/home/luigi/.nvm/versions/node/v17.5.0/bin/node","onlyEntrypoint":false,"autoAttachMode":"always","fileCallback":"/tmp/node-debug-callback-0fa28f527576c898"}' /home/luigi/.nvm/versions/node/v17.5.0/bin/node ./fv3.js 
+node fv3.js > logging.txt
+ssh  luigi@192.168.1.79
+mosquitto_sub -t shellies/shellyht-1E6C54/sensor/temperature -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shshellies/shellyht-1E6C54/sensor/temperatureu sermovox -P sime01 -h bot.sermovox.com -p 1883 sh
+mosquitto_sub -t shshellies/shellyht-1E6C54/sensor/temperature -u sermovox -P sime01 -h bot.sermovox.com -p 1883 sh
+mosquitto_sub -t shshellies/shellyht-1E6C54/sensor/temperature -u sermovox -P sime01 -h bot.sermovox.com -p 1883 
+mosquitto_sub -t shellies/shellyht-1E6C54/sensor/temperature -u sermovox -P sime01 -h bot.sermovox.com -p 1883 
+mosquitto_sub -t s  Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd   -u sermovox -P sime01 -h bot.sermovox.com -p 1883 
+mosquitto_sub -t   Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd   -u sermovox -P sime01 -h bot.sermovox.com -p 1883 
+mosquitto_sub -t   Ca@sina_API@ctl_var_gas-pdc_4/NReadUser/cmd   -u sermovox -P sime01 -h bot.sermovox.com -p 1883 
+mosquitto_sub -t   Ca@ mosquitto_sub -t   @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd   -u sermovox -P sime01 -h bot.sermovox.com -p 1883sina_API@ctl_var_gas-pdc_4/NReadUser/cmd   -u sermovox -P sime01 -h bot.sermovox.com -p 1883 
+mosquitto_sub -t   @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd   -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t   @Casina_API@ctl_var_gas-pdc_4/N   -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t   @Casina_API@ctl_var_gas-pdc_4/N -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t   @Casina_API@ctl_var_gas-pdc_4 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t  Node-Red-Register -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t   @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd   -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t  Node-Red-Register -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t  Node-Red-Register1 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t  @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t  '_shellies/shellyht-1E6C54/sensor/temperature' -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t  'xshellies/shellyht-1E6C54/sensor/temperature' -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t  @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t  Node-Red-Register -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t  @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t  fv3devtopic -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t _shellies/shelly1-34945475FE06/relay/0/command  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t t _shellies/shelly1-34945475FE06/relay/0/command  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t  _shellies/shelly1-34945475FE06/relay/0/command  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t  _shellies/shellyht-1E6C54/sensor/temperature  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t  @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t  @Casina_API@ctl_var_gas-pdc_4u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t  @Casina_API@ctl_var_gas-pdc_4 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t Node-Red-Register1  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@ctl_var_gas-pdc_4  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t  Node-Red-Register1 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+sshfs  luigi@192.168.1.212:/home ~/hamount
+ssh  luigi@192.168.1.212
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{"payload":1,"sender":{"plant":"Casina_API","user":55}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '{"payload":1,"sender":{"plant":"Casina_API","user":55}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '1' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '\"1\"' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '{"payload":1' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '{"payload":1}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '{"payload":"1"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m 'on' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m on -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '1' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '0' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '1' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m 1 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m 0 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '0' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m "0" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m 0 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m 1 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '{"payload":1,"sender":{"plant":"Casina_API","user":55}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '{"payload":0,"sender":{"plant":"Casina_API","user":55}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{"payload":1,"sender":{"plant":"Casina_API","user":55}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{"payload":0,"sender":{"plant":"Casina_API","user":55}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{"payload":1,"sender":{"plant":"Casina_API","user":55}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m 1 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m 0 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '0' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '1' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '0' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '{"payload":1} -p 1883  -u sermovox -P sime01
+;
+'
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '{"payload":1}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '{"payload":"1"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '0' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m 0 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '\"0\"' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '"1"' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m "1" -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m 1 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '{"payload":"1"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '{"payload":1}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '{"payload":"pippo"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '{"payload":"1"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '{"payload":1}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '{"payload":"popo"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m pp -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m 1 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m 10 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m polo -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '{"payload":"popo"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m pp -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m pp -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m giallo -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m '{"payload":"giallo"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m '{"payload":"verde"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m '{"payload":"giallo"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m '{"payload":"0"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m '{"payload":"1"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '{"payload":"1"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '{"payload":"0"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '{"payload":"1"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '{"payload":"0"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '{"payload":"1"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t '_shellies/shellyht-1E6C54/sensor/temperature' -m '24.12' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t 'shellies/shellyht-1E6C54/sensor/temperature' -m '24.12' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t 'shellies/shellyht-1E6C54/sensor/temperature' -m '24.13' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t 'shellies/shellyht-1E6C54/sensor/temperature' -m '24.15' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t 'shellies/shellyht-1E6C54/sensor/temperature' -m '24.17' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t 'shellies/shellyht-1E6C54/sensor/temperature' -m '24.18' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t 'shellies/shellyht-1E6C54/sensor/temperature' -m '24.11' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd -m '24.11' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t 'shellies/shellyht-1E6C54/sensor/temperature' -m '24.11' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0 -m 'on' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0 -m 'off' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shellyht-1E6C54/sensor/temperature -m '24.3' -p 1883  -u sermovox -P sime01
+sshfs  luigi@192.168.1.212:/home ~/hamount
+mosquitto_sub -t @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 1883shellies/shelly1-34945475FE06/relay/0
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 1883shellies/shelly1-34945475FE06/relay/0
+mosquitto_sub -t Node-Red-Register1 -u sermovox -P sime01 -h bot.sermovox.com -p 1883shellies/shelly1-34945475FE06/relay/0
+mosquitto_sub -t Node-Red-Register1 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t Node-Red-Register -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@ctl_var_gas-pdc_4 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t Node-Red-Register   -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t Node-Red-Register1 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t t @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 188383
+mosquitto_sub -t @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 188383
+mosquitto_sub -t @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+sshfs  luigi@192.168.1.212:/home ~/hamount
+sshfs  luigi@192.168.1.76:/home ~/pimount
+mosquitto_pub -h @Casina_API@ctl_var_gas-pdc_4 -m '{"payload":"1"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{"payload":"1"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{"payload":"0"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{"payload":"1"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{"payload":1}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{"payload":0}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{"payload":"0"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '{"payload":"0"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register -m '{"payload":"1"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{"payload":"1"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Casina_API@ctl_var_gas-pdc_4 -m '{"payload":1}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m '{"payload":"1"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m '{"payload":1}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m '{"payload":0}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m '{"payload":1}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Node-Red-Register1 -m '{"payload":1}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m '{"payload":1}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t @Node-Red-Register1 -m '{"payload":1}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m '{"payload":1}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m '{"payload":0}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m '{"payload":"0"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m '{"payload":"pippo"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m '{"payload":0}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m '{"payload":"0"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m '{"payload":"poppo"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m '{"payload":"0"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m '{"payload":"pippo"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m '{"payload":0}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m '{"payload":"0"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m '{"payload":"1"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m '{"payload":"0"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m '{"payload":0}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t   @Casina_API@ctl_var_gas-pdc_4  -m '{"payload":0}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t   @Casina_API@ctl_var_gas-pdc_4  -m '{"payload":1}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t Node-Red-Register1 -m '{"payload":0}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t   @Casina_API@ctl_var_gas-pdc_4  -m '{"payload":0}' -p 1883  -u sermovox -P sime01
+ssh  luigi@192.168.1.212
+ssh  luigi@192.168.1.79
+ssh 192.168.1.79
+sshfs  luigi@192.168.1.212:/home ~/hamount
+mosquitto_sub -t @Casina_API@interface_mqtt_websock_0/NReadUser/cmd  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@ctl_var_gas-pdc_4 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@ctl_var_state_0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@interface_mqtt_websock_0/NReadUser/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+exit
+mosquitto_pub -h bot.sermovox.com -t   @Casina_API@ctl_var_gas-pdc_4  -m '{"payload":1}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t   @Casina_API@ctl_var_gas-pdc_4  -m '{"payload":0}' -p 1883  -u sermovox -P sime01
+mosquitto_sub -t @Casina_API@interface_mqtt_websock_0/NReadUser/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 1883 
+mosquitto_pub -h bot.sermovox.com -t   @Casina_API@ctl_var_gas-pdc_4  -m '{"payload":0}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h @Casina_API@ctl_var_gas-pdc_4 -m '{"payload":"1"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t   @Casina_API@ctl_var_gas-pdc_4  -m '{"payload":0}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t   @Casina_API@ctl_var_gas-pdc_4  -m '{"payload":1}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t   @Casina_API@ctl_var_gas-pdc_4  -m '{"payload":0}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t   @Casina_API@ctl_var_gas-pdc_4  -m '{"payload":1}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t   @Casina_API@ctl_var_gas-pdc_4  -m '{"payload":0}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t   @Casina_API@ctl_var_gas-pdc_4  -m '{"payload":1}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t   @Casina_API@ctl_var_state_0  -m '{"payload":1}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t   @Casina_API@ctl_var_state_0  -m '{"payload":{"state":{"anticipate":false,"program":true}},"sender":{"plant":"Casina_API","user":777}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t   @Casina_API@ctl_var_state_0  -m '{"payload":{"state":{"anticipate":false,"program":false}},"sender":{"plant":"Casina_API","user":777}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t   @Casina_API@ctl_var_state_0  -m '{"payload":{"state":{"anticipate":true,"program":false}},"sender":{"plant":"Casina_API","user":777}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t   @Casina_API@ctl_var_state_0  -m '{"payload":{"state":{"anticipate":true,"program":true}},"sender":{"plant":"Casina_API","user":777}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t   @Casina_API@ctl_var_state_0  -m '{"payload":{"state":{"anticipate":true,"program":false}},"sender":{"plant":"Casina_API","user":777}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t   @Casina_API@ctl_var_state_0  -m '{"payload":{"state":{"anticipate":true,"program":true}},"sender":{"plant":"Casina_API","user":777}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t   @Casina_API@ctl_var_state_0  -m '{"payload":{"state":{"anticipate":true,"program":false}},"sender":{"plant":"Casina_API","user":777}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t   @Casina_API@ctl_var_state_0  -m '{"payload":{"state":{"anticipate":true,"program":true}},"sender":{"plant":"Casina_API","user":777}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t   @Casina_API@ctl_var_state_0  -m '{"payload":{"state":{"anticipate":true,"program":false}},"sender":{"plant":"Casina_API","user":777}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t   @Casina_API@ctl_var_state_0  -m '{"payload":{"state":{"anticipate":true,"program":false,"battery":55}},"sender":{"plant":"Casina_API","user":777}}' -p 1883  -u sermovox -P sime01
+ssh  luigi@192.168.1.212
+ssh 192.168.1.79
+mosquitto_sub -t @Casina_API@interface_mqtt_websock_0/NReadUser/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+sshfs  luigi@192.168.1.212:/home ~/hamount
+clear
+git status
+sshfs  luigi@192.168.1.79:/home ~/pimount
+cd localdev/raspexampl/fv/
+./cp_rasp.sh 02102023
+mkdir -p /pimount/luigi/localdev/fv20/saveFV/saved_02102023/ 
+ls /pimount/luigi/localdev/fv20/saveFV
+ls /pimount
+ls ^/pimount
+ls ~/pimount
+pwd
+ls /home/luigi/pimount/luigi/localdev/fv20/saveFV
+ls /home/luigi/pimount
+ls /home/luigi/pimount/luigi/localdev
+ls /home/luigi/pimount/luigi/localdev/fv20
+ls /home/luigi/pimount/luigi/localdev/fv20/saveFV
+ls /home/luigi/pimount/luigi/localdev/fv20/saveFV -la
+./cp_rasp.sh 02102023
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+ssh 192.168.1.79
+touch me.txt
+exit
+ssh 192.168.1.79
+mosquitto_pub -h bot.sermovox.com -t  shellies/shellyht-1E6C54/sensor/temperature  -m 17.77 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  shellies/shellyht-1E6C54/sensor/temperature  -m 25.77 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  _shellies/shellyht-1E6C54/sensor/temperature  -m 25.77 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  shellies/shellyht-1E6C54/sensor/temperature  -m 25.77 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  shellies/shellyht-1E6C54/sensor/temperature  -m 25.88 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  shellies/shellyht-1E6C54/sensor/temperature  -m 25.89 -p 1883  -u sermovox -P sime01
+sshfs  luigi@192.168.1.79:/home ~/pimount
+sshfs  luigi@192.168.1.212:/home ~/hamount
+mosquitto_sub -t @Casina_API@interface_mqtt_websock_0/NReadUser/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t _shellies/shelly1-34945475FE06/relay/0/command -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t _shellies/shellyht-1E6C54/sensor/temperature -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+ssh  luigi@192.168.1.212
+top
+sudo apt install hddtemp lm-sensors
+sensors
+ssh  luigi@192.168.1.212
+clear
+git status
+sshfs  luigi@192.168.1.79:/home ~/pimount
+sshfs  luigi@192.168.1.212:/home ~/hamount
+mosquitto_sub -t _shellies/shellyht-1E6C54/sensor/temperature -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/_shellyht-1E6C54/sensor/temperature -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/_shelly1-34945475FE06/relay/0/command -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+sensors
+node fv3.js > logging.txt 
+sshfs  luigi@192.168.1.79:/home ~/pimount
+ssh 192.168.1.79
+./cp_rasp.sh 13102023
+exit
+mosquitto_sub -t _shellies/shellyht-1E6C54/sensor/temperature -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t _shellies/sh_ellyht-1E6C54/sensor/temperature -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/_shellyht-1E6C54/sensor/temperature -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@interface_mqtt_websock_0/NReadUser/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@ctl_var_state_0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_pub -h bot.sermovox.com -t  shellies/shellyht-1E6C54/sensor/temperature  -m 25.77 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  shellies/shellyht-1E6C54/sensor/temperature  -m 25.78 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  shellies/shellyht-1E6C54/sensor/temperature  -m 25.77 -p 1883  -u sermovox -P sime01
+ssh  luigi@192.168.1.79
+./cp_rasp.sh 15102023
+mosquitto_sub -t @Casina_API@ctl_var_state_0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t poppo -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+ssh  luigi@192.168.1.79
+mosquitto_sub -t @Casina_API@ctl_var_state_0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/_shelly1-34945475FE06/relay/0/command -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/_shelly1-34945475DD63/relay/0/command -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0/command -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t xxshellies/shelly1-34945475FE06/relay/0/command -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/_shelly1-34945475FE06/relay/0/command -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/_shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@ctl_var_state_0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@interface_mqtt_websock_0/NReadUser/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/_shelly1-34945475FE06/relay/0/NReadUser/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t poppo -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t xxshellies/shelly1-34945475FE06/relay/0/commandu sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t xxshellies/shelly1-34945475FE06/relay/0/command -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t poppo -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/_shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t xxshellies/shelly1-34945475FE06/relay/0/command -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/_shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/Casina_API-34945475F7DE/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/Casina_API-34945475F7DE/relay/0/command -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+sshfs  luigi@192.168.1.79:/home ~/pimount
+mosquitto_pub -h bot.sermovox.com -t  shellies/_shelly1-34945475FE06/relay/0/command   -m off -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  shellies/_shelly1-34945475FE06/relay/0/command   -m on -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  shellies/_shelly1-34945475FE06/relay/0/command   -m off -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  shellies/_shelly1-34945475FE06/relay/0/command   -m on -p 1883  -u sermovox -P sime01
+sshfs  luigi@192.168.1.212:/home ~/hamount
+mosquitto_pub -h bot.sermovox.com -t  shellies/_shelly1-34945475FE06/relay/0/command   -m off -p 1883  -u sermovox -P sime01
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t xxshellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_pub -h bot.sermovox.com -t  xxshellies/shelly1-34945475FE06/relay/0/command   -m off -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  xxshellies/shelly1-34945475FE06/relay/0   -m off -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  xxshellies/shelly1-34945475FE06/relay/0   -m on -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  shellies/_shelly1-34945475FE06/relay/0/command   -m on -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  shellies/_shelly1-34945475FE06/relay/0/command   -m off -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  shellies/_shelly1-34945475FE06/relay/0/command   -m on -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  shellies/_shelly1-34945475FE06/relay/0/command   -m off -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  shellies/_shelly1-34945475FE06/relay/0/command   -m on -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  shellies/_shelly1-34945475FE06/relay/0/command   -m off -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  shellies/_shelly1-34945475FE06/relay/0/command   -m on -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  shellies/_shelly1-34945475FE06/relay/0/command   -m off -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  shellies/_shelly1-34945475FE06/relay/0/command   -m on -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  shellies/_shelly1-34945475FE06/relay/0/command   -m off -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  shellies/_shelly1-34945475FE06/relay/0/command   -m on -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  shellies/_shelly1-34945475FE06/relay/0/command   -m off -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  shellies/_shelly1-34945475FE06/relay/0/command   -m on -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  @Casina_API@ctl_var_state_0   -m '{"payload":{"state":{"relays":{acs:true}}}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  @Casina_API@ctl_var_state_0   -m '{"payload":{"state":{"relays":{acs:false}}}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  @Casina_API@ctl_var_state_0   -m '{"payload":"ciao"}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  @Casina_API@ctl_var_state_0   -m '{"payload":{"ciao":"pippo"}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  @Casina_API@ctl_var_state_0   -m '{"payload":{"state":{"relays":{acs:false}}}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  @Casina_API@ctl_var_state_0   -m '{"payload":{"state":{"relays":{"acs":false}}}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  @Casina_API@ctl_var_state_0   -m '{"payload":{"state":{"relays":{"acs":False}}}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  @Casina_API@ctl_var_state_0   -m '{"payload":{"state":{"relays":{"acs":false}}}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  @Casina_API@ctl_var_state_0   -m '{"payload":{"state":{"relays":{"acs":true}}}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  @Casina_API@ctl_var_state_0   -m '{"payload":{"state":{"relays":{"acs":false}}}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  @Casina_API@ctl_var_state_0   -m '{"payload":{"state":{"relays":{"acs":true}}}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  @Casina_API@ctl_var_state_0   -m '{"payload":{"state":{"relays":{"acs":false}}}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  @Casina_API@ctl_var_state_0   -m '{"payload":{"state":{"relays":{"acs":true}}}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  @Casina_API@ctl_var_state_0   -m '{"payload":{"state":{"relays":{"acs":false}}}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  @Casina_API@ctl_var_state_0   -m '{"payload":{"state":{"relays":{"acs":true}}}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  @Casina_API@ctl_var_state_0   -m '{"payload":{"state":{"relays":{"acs":false}}}}' -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  @Casina_API@ctl_var_state_0   -m '{"payload":{"state":{"relays":{"acs":true}}}}' -p 1883  -u sermovox -P sime01
+mosquitto_sub -t shellies/_shelly1-34945475FE06/relay/0/command -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/_shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/_selly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0/command -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0/command -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475DD63/relay/0/command -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475DD63/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/_shelly1-34945475DD63/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/_shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/_shelly1-34945475FE06/relay/0/command -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t xxshellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t xxshellies/shelly1-34945475DD63/relay/0/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475DD63/relay/0/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t xxshellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t xxshellies/shelly1-34945475FE06/relay/0/command -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t poppo -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t xxshellies/shelly1-34945475FE06/relay/0/command -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+sshfs  luigi@192.168.1.79:/home ~/pimount
+sshfs  luigi@192.168.1.212:/home ~/hamount
+mosquitto_sub -t xxshellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475F7DE/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475DD63/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+ssh 192.168.1.76
+ssh  luigi@192.168.1.79
+mosquitto_sub -t shellies/shelly1-34945475F7DE/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475DD63/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475F7DE/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475DD63/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475F7DE/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475DD63/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475F7DE/relay/0/command -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shelly1-34945475DD63/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_pub -h bot.sermovox.com -t  shellies/shellyht-1E6C54/sensor/temperature  -m 25.76 -p 1883  -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t  shellies/shellyht-1E6C54/sensor/temperature  -m 20.76 -p 1883  -u sermovox -P sime01
+mosquitto_sub -t shellies/_shellyht-1E6C54/sensor/temperature  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+sshfs  luigi@192.168.1.79:/home ~/pimount
+ssh  luigi@192.168.1.79
+mosquitto_sub -t shellies/_shellyht-1E6C54/sensor/temperature  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shellyht-1E6C54/sensor/temperature  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shellyht-1E6C54/sensor/humidity  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t shellies/shellyht-1E6C54/sensor/temperature  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+ssh  luigi@192.168.1.79
+curl --location 'https://eu5.fusionsolar.huawei.com/thirdData/getDevRealKpi' --header 'XSRF-TOKEN: x-c5fwo5lhdg5dc9rz8bc91fs504gbg5imdd2lpe064bml1cc785almqs55hvusa9hum853yikc5updhtemn1epi9ihe08bt4bpjjwdjbv6rvv7u5d7uel3w1dbx2r7zik' --header 'Content-Type: application/json' --data ' {
+"devIds":"1000000035350465",
+"devTypeId":"47"
+}
+;
+curl --location 'https://eu5.fusionsolar.huawei.com/thirdData/getDevRealKpi' --header 'XSRF-TOKEN: x-c5fwo5lhdg5dc9rz8bc91fs504gbg5imdd2lpe064bml1cc785almqs55hvusa9hum853yikc5updhtemn1epi9ihe08bt4bpjjwdjbv6rvv7u5d7uel3w1dbx2r7zik' --header 'Content-Type: application/json' --data ' {"devIds":"1000000035350465","devTypeId":"47"} 
+'
+curl --location 'https://eu5.fusionsolar.huawei.com/thirdData/getDevRealKpi' --header 'XSRF-TOKEN: x-c5fwo5lhdg5dc9rz8bc91fs504gbg5imdd2lpe064bml1cc785almqs55hvusa9hum853yikc5updhtemn1epi9ihe08bt4bpjjwdjbv6rvv7u5d7uel3w1dbx2r7zik' --header 'Content-Type: application/json' --data ' {"devIds":"1000000035350465","devTypeId":"47"} '
+curl --location https://www.google.com
+curl --location 'https://eu5.fusionsolar.huawei.com/thirdData/getDevRealKpi' --header 'XSRF-TOKEN: x-c5fwo5lhdg5dc9rz8bc91fs504gbg5imdd2lpe064bml1cc785almqs55hvusa9hum853yikc5updhtemn1epi9ihe08bt4bpjjwdjbv6rvv7u5d7uel3w1dbx2r7zik' --header 'Content-Type: application/json' --data ' {"devIds":"1000000035350465","devTypeId":"47"} '
+curl --location 'https://eu5.fusionsolar.huawei.com/thirdData/getDevRealKpi' --header 'XSRF-TOKEN: x-c5fwo5lhdg5dc9rz8bc91fs504gbg5imdd2lpe064bml1cc785almqs55hvusa9hum853yikc5updhtemn1epi9ihe08bt4bpjjwdjbv6rvv7u5d7uel3w1dbx2r7zik' --header 'Content-Type: application/json' --data ' {"devIds":"1000000036026834",'
+curl --location 'https://eu5.fusionsolar.huawei.com/thirdData/getDevRealKpi' --header 'XSRF-TOKEN: x-c5fwo5lhdg5dc9rz8bc91fs504gbg5imdd2lpe064bml1cc785almqs55hvusa9hum853yikc5updhtemn1epi9ihe08bt4bpjjwdjbv6rvv7u5d7uel3w1dbx2r7zik' --header 'Content-Type: application/json' --data ' {"devIds":"1000000036026834",}'
+curl --location 'https://eu5.fusionsolar.huawei.com/thirdData/getDevRealKpi' --header 'XSRF-TOKEN: x-c5fwo5lhdg5dc9rz8bc91fs504gbg5imdd2lpe064bml1cc785almqs55hvusa9hum853yikc5updhtemn1epi9ihe08bt4bpjjwdjbv6rvv7u5d7uel3w1dbx2r7zik' --header 'Content-Type: application/json' --data ' {"devIds":"1000000036026834","devTypeId":"39"}' 
+curl --location 'https://eu5.fusionsolar.huawei.com/thirdData/getDevRealKpi' --header 'XSRF-TOKEN: x-c5fwo5lhdg5dc9rz8bc91fs504gbg5imdd2lpe064bml1cc785almqs55hvusa9hum853yikc5updhtemn1epi9ihe08bt4bpjjwdjbv6rvv7u5d7uel3w1dbx2r7zik' --header 'Content-Type: application/json' --data ' {"devIds":"1000000035350465","devTypeId":"47"}' 
+curl --location --request POST 'https://eu5.fusionsolar.huawei.com/thirdData/getDevRealKpi' --header 'XSRF-TOKEN: x-c5fwo5lhdg5dc9rz8bc91fs504gbg5imdd2lpe064bml1cc785almqs55hvusa9hum853yikc5updhtemn1epi9ihe08bt4bpjjwdjbv6rvv7u5d7uel3w1dbx2r7zik' --header 'Content-Type: application/json' --header 'Cookie: XSRF-TOKEN=x-s57v1cdgk5hfilntrz7sdcjsaqo8iok984pebzgabs846rumfx9f07hhga7t2ljugb85nzg51e1hkbnycb2p08bzakqn3y7yvsalbsti9f5dmrandeg6hgukardjtimo' --data-raw ' {
+"devIds":"1000000035350464","devTypeId":"38"} '
+curl --location 'https://eu5.fusionsolar.huawei.com/thirdData/getDevList' --header 'XSRF-TOKEN: c5fwo5lhdg5dc9rz8bc91fs504gbg5imdd2lpe064bml1cc785almqs55hvusa9hum853yikc5updhtemn1epi9ihe08bt4bpjjwdjbv6rvv7u5d7uel3w1dbx2r7zik' --header 'Content-Type: application/json' --data '{"stationCodes":"NE=36026831"
+'
+sshfs  luigi@192.168.1.79:/home ~/pimount
+curl --location 'https://eu5.fusionsolar.huawei.com/thirdData/getDevList' --header 'XSRF-TOKEN: x-rseqdguos9fvsa6nur072rkbry9ds6lh2ko4jz6ppjc52mirbvvuvwql45c6ikk9uk3v1dk5aoik3u3vqnnt88nw842oiqen1e09fy1dg6fxarljo8ir7uk9bwvtlele' --header 'Content-Type: application/json' --data '{"stationCodes":"NE=36026831"
+}'
+curl --location 'https://eu5.fusionsolar.huawei.com/thirdData/getDevList' --header 'XSRF-TOKEN: x-rseqdguos9fvsa6nur072rkbry9ds6lh2ko4jz6ppjc52mirbvvuvwql45c6ikk9uk3v1dk5aoik3u3vqnnt88nw842oiqen1e09fy1dg6fxarljo8ir7uk9bwvtlele' --header 'Content-Type: application/json' --data '{"stationCodes":"NE=36026831"
+}'
+curl --location 'https://eu5.fusionsolar.huawei.com/thirdData/getDevRealKpi' --header 'XSRF-TOKEN: x-rseqdguos9fvsa6nur072rkbry9ds6lh2ko4jz6ppjc52mirbvvuvwql45c6ikk9uk3v1dk5aoik3u3vqnnt88nw842oiqen1e09fy1dg6fxarljo8ir7uk9bwvtlele' --header 'Content-Type: application/json' --data '{"devIds":"1000000035350465","devTypeId":"47"
+}'
+curl --location 'https://eu5.fusionsolar.huawei.com/thirdData/getDevRealKpi' --header 'XSRF-TOKEN: x-rseqdguos9fvsa6nur072rkbry9ds6lh2ko4jz6ppjc52mirbvvuvwql45c6ikk9uk3v1dk5aoik3u3vqnnt88nw842oiqen1e09fy1dg6fxarljo8ir7uk9bwvtlele' --header 'Content-Type: application/json' --data '{"devIds":"1000000035350465","devTypeId":"47"
+}'
+sshfs  luigi@192.168.1.212:/home ~/hamount
+ssh  luigi@192.168.1.79
+cp_rasp.sh 23102023
+./cp_rasp.sh 23102023
+"python3 rs485_simul.py w 2 4188 0 >> resultrs384.txt"
+python3 rs485_simul.py w 2 4188 0 >> resultrs384.txt
+python3 rs485_simul.py w 2 4188 1 >> resultrs384.txt
+python3 rs485_simul.py w 2 4188 1
+python3 rs485_simul.py w 2 4188 0
+python3 rs485_simul.py w 2 3188 1
+python3 rs485_simul.py w 3 4188 1
+
+sshfs  luigi@192.168.1.212:/home ~/hamount
+sshfs  luigi@192.168.1.79:/home ~/pimount
+ssh  luigi@192.168.1.79
+tsc --lib ES2015  src/index.ts
+node index.js
+tsc --lib ES2015  src/index.ts
+node index.js
+tsc --lib ES2015  src/index.ts
+node index.js
+ls index.js
+ls src/index.js
+node src/index.js
+tsc --lib ES2015  src/index.ts
+node src/index.js
+node index.js
+npm -ls
+npl ls
+npm  ls
+npm  ls --all
+npm i --save homeassistant-ws
+npm  ls --all
+node index.js 
+tsc --lib ES2015  recover.ts
+node index.js 
+node index.js > pippo.txt
+node index.js 
+node index.js 
+node index.js > pippo.txt
+node index.js 
+tsc helloworld.ts 
+nvm ls-remote
+nvm ls
+tsc tsc --lib ES2015  helloworld.ts 
+tsc --lib ES2015  helloworld.ts 
+npm install @types/node --save-dev
+npm install @types/ws --save-dev
+tsc --lib ES2015  helloworld.ts 
+cd ..
+mkdir homeassistant-ws-1
+cd homeassistant-ws-1/
+npm init
+ls
+
+ls
+mkdir src
+mkdir dist
+tsc --lib ES2015  /src/index.ts 
+tsc --lib ES2015  index.ts 
+npm pack homeassistant-ws
+cd ..
+ls
+mkdir homeassistant-ws-git
+cd homeassistant-ws-git/
+git clone https://github.com/filp/homeassistant-ws.git
+mkdir homeassistance-ws-2
+mkdir homeassistant-ws-2
+cd homeassistant-ws-2
+npm init
+npm install
+yarn
+cat /home/luigi/.npm/_logs/2023-10-30T01_56_03_670Z-debug-0.log
+npm i isomorphic-ws ws
+npm install
+cd ..
+ls
+cd homeassistant-ws
+ls
+install
+npm install
+exit
+sshfs  luigi@192.168.1.212:/home ~/hamount
+sshfs  luigi@192.168.1.79:/home ~/pimount
+mosquitto_pub -h bot.sermovox.com -t  @Casina_API@ctl_var_state_0   -m '{"payload":{"state":{"relays":{"acs":true}}}}' -p 1883  -u sermovox -P sime01
+mosquitto_sub -t @Casina_API@ctl_var_state_0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+mosquitto_sub -t @Casina_API@info -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+ssh  luigi@192.168.1.79
+tsc --version
+npm install -g typescript
+tsc --version
+node index.js > poppo.txt
+sshfs  luigi@192.168.1.212:/home ~/hamount
+npm init
+cd node_modules/homeassistant-ws/
+tsc
+cd ..
+node index.js
+node index.js > pippo.txt
+ssh  luigi@192.168.1.79
+sshfs  luigi@192.168.1.79:/home ~/pimount
+git remote
+git remote -v
+git log
+node index.js > pippo.txt
+clear
+node index.js > pippo.txt
+pippo
+node index.js > pippo.txt
+ssh  luigi@sermovox.com
+ssh  luigi@192.168.1.79
+ssh luigi@sermovox.com
+ls
+cd Downloads/
+scp luigi@sermovox.com:deploing_demo.tar.gz deploing_demo.tar.gz
+xxscp luigi@sermovox.com:.bash_history bash_history
+scp luigi@sermovox.com:.bash_history bash_history
+scp luigi@sermovox.com:.bash_history_copy bash_history_copy
+clear
+exit
+git log
+sshfs  luigi@192.168.1.79:/home ~/pimount
+ssh  luigi@192.168.1.79
+sshfs  luigi@192.168.1.79:/home ~/pimount
+exit

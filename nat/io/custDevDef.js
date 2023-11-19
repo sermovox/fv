@@ -1,16 +1,16 @@
-let custDev = {// custom devices cmd ctl triggered by a writesync() on a regular dev
-    66: async function (set_v = 0 ,rs485,param,exec,relais) {// state value are inverted , inversion active:  0<>1.
+let custDev = {// exported custom devices cmd ctl triggered by a writesync() on a regular dev
+    66: async function (set_v = 0 ,rs485,param={custSet:1,quiet:false,section:false},exec,relais) {// state value are inverted , inversion active:  0<>1.
                                                                 // better set exec and relais with init()
                                                                 // relais is a array with fixed gpio input ctl, used to set type 4 var topic:
                                                                 //      during a writesync we add to msg info about the sensor relais
                                                                 // rs485 is a string to use in modbud custom dev 
                                                                 // param values come from browser attributes to modify the command to send to modbus: todo
         // this ctl will start stop all splits by modbus ctl
-        param=param||{quiet:false,section:false};
+        // param=param||{quiet:false,section:false};
         let set_,quite=param.quiet,section=param.section;
-        if (set_v == 1) set_ = '0'; else set_ = '1';// invert 0 <> 1 
-        const adds = ['2', '3', '4', '5'];// all addresses 
-        const adds1 = ['2', '3'];// section 1
+        if (custSet == 1) set_ = '0'; else set_ = '1';// invert 0 <> 1 
+        const adds = ['2', '3', '4'];// all addresses 
+        const adds1 = ['2', '3'];// section true
         console.log(' getio.js, on portid=66 writeSync() force a customdev write with param ', set_);
         //adds.forEach((val, ind) => {
         let  stderr_ ,myadds=adds;// all
@@ -26,7 +26,7 @@ let custDev = {// custom devices cmd ctl triggered by a writesync() on a regular
         }
     }
 
-    async function runMc(adds,mc,val){
+    async function runMc(adds,mc,val){// adds : list od address,mc: modbus command, val : 0/1
         for (let i = 0; i < adds.length; i++) {
             
             let myexec = cmd(adds[i],mc,val);
@@ -41,7 +41,7 @@ let custDev = {// custom devices cmd ctl triggered by a writesync() on a regular
         };
     }
 
-        function cmd(addr,waction,value) {// ' 4188 ':on/off split
+        function cmd(addr,waction,value) {// ' 4188 ':on/off split. build shell command
             let myexec = 'python3 ' + rs485 + ' w ' + addr+waction ;
             // if (set_ == 1) myexec += '1'; else myexec += '0';
             myexec +=value;

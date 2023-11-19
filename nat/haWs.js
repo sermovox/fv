@@ -1,3 +1,67 @@
+
+let msgList;// msgList handle managing topic messages from mqtt or ha ws
+let haws=require('./hawsclient');
+let wsclient={  subTop:[],
+                pubsTop:{},// registered when call setSwitch:function (name,cmdent,ent,ctlpack) in  numbSubscr(val, that, ctlpack, subscred)  when setting regtopic[topic] ????
+                msgHand:null,// set by .on
+                income:function(topic,val){
+                    if(topicisnotonsubTop)this.msgHand(topic,val);// pass if registered
+
+                },
+                on:function(event,hand){
+                    if(event=='message'){
+                        this.msgHand=hand;
+                    }
+
+                },
+                subscribe:function (topic,errhand){
+                    if(topicisnotonsubTop)this.subTop.push(topic);
+
+                },
+                pub:function (topic,val){
+                    if(pubstopic)this.subTop[topic](val);
+
+
+                },
+                sethaws:function(ctlpack,topic, topicNodeRed,pubtopic){// configure ha staff.
+                                    // in  numbSubscr(val, that, ctlpack, subscred)  when setting regtopic[topic] ????
+                                    // this.subTop[topic]= this.setSwitch(name_,cmdent,ent,ctlpack);// put ent,cmdent,all topics in ctlpack ?  name are useless as we are working on topics
+                                    this.pubsTop[pubtopic]= haws.setSwitch(ctlpack,topic, topicNodeRed,pubtopic);// put ent,cmdent,all topics in ctlpack ?  name are useless as we are working on topics
+                }
+};
+haws.init((topic,val)=>{// ctlcb(topic,stateChangedEvent.data.new_state.state); thee dev topic soucing income process
+                        // >>>>>        setSwitch will call this cb  so the val can be send to income handler with topic topic
+
+                        // pay attention that mqtt will anyway active also if we are using a haws device interface
+                        // so we will pubs on mqtt topic/pubtopic , then 
+                        //      if ha subcribed to mqtt topic , it can get the message topics and pubs on topic like a real device do (ha will relay to a real device)
+                        //      
+                        // in case we use ws in ha we :
+                        //  - subscribe here in haWs a addition handler that will do the same as ha would do if were connected to a mqtt subscription LLOOPP (like a mqtt switch topics)
+                        //          so subscribe to  mqtt like a in a trigger then instead to call a service in a automation call a cmd service with ws calling the returned setSwitch(name,cmdent,ent):
+                        //                                                                                      setSwitch(name,cmdent,ent)(val)
+                        //   OR
+                        //  - call    setSwitch(name,cmdent,ent)(val) in the mqtt pub that caused the topic to be handled in LLOOPP 
+                        //          see HHNN : invece di triggerare un automation su subcription del pubtopic , nel pub del pubtopic in writesync direttamente chiamare   setSwitch(name,cmdent,ent)(val)
+                        //    o se non voglio usare comunque mqtt per storare (type2 ) un val (pub su topic e quindi ritrovare il valore nel queue fillato dal topic subscribe : msgList GGKK) :
+
+
+                        //     DO THIS: 
+                        //              type 2 >> definisco un client.pub che, invece di publicare il val di writesync in mqtt topic , publico chiamando   setSwitch(name,cmdent,ent)(val) e contemporaneamente chiamo il handler 
+                        //                   che avevo attaccato al subcription del topic GGKK via un pub sul topic con ctlcb(topic,val) 
+                        //                   nb sara sempre necessario fare un subscribe del topic che questa volta attacca il handler  msgList
+                        //                     si perche in ogni caso questo handler gestisce i GGKK da il ctlcb() !!! quindi non posso cortocircuitare chiamando direttamente msgList dal pub verso pubtopic in wrtesync !!! 
+                        //              type 1 >> in writesync pubblico, non su pubtopic di mqtt, ma chiamo il  setSwitch(name,cmdent,ent)(val) . se voglio poi eventualmente avere un feedback
+                        //                  dello stato del switch potro come per i sensori type 3, chiamare il mqtt topic subscription handler msgList subscribing to ent  
+                        //                  COSI, facendo  setSwitch(name,cmdent,ent)(val): faccio anche il subscription del cmd topic handler ai change/button press di cmdent :
+                        //                          quindi con setSwitch faro il subscription sia del topic che del cmd topic i cui handler saranno  ctlcb(topic,val)  e ctlcb(cmdtopic,val) 
+
+                        if(wsclient!=null)wsclient.income(topic,val);// ha wants pass message to income handler
+
+                    },ctlComTopic_);    // can be avoided
+
+
+// start here old mqtt.js code 
 var mqtt = require('mqtt');// http://www.steves-internet-guide.com/using-node-mqtt-client/
                             // https://www.macrometa.com/iot-infrastructure/node-js-mqtt
 //const caFile = fs.readFileSync("ca.crt");
@@ -162,11 +226,13 @@ if (client) {
         waitPromiseRes;// resolve che si mettera a disposizione se il precedente msg non ha resettato ancora i listener
     const CheckPrevMessageEnd = false; // debug 
     
-    client.on('message', msgListFact(waitListReturn,waitPromiseRes,CheckPrevMessageEnd));
+    client.on('message',(msgList= msgListFact(waitListReturn,waitPromiseRes,CheckPrevMessageEnd)));// msgList handle managing topic messages from mqtt or ha ws
 }
 
 function msgListFact(waitListReturn, waitPromiseRes, CheckPrevMessageEnd) {
     return function (topic, message, packet) {// message=obj=buffer  >>>>   the message income handler
+                                            // nb packet is not used , its enoght topic !
+
         //   immagino che non ci possono essere 2 chiamate attive (2 tread) contemporanei//
         let msg,// the payload
             message_ = null;// the js object message if is well formatted 
@@ -774,6 +840,7 @@ fc.prototype.readSync  =//  return the promise DDEERR resolving 0/1 or null if r
 
 
 
+
 fc.prototype.readSync =//  return the promise DDEERR resolving 0/1 or null if reject
     function (to = 100) {// timeout
         // in case of a previous write the msg queue is cleared so the effect of a write can be read also waiting some time !
@@ -781,9 +848,13 @@ fc.prototype.readSync =//  return the promise DDEERR resolving 0/1 or null if re
             that = this,// this dev ctl
             gp = this.gpio;// portid , ex 11, warning il portid è unico a livello di plant !!!!!!!!!!!!!!!!!!! infatti la sua queue e'  nella mqttinstance
         let ts = new Date().getTime(), listCall = 0;// // ts is really the id of the request , just for tracking the listeren called
+        let isWsCon=cfg.isWsCon ?this.cfg.isWsCon:false;
+        let curlength=0;
 
-
-        if (mqttInst.status[gp] && client.connected//if(gpio[gp]&&client.connected
+        if (mqttInst.status[gp]&&(curlength=mqttInst.status[gp].length)>0){
+            
+            if(!isWsCon){
+            if( client.connected//if(gpio[gp]&&client.connected
             // &&status[gp]
         ) {// still registered, subscribed, connected 
             let resolRead;
@@ -794,9 +865,64 @@ fc.prototype.readSync =//  return the promise DDEERR resolving 0/1 or null if re
             console.log('mqtt readsync read value from queue or listener, using getgpio(cl=', this.cl, ')');// promise : ',resolRead);
             return resolRead;// nb resolve value must be 0 or 1 !!!
         } else return Promise.resolve(null);// data not available
+    
+
+    }else{// isWsCon, no listener, no connection required: if no conn returns null (reject), so the process that is using the read data can set a default or reject the algo
+            // wscon will automatically fill the dev queue 
+
+        return Promise.resolve( valCorrection(protval(mqttInst.status[gp][curlength - 1]).val));// check if the value is valid x read.   reset length ?
 
 
+    }
+    }else return Promise.resolve(null);// data not available
 
+    function protval(re){  // converti il valore letto re ( o perchè presente in queue o perche risolto dal listener dopo un periodo secondo tipo (rele/var/probe) e protocollo 
+        let val,iter=null,clas=that.cl;
+                      
+
+                        if (clas == 1) {// rele
+                            if (that.cfg.protocol == 'shelly') { if (re == 'on') val=1; else val=0; }
+                            else if (that.cfg.protocol == 'ro') {
+                                val=re// the same re
+                            } else  val=null;// unknown
+                        }// relays value: 0/1
+                        else if (clas == 2 || clas == 4) {// a var in mqttnumb or mqttprob
+                            if (re == '>ctlpresent') {// must come after POLP,  >>>>>    is a signal in incoming mqtt stream ,  used in var device 
+                                // no more wait a next msg :  return rread(false);// discard (coming from this inst. or other)  ctl presence
+                                if ( mqttInst.status[gp].length > 0) console.error('can be an error in rread() processin a var ');
+    
+                                console.log(' readsync() , dev: ', gp, ', current queue : ', mqttInst.status[gp], ' ,request ts # ', ts, '. warning a listener  fired with   still a presence/signal msg, so add another listener to be called on a new next message in a new listener list');
+                                //  mqttInst.status[gp].push(defVar);// anyway add def in top  queue
+                                resetListener = true;// or just add a new listener in listener queue  ,     MMJJUU
+                                iter=false;// relaunch rread
+                            }
+                            else {
+                                if (that.cfg.protocol == 'mqttstate') // the msg is a value not a signal , according to proocol return a value (usually a var has integer)
+                                // return a int or ''/null 
+                                // {if (re == 'on') return ending( 1); else return ending( 0);}
+                                {
+                                    if (re == '') val=null;// '' or null
+                                    else { val=re; }// usually a integer 
+                                }
+                                else val=null;// unknown protocol
+                            }
+    
+                        } else if (clas == 3) {// probe in mqttprob
+                            if (that.cfg.protocol == 'shelly' || true) { val=re; }
+                            else val=null;// unknown protocol
+    
+    
+                        } else if (clas == 0) {// ctl interface , future use , read the msg
+                            if (that.cfg.protocol == 'mqttxwebsock') { val=re; }
+                            else return val=null;// unknown protocol
+    
+    
+                        }
+    
+    
+                        else val=null;// error !
+            return {iter,val};
+}
 
 
         async function getgpio(clas) {//  returns DDEERR=rread(true), the readSync returned promise . get last entry in that.status[gpio] queue array, leave in array only last msg OR fill a listener for coming msg
@@ -822,10 +948,15 @@ fc.prototype.readSync =//  return the promise DDEERR resolving 0/1 or null if re
                     resRetList = res;//  the resolving func: the cb called to resolve the promise calling res()
                 });
 
+
+
+
+
+
             async function rread(checkQueueFirst = true) {// rread() returns ...
                 // the returned value depends from the dev type ( rele,var,probs) and from device protocol extraction from state[dev] queue 
                 // example in mqttstate protocol for var device ( (clas == 2||clas == 4) {// a var in mqttnumb ) : we return 
-                let re;                                 // checkQueueFirst if false dont look at a current queue , just wait for next val
+                let re,rr;                                 // checkQueueFirst if false dont look at a current queue , just wait for next val
 
                 /* now when a  var subscribe, are sent 2 message :
                 1: '>ctlpresent'
@@ -919,52 +1050,15 @@ fc.prototype.readSync =//  return the promise DDEERR resolving 0/1 or null if re
                     //  in particolare si potra abortire il processo al sopraggiungere di un nuovo readsync o dopo un certo tempo a da un algo che per continuare vuole abortire i processi in attesa su i listener del device
                     // waiting to implement the reject we can resolve anyway returning null in XXTT !
 
+                    rr= protval(re);
 
-                    // converti il valore letto re ( o perchè presente in queue o perche risolto dal listener dopo un periodo secondo tipo (rele/var/probe) e protocollo 
-
-                    if (clas == 1) {// rele
-                        if (that.cfg.protocol == 'shelly') { if (re == 'on') return ending(1); else return ending(0); }
-                        else if (that.cfg.protocol == 'ro') {
-                            return ending(re);// the same re
-                        } else return ending(null);// unknown
-                    }// relays value: 0/1
-                    else if (clas == 2 || clas == 4) {// a var in mqttnumb or mqttprob
-                        if (re == '>ctlpresent') {// must come after POLP,  >>>>>    is a signal in incoming mqtt stream ,  used in var device 
-                            // no more wait a next msg :  return rread(false);// discard (coming from this inst. or other)  ctl presence
-                            if (curlength > 0) console.error('can be an error in rread() processin a var ');
-
-                            console.log(' readsync() , dev: ', gp, ', current queue : ', mqttInst.status[gp], ' ,request ts # ', ts, '. warning a listener  fired with   still a presence/signal msg, so add another listener to be called on a new next message in a new listener list');
-                            //  mqttInst.status[gp].push(defVar);// anyway add def in top  queue
-                            resetListener = true;// or just add a new listener in listener queue  ,     MMJJUU
-                            return rread(false);// relaunch rread
-                        }
-                        else {
-                            if (that.cfg.protocol == 'mqttstate') // the msg is a value not a signal , according to proocol return a value (usually a var has integer)
-                            // return a int or ''/null 
-                            // {if (re == 'on') return ending( 1); else return ending( 0);}
-                            {
-                                if (re == '') return ending(null);// '' or null
-                                else { return ending(re); }// usually a integer 
-                            }
-                            else return ending(null);// unknown
-                        }
-
-                    } else if (clas == 3) {// probe in mqttprob
-                        if (that.cfg.protocol == 'shelly' || true) { return ending(re); }
-                        else return ending(null);// unknown protocol
-
-
-                    } else if (clas == 0) {// ctl interface , future use , read the msg
-                        if (that.cfg.protocol == 'mqttxwebsock') { return ending(re); }
-                        else return ending(null);// unknown protocol
-
-
-                    }
-
-
-                    else return ending(null);// error !
 
                 } else return ending(null);// not (still?) subscribed
+
+                if(rr.iter)return rread(false);// relaunch rread
+                else ending(rr,val);
+
+
 
 
                 function stList() {//(dev,token){
@@ -1073,7 +1167,7 @@ fc.prototype.readSync =//  return the promise DDEERR resolving 0/1 or null if re
                 function ending(value) {
                     resRetList(null);// no iterate listener 
                     console.log(' ** readsync()  , using instance ', mqttInst.id, ' for portid ', gp, ', is ending . reading val: ', value, ', now current dev queue is : ', mqttInst.status[gp], ' req id ', ts, ' listener chained ', listCall);
-                    console.log(' ** readsync()  ,debug  mqttTopPub is  ', mqttInst.mqttTopPub);
+                    console.log(' ** readsync()  ,debug  mqttTopPub , the pubtopic, is  ', mqttInst.mqttTopPub);
                     return valCorrection(value);
                 }
 
@@ -1192,7 +1286,7 @@ function ending (value) {
 
 }
 
-
+// built on the trace of mqtt.js
 module.exports ={// returns ...
 
     init:function(plantconfig){// wait connection and subsribe all gpio x plantconfig, 
@@ -1202,23 +1296,67 @@ module.exports ={// returns ...
         return new mqttClass(plantconfig);
     }
 }
-function mqttClass(plantconfig){
+
+let wscon=require('haws');
+function mqttClass(plantconfig){// PPLL now x mqtt + ws
+    /* differencies from mqtt :
+        in mqtt ho una connessione mqtt unica . ogni plant genera un mqttInst che permette di organizzare i topic e ottenere ctlpack con  mqttInst.fact() per avere il controller ctl , see AAKKPP in doc
+             tra i device ci sono :
+
+             
+            - device x connettere ha e trasmettere ricevere event per la gestione simile ai ws del browser, dopo la creazione dei eM/fn da fare con eventi solo col browser:
+
+
+                        - un device (mqttWebSock portid=0, type=0) x lanciare, alla ricezione di  cmd topic, interrupt (dipendono da ..... ) che agganciano i handler dei corrispondenti event verso browser ws
+                            il cmd topic è @Casina_API@interface_mqtt_websock_0_NReadUser/cmd
+
+
+
+            - un device dummy x trasmettere lo state di tutti i dev  , see models.js   qttprob[virt2realProbMap[0]] usulally portid= 777
+                       lo state trasmesso su topic del dummy dev, type 4 , portid 777 ,  es: @Casina_API@ctl_var_state_0
+                     il topic lancia automation che settera/ribadira lo state del corrispondente switch in ha 
+                            es automation : polo 
+
+
+                      nb non viene usato il pubtopic del dev , proprio perche e' piu complicato che andare a vedere lo state
+                      nb  il cambio stato in ha triggera un il base topic del corrispondente dev di fv3 , ma esso non viene letto da fv3 che insiste nel proporre il suo advice
+                                        es topic= shellies/CasinaAPI-xxx-relay/cmd
+                                        eanche per i prb type 3 !
+
+                      nb se effettivamente voglio costringere fv3 a prendere atto di una proposta da ha , allora si lancia da specifico button un cmd topic sul dev fv3 che settera int che lancia e un manualAldo
+
+
+    per gestire la connessione uso il fn.get
+
+
+
+
+    */
+
+
+  
+
+
+
+
+
     this.id= new Date().getTime();// debug 
     this.gpio=null;// not used // deleted : gpio=plantconfig.devid_shellyname||{11:'shelly1-34945475FE06'}; 
     this.mqttnumb=plantconfig.mqttnumb,
     this.mqttprob=plantconfig.mqttprob;// prob + var state cfg array
     this.mqttWebSock=plantconfig.mqttWebSock; // ctl config , standard 
     this.custDev=plantconfig.custDev;
-    this.mqttTop={};// //  calculated topic
+    this.mqttTop={};// //  calculated topic >> will be the msg.topic , event used to read the  ha device 
     this.mqttTopPub={};// //  calculated topic x publish if different from subscribe. item can be '' x dummy writesync
     this.futurecb={};
-    this.status={};// pool x dev read queue
+    this.status={};// pool x dev read queue . PPLL now used to store dev internal state
     this.statusList={};
     // one x both : this.mqttnumbTop={},this.mqttprobTop={};//  calculated topic 
     this.plantName=plantconfig.plantName;
     // this.invTopic={};// that becomes at mqtt.js level: invTopic=invTopic||{}; every dev in any mqtt instance has a topic registered in invTopic
     this.topPlantPrefix='@'+this.plantName+'@';// prefix for dev topics for dev type (i probe e i rele hanno il s/n per cui i topic sono sicuramente unici in tutto il mqtt server) see RTY
-   // for(dev in gpio){
+   
+
     for(let i=0;i< this.mqttnumb.length;i++){
    // status[dev]=null;// queue ** su topic shellies/<model>-<deviceid>/relay if array is null means no connected 
    if(this.mqttnumb[i]){let dev=this.mqttnumb[i].portid;
@@ -1227,7 +1365,8 @@ function mqttClass(plantconfig){
    this.statusList[dev]=[];// init list arrays
    console.log('mqttClass() create a mqttInst id: ',this.id,' for plant ',this.plantName);
    }}
-   //for(dev in mqttprob){
+ 
+
     for(let i=0;i< this.mqttprob.length;i++){
         // status[dev]=null;// queue ** su topic shellies/<model>-<deviceid>/relay if array is null means no connected 
         if(this.mqttprob[i]){let dev=this.mqttprob[i].portid;
@@ -1235,7 +1374,7 @@ function mqttClass(plantconfig){
     this.status[dev]=null;// not subscribed jet !
     this.statusList[dev]=[];// init list arrays
     }}
-   //if(client.connected)return true; else return false;
+
    if(this.start()){
     this.avail=true;// connected to broker, wating for all dev subscription cb
     // return this;
@@ -1245,14 +1384,24 @@ function mqttClass(plantconfig){
    }
 
 
+
+   wscon.init   // wscon will automatically fill the dev queue 
+   // when disconnect the queue is going void so readsync can retun null and the running algo can discard the loop run waiting a not void queue
+              
+   
+   (swname,(val)=>{ // no!, arrow function take this from outer object , the obj n which you call the function !!
+       this.mqttInst.status[gp].push
+   });
+
+
+
     avail:null// null, true,false th connection to broker is ok
     // use : await read()
 
 }
-mqttClass.prototype.start = function  // chiamata anche all'instanzializzazione
 
+mqttClass.prototype.start = function
    (){// wait/check connection and subscribe all gpio , so  as soon cb is called we have set status[gp]=[] (the subscription is ok )
-       
         // in future subscribe when the fc(gp,ind,type) is called as the device can be used differently depending on the type requested 
         //  and we can also add the ctl to the invTopic[topic]  so we can have info from ctl to do some preelaboration (?)
         let that=this;
@@ -1262,9 +1411,7 @@ return false }
 console.log("mqtt start() :  checking connection cb  to mosquitto, connection state: " + client.connected);
 let onlyone=false;
 
-
 if(!client.connected)client.on("connect",onconnection);else if(client.connected)onconnection();// check connection
-
 
 function onconnection() {// subscribe topic 'presence' only at connection start
 if (onlyone) return;
@@ -1287,7 +1434,6 @@ client.subscribe('presence', function (err) {// usefull?, to do to see if there 
 if( !SubAfterPlantReq)subscribePlantEv(that);
 
 // moved at top level : function subscribePlantEv(that){
-
 
 
 };
@@ -1348,18 +1494,19 @@ mqttClass.prototype.fact = function(gp,ind,inorout='out',injCustDev){// // gp=po
             */
 
         let ctl=new fc(gp,ind,inorout,cfg,that);// todo : idea : add injCustDev, so we can trace the success or not of that in setting type 2 message back in topic !!
-        console.log('polo ctl was ',ctl)
-        if(injCustDev){
+                                                // PPLL : 
+       // console.log('polo ctl was ',ctl);
+
+        if(injCustDev){// let caller manage ctl to inject a functionality 
             let dnam;
-            if(cfg.custDev)dnam=cfg.custDev;else dnam=gp;
+            if(cfg.custDev)dnam=cfg.custDev;else dnam=gp;// PPLL todo add custDev to models.js
             injCustDev(ctl,dnam);
         }
-        console.log('polo ctl is ',ctl)
+        // console.log('polo ctl is ',ctl)
+
         let ctlpack= {ctl,devNumb:ind,type:'mqtt'};// depend on inorout the model cfg is different (see  mqttnumb,mqttprob in plantconfig)
-                    
 
-
-        return new Promise((res,rej)=>{// resolved in  a dev ctl  afer subscriptions
+        return new Promise((res,rej)=>{// resolved in  a dev ctl  after mqtt subscriptions or ws registration
 
             if(SubAfterPlantReq){// std,  subscribe here not in onConnect !
 
@@ -1368,10 +1515,9 @@ mqttClass.prototype.fact = function(gp,ind,inorout='out',injCustDev){// // gp=po
                     // (a var dev cant be subscribed by more plants ! 
                     //  and also a prob/rele usually has unique topic and must be subscribed by 1 plant , usually )
                     subscred();// or  res(ctlpack);
+                }else{// usually , PPLL : ok
 
-                }else{// usually called
-
-                /*
+                /* old : 
                 if(inorout!='out')  probSubscr(cfg,that,ctlpack,subscred); /// mqttprob described device // nb added ctlpack to give more info. that = mqttInst 
                 else  numbSubscr(cfg,that,ctlpack,subscred); // mqttnumb described device 
                 */
@@ -1402,6 +1548,7 @@ mqttClass.prototype.fact = function(gp,ind,inorout='out',injCustDev){// // gp=po
         })
 
     }
+
 
     function subscribePlantEv(that){
 
@@ -1460,12 +1607,14 @@ function numbSubscr(val, that, ctlpack, subscred) { // see TTRROO
     // to avoid delay problem between write and readsync ,  .....
     // subtopic:'shelly1-34945475FE06
     if (val == null) return false;
-    let { portid, varx, isprobe, clas, protocol, subtopic } = val,// val=cfg,
+    let { eventMng='mqtt',portid, varx, isprobe, clas, protocol, subtopic } = val,// val=cfg,from models.js
+
+
+
         // clas=   'out'/'var'/'probe'/'int'
         cl_class;
 
-        if(portid==66)
-        console.log('lopo');
+       // if(portid==66)        console.log('lopo');
 
     function ishaWs(){
 
@@ -1485,7 +1634,7 @@ function numbSubscr(val, that, ctlpack, subscred) { // see TTRROO
             // RTY
             topic = // that.topPlantPrefix+
                 shelly_stopic + subtopic + shelly_topicp;// shellies/<model>-<deviceid>/relay  must be unique in all plants
-            topicPub = shelly_stopic + subtopic + shelly_topicpp;// writesync pub to a cmd topic
+            topicPub = shelly_stopic + subtopic + shelly_topicpp;// writesync pub to a rele cmd topic = pubtopic
             topicNodeRed = topic + nodeRedp;// news : anche i shelly possono essere comandati con meccanismo virtual da un ext ctl come node red o openremote usando questo topic
             client.subscribe(topic, shelly_options, function (err) {// in bash do : mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
                 if (err) {
@@ -1556,6 +1705,11 @@ function numbSubscr(val, that, ctlpack, subscred) { // see TTRROO
     };// complete cfg to easier/better dev management !
     if (topicNodeRed) invTopic[topicNodeRed] = invTopic[topic];// duplicate entry for cmd topic
     if (topicPub) that.mqttTopPub[portid] = topicPub;// register topic x publish if different from subscribe. can be null if writesync receves a null value
+
+    //if(client.setSwitch)client.setSwitch(ctlpack.ctl.cfg,topic, topicNodeRed,pubtopic);// link calculated topics (topic,pubtopic,cmdtopic=topicNodeRed) to involved ha entities  
+    if(client.setSwitch)client.sethaws(ctlpack,topic, topicNodeRed,pubtopic);// link calculated topics (topic,pubtopic,cmdtopic=topicNodeRed) to involved ha entities  
+    
+
     return true;// ??
 
 
@@ -1564,7 +1718,8 @@ function numbSubscr(val, that, ctlpack, subscred) { // see TTRROO
         
         topicNodeRed = topic + nodeRedp;
         topicNodeRedPubish = topic + nodeRedpp;
-        topicPub = null;// // writesync pub to the topic so  if not fromthisctl (so null) will fill the dev (readsync) queue
+        topicPub = null;// if null we shell pub on topic ()  
+                        // writesync pub to the topic so  if not fromthisctl (so null) will fill the dev (readsync) queue.
         /*      
                           client.publish(topic, ">ctlpresent", opt);// send msg with testtopic topic for debug and trace in var itself a connection was asked?
                                                                       // >>> if the server keeps last var state we delete the current value ! 
@@ -1590,7 +1745,7 @@ function numbSubscr(val, that, ctlpack, subscred) { // see TTRROO
                 //client.publish(topic, "buona sera", opt);  // send msg with testtopic topic for debug and trace in var itself a connection was asked?
                 // >>> if the server keeps last var state we delete the current value ! 
                 // forse e meglio mndare il msg >ctlpresent solo se dopo aver subscribed non ricevo nulla e so che sto aprendo per la prima volta questa var 
-                let msgg=pub(">ctlpresent", that.plantName, portid);
+                let msgg=pub(">ctlpresent", that.plantName, portid); // todo avoid pub on topic !
                 client.publish(topicNodeRedPubish, msgg, opt,
                 function (err) {
                     if (err) {

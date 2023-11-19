@@ -3149,7 +3149,7 @@ nodered pubs and subscr
         //		QUESTION : ma che senso ha un handler=eM.iodev.relais_[ind].int che lancia setPump() ???? dovrebbe lanciare un manual algo come fa il browser con evento manualAlgoProposal. 
         //			infatti in consolidate i manulalgo setting sovrascrivono le indicazioni del algo anticipate
         
-        // - i type 4 var (probSubscr()) hanno topicPub=null quindi,al lancio di writeSync (nb non fillano, come gli type2, lo state.relais che non ha item specifico per i probSubscr dev):
+        // - i type 4 var (probSubscr()) hanno topicPub=null quindi,al lancio di writeSync (nb i type 4 a differenza di type2, non hanno lo state.relais : non ha item specifico per i probSubscr dev):
         //			 pubblicano su topic e al ricevimento (su topic e non sul cmdtopic ) essendo controllabile sender=dev  ,  fromthisctl = false e COMUNQUE vengono caricati in dev queue 
         //				( usato per mantenere lo stato(reperibile leggendo con readSync) )
         //		gli ext ctl normali scrivono lo stesso sul topic e quindi fillano (direttamente senza lanciare un interrupt) il queue che funge da stato, 
@@ -5242,6 +5242,18 @@ quando al event     socket.on('startuserplant',
     
     see : 
     	 // todo correct fn.state.discFromBrow >>>> fn.getcontext.discFromBrow ??? 
+    	 
+    	 
+    codeerror : curSess:session.id,// init session id TODO  todo : error its undefined , not exists!
+    
+    errore sembra essere qui :    if(socket){socket.emit('pump',pumpName, lightvalue); //send button status to browser client, if available   >>>>>  ok risolto
+    inoltre la sessione si perde solo se cancello il tag nel browser 
+  ___________
+  
+  session management :
+  see the log when the socket is connected to browser:
+	  console.log(`saving user and socketid ${socket.id} in session ${session.id} used by future fn ( will be associated to user plant). in case algo procedure wants to do something with session and socket if they are active`);
+	  console.log('session will be duplicated on fn.getcontext and the socket is still active if fn.getcontext.discFromBrow=false ! '); 
 _______________________________________
 
  old staff , try to resolve a bug :
@@ -5304,15 +5316,10 @@ in mqtt  si checca se posso agganciare un int quando un messaggio diretto a un d
                                                                           "probMapping" : "==&&state.probmapping=[2,4,0,3,1,5]",
                                                                           "ei" : "S"
                                                                       }
-  ________________________________
-  
-  session management :
-  see the log when the socket is connected to browser:
-	  console.log(`saving user and socketid ${socket.id} in session ${session.id} used by future fn ( will be associated to user plant). in case algo procedure wants to do something with session and socket if they are active`);
-	  console.log('session will be duplicated on fn.getcontext and the socket is still active if fn.getcontext.discFromBrow=false ! '); 
+
 __________________________
 
- attenzione che e' fn a avere la connessione con il ha via mqtt o wsocket. ha sincronizza i rele usando il  
+ attenzione che e' fn a avere la connessione con il ha via mqtt o wsocket. ha (home assistant) sincronizza i rele usando il  
  	- il command topic dei rele associati that is fired only when its state.relays changes o 
  	- via state (repetitive at specific event that changes some state) 
  	
@@ -5501,7 +5508,7 @@ provato a modificare il /src/index.ts sul homeassistant-ws-git/homeassistant-ws-
 			  clearTimeout(this.pingTimeout);
 			});
 			
-riprovato a fare clone in homeassistant_new seguendo istruzioni di clone:
+* YYKK : riprovato a fare clone in homeassistant_new seguendo istruzioni di clone:
 npm init 
 cp index.js from homeassistant-ws-2
  npm i --save homeassistant-ws
@@ -5537,40 +5544,131 @@ nb     // reset update or new ?  todo
   se batteria bassa anticipate PW+10% se quasicarica e mezza giornata di sole pw-5%
   _______________________________________-
   
-  ws to ha management summary
+  ws to ha management summary   WSTMS  , 				todo please do a review with corresponding comment in code !!!
+  	nb used sometimes ht as ha !
   
    l'interfaccia verso ha ha 2 sezioni :
    - devices : sostanzialmente realizza sulla falsariga dei dev mqtt la connessione col device che sara' 
-    -type 1
-     i mqtt invia command topic che vengono raccolti :
-     	da trigger mqtt    
+    	-type 1
+     	- nella connessione mqtt si inviava command topic che vengono raccolti come trigger che allinea il state del rele corrispondente in ha
+     	  non interessava passare i state effettivi (modificati ad es in manuale con ha) da ha a cmd topic verso fv3
+     	  mentre il cmd topic x manual con certo numero di ore sara sparato da button setmanual_rssi_on_but con automation setmanual_rssi_on
+     	- quindi usando ws basterà 
+     		- per trasmettere il val di writeSync (pub topic in mqtt)  uno dei seguenti modi dopo che si e' pubblicato il val in pubtopic , si triggera un automation su subcription del pubtopic:  HHNN 
+     		
+	     		- lanciare un event raccolto in ha  che lo indirizera sul entity effettiva
+	     		- si lancia un service turn_on/off ma bisogna conoscere il reale device utente. quindi non sara l'utente che nel automation blueprint mappa il dev fv3 in device reale ma
+	     			il fv3 dopo che l'utente si e' logato e dato token e suoi entity name lancia direttamente i turn_on/off sui device effettivi !!
+	     	- per trasmettere il cmd topic da button ha a fv3 dev :
+	     		- registrare un entry che per state_change del button manda valore per sparare un cmdtopic/interrupt
+	     			
+     			
+     	- type 2 
+      	qui invece ho bisogno anche di trasmettere i cmd topic verso fv3.
+      	- in mqtt si usava entity text mqtt optimizing_fv (il vecchio select NRInt non si usa ), state topic @Casina_API@ctl_var_gas_pdc_4 che raccoglie i writesync di fv3 
+      			( che vanno direttamente in dev topic in quanto il dev virtuale (type2) cortocircuita il pubtopic in topic !)  
+      			quindi le scritture di fv3 vanno in topic e gli update di ha vanno sparati sul cmd topic 
+      				TUTTAVIA il cmd topic si usa solo per registrazione su : Node-Red-Register1
+      				mentre si preferisce (????) sparare il effettivo cmd topic verso fv3 :  @Casina_API@ctl_var_gas_pdc_4/NReadUser/cmd
+      					usando un automation (id=anticipate) triggerato dallo stesso optimizing_fv !
+     ............
+     
+     
+     
+   - cmd event : a subset of some cmd entity in web ws event emit/on WQSD  :
+     
+                      //  * start/stop algo cmd ha >> fv3 :
+                      //    - add a ws listener for the state-changed entity (button) on associated ha state cmd entity (ex: button start_progservice ) 
+                      //        in mqtt si triggerava il change staus con un automation , id= strpgmserv, verso il cmdtopic interrupt  verso il interface (type 0 (~type 2)) int dev  :
+                      //           @Casina_API@interface_mqtt_websock_0/NReadUser/cmd 
+                      //        in ha ws we use the ctlcb to fire the  associated int dev  interrupt that is used to fire cmd algo handler (the same fired on receiving same emitted cmd from browser)
+                      //            nb si potrebbe anche sparare un automation triggerando dal change button    o registrare banalmente un trigger sul change button state  in ws client 
+
+                      //  * fv3 >> ha cmd status entity  BBFG
+                      //  - il cmd event 'state' lanciato , se attivo, verso il browser  ws e aggiornando con writeSync verso lo state dev : mqttprob[virtualindex[0]] ,type 4, pubtopic=topic=@Casina_API@ctl_var_state_0:
+                      //        stind=state.app.plantconfig.virt2realProbMap[0] ,  virtualindex 0 is reserved to state pub var dev on mqttprob[virtualindex[0]]
+                      //              mqttprob:[,,,{portid:777,subtopic:'var_state_',varx:0,isprobe:false,clas:'var',protocol:'mqttstate'}}// state var , usually portid=777
+                      
+                      
+     		??              //     ora, mentre in  mqtt si provvedeva a invialo sul topic del type 4 state dev, e , quindi raccolto dal associated ha state mqtt entity  optimizing_fv <<< NO
+     		??              //    in  ha ws will use this returned function  writeWs  to send a turn_on/off service to associated state entity optimizing_fv
+
+
+                      
+                      //  nb fv3 , ex in models.js we get the type 4 state var and associated ha algo entity and its cmd topic entity
+
+       
  
  
  
  
  _______________________________
  
- dev def in models.js 
+ dev def in models.js 	TTRROO
  
  
  here how 
- 	- numbSubscr(val, that, ctlpack, subscred) 
- 	- probSubscr
- 	-  ...
+- numbSubscr(val, that, ctlpack, subscred) 
+- probSubscr		, nb the state obj is type 4 and has portid=777
+- mqttWebSock:        {portid:0
  	
- 	works to set mqtt staff x a device
+  works to set mqtt staff (or recently implement wsclient x ws to ha ) x a device :  AAKKPP 
+    ex : 		function numbSubscr(val, that, ctlpack, subscred) { 	// according to dev type and protocol manage dev control using 
+	  									//	readsync and writesync i/o func( ex: writesync defined as a mqtt pub on a topic )
+								    		// - subscribe dev topics and 
+								    		// - prepare info x income process (goonP()) 
+								    		//   registering info in :
+								    		//          regtopic[topic]={ctlpack,portid,mqttInst}
+		 	                                                		//                  ctlpack={ctl,devNumb,type} was built by     getio(num, iotype, ind, ismqtt = false,mqttInst) then in 
+                       								//                                                              mqttClass.prototype.fact()
+												     
  	
  	let  { portid, varx, isprobe, clas, protocol, subtopic } = val,	// val=cfg in models.js
+ 	let  { eventMng='mqtt',haEntity,haManButton,		  	// link calculated topics (topic,pubtopic,cmdtopic) to involved ha entities  
+ 		portid, varx, isprobe, clas, protocol, subtopic } = val,	// val=cfg in models.js
+ 							
  									// clas=   'out'/'var'/'probe'/'int'
  
- 	so in this tab we see how calc topics and register info (regtopic) recovered at msg incoming : goonP() 
+ 	so in this tab we see how calc topics(topic,pubtopic,cmdtopic=topicNodeRed) and register info (regtopic) recovered at msg incoming : goonP() 
+				 		for ex pubtopic is null unless :
+				 			- clas out , protocol shelly :
+				 					cl_class = 'rele',
+				 					topicPub = shelly_stopic + subtopic + shelly_topicpp;/
+				 					
+				 			-  clas out , protocol ro (remote open, open remote) : 
+				 					 topicPub = subtopic;//
+				 					 
+				 			- !isprobe , clas == 'var' :
+				 					 cl_class = 'var';
+				 					 topicPub = null ;				<<<<<<<<<< nb 14112023  seems pubtopic set only in type 1 var !!!
+				 					 
+				 		then if pubtopic !=null is put into : 
+				 				if (topicPub) that.mqttTopPub[portid] = topicPub;// register topic x publish if different from subscribe.
  	
- 	 regtopic[topic]={
- 	 		ctlpack:{ctl:
- 	 			    new fc(gp,ind,inorout,cfg,that)			// ctlpack is built by  getio(num, iotype, ind, ismqtt = false,mqttInst)  in build()
- 	 		
+ 	 regtopic[topic]={								// regtopic[topic]={ctlpack,portid,mqttInst}
+ 	 		ctlpack:{							// ctlpack={ctl,devNumb,type} is built by  getio(num, iotype, ind, ismqtt = false,mqttInst)  
+ 	 			 ctl:
+ 	 			    new fc(gp,ind,inorout,cfg,that)			
+ 	 			    
+ 	 			    									
+ 	 			    									ctl=new fc(gp,ind,inorout,cfg) called in : 
+ 	 			    										  ctlpack = mqttInst.fact(num, ind, iotype, injCustDev_)    called in 
+ 	 			    										 
+ 	 			    										  	getio(gpio,clas,ind,ismqtt,mqttInst); 	 called in:
+ 	 			    										
+ 	 			    										 		doSomethingAsync(gpio,ind,ismqtt=false	called from getctls() in :
+ 	 			    													
+ 	 			    													 build() with :
+ 	 			    													  
+ 	 			    													 	mqttInst=mqtt.init(plantconfig)) ; the obj containing directives and
+ 	 			    													 					  the factory fact() to commect the device on mqtt topics
+ 	 			    													 					  	
+ 	 			    													 	
+ 	 																 	getio.getctls(mqttInst,gpionumb,mqttnumb,false,mqttWebSock);
+ 	 																 
+ 	 																 	
  	 		 	 		ctl=new fc(gp,ind,inorout,cfg)= 
-							 {gpio=11,// called also 
+							 {gpio=11,// called also ...
 							  devNumb=0,// array index 0,1,2
 							  type=inorout,
 							  cfg,// in models.js
@@ -5584,7 +5682,7 @@ nb     // reset update or new ?  todo
  	 					
  	 			     or
  	 			     
- 	 			    :new Gpio(num, iotype)/null,
+ 	 			    new Gpio(num, iotype)/null,
  	 			    
  	 			    
  	 			 devNumb:ind,
@@ -5602,9 +5700,9 @@ nb     // reset update or new ?  todo
  	 					usato in abilita2(devices_={myctls,myprobs,pythonprob} ) :
  	 											
  	 		
- todo tabs :
+ todo: fill this tab :
   
-		 group		clas		protocol	 	calculated >>		type ( )  		topic/topicPub/topicNodeRed 		regtopic
+		 group		clas		protocol	 	calculated >>		type ( )  		topic/pubtopic/topicNodeRed 		regtopic
 		 
 		 
 		 
@@ -5624,15 +5722,158 @@ nb     // reset update or new ?  todo
 		 
  
  
- in msg incoming : goonP() uses:
+- in msg incoming : 
+	client.on('message',msgList)
+	message handler msglist factorized from mqtt client or wsclient : 
+	
+		msgList=function (topic, message, packet)   // packet reserved to wsclient use 
+	 		will check if waithing a listener , else call goonP()
+
+
+	goonP() :
+ 		get adev=invTopic[topic], the register info (regtopic) to:
+	 	
+		 	- decide to fill queue
+		 	
+		 	- decide to call interrupt 
+		 	
+		 		per i dev type=0/1/2 , if topic è un cmdtopic in funzione del  message_.url chiamo il int handler , es:  ctlpack.ctl.intWebSoc/int1/int0(def)
+		 		
+			....................
+			
+				 		
+	 	
+- in ctl.writeSync
+
+	se  mqttInst.mqttTopPub[dev] :
+		'' : do a dummy write
+		pubtopic : publish on pubtopic
+		
+	otherwise  publish to topic=mqttInst.mqttTop[dev] !!!!
+
+
+ ___________________________________________
  
- 	register info (regtopic) to:
- 	
- 	- decide to fill queue
- 	
- 	- decide to call interrupt 
- 	
- 		per i dev type=0/1/2 , if topic è un cmdtopic in funzione del  message_.url chiamo il int handler , es:  ctlpack.ctl.intWebSoc/int1/int0(def)
+relazione tra dev type e inorout : TTRROO........
+
+
+	dev type != ctl.type= iotype=clas='in-var'/'out'/'in' 
+	dev type is ctl.cl  in ctl =new fc()	= new fc(gp,ind,inorout,cfg) 
+						=	{gpio=portid/devid=gp,devNumb=index=ind,type=inorout,cfg:{portid,clas,
+							cl=type=1(clas='out')/2(a var)/3(clas='in'OR'prob')/4/0,
+							ison,readsync,writesync}
+
+							cfg={ portid, varx, isprobe, clas, protocol, subtopic } // in models.js,  clas=   'out'/'var'/'probe'/'int'
+	
+	 	 		 	 		ctl=new fc(gp,ind,inorout,cfg)= 
+							 {gpio=11,// called also 
+							  devNumb=0,// array index 0,1,2
+							  type=inorout,
+							  cfg,// in models.js
+							  cl=0(clas='int')/1(clas='out')/2,4(a var)/3(clas='in'OR'prob'),
+							  isOn,
+							  readsync,
+							  writesync,
+							  lastwrite,  // the last writeSync
+							  intx,,,// some interrupt handlers : intwebsock,int0,int1,,,,
+							  }
+ 	 					
+	 	 			     or
+	 	 			     
+	 	 			    new Gpio(num, iotype)/null,
+	 	 			    
+	
+		ctl is set in  fact()=ctlpack = {ctl,devNumb,type}  :
+			mqttInst.fact(num, ind, iotype=inorout, injCustDev_)=ctlpack = {ctl,devNumb,type} ,  called by  getio(num=gpio, iotype=clas, ind, ismqtt = false,mqttInst)  
+									called in doSomethingAsync(gpio,ind,ismqtt=false)	:
+									 getio(gpio,clas,ind,ismqtt,mqttInst);
+										 clas='in-var'/'out'/'in'
+										 	set in doSomethingAsync(gpio,ind,ismqtt=false) 
+										 	according to isProbe,gpio(is 0 ?)
+
+
+>>>>>  	dev type will impact the implementation of ctl.readsync and writesync:
+		// 	according to dev type and protocol manage dev control using 
+	  	//	readsync and writesync i/o func( ex: writesync defined as a mqtt pub on a topic )
+	
+	done in  
+	- numbSubscr(val, that, ctlpack, subscred) 
+	- probSubscr ,,,
+	see:  AAKKPP 
+
+	infatti si def  topic, topicPub, topicNodeRed, e topicNodeRedPubish;// used ?
+	e se uso mqtt :
+		-subscribe  :
+			topic che alimenta il dev queue letto da readsync e
+			topicNodeRed che lancia gli interrupt 
+		- mqttTopPub[portid] = topicPub;;// register topic x publish if different from subscribe	
+		- register income info  to process msg on dev income topics 
+	    		mqttTop[portid] = topic/topicNodeRed
+	    		
+	 client.subscribe((topic, shelly_options, function (err)){
+	 
+	 }
+	  subscribe=function(){
+	  will take data when arrive on event topic and call the handler 
+	  
+	  }  		
  ___________________________
  
- 	 
+ 
+nohup node fv3.js 0</dev/null > program.out 2>&1 &
+________________________________________________
+
+TODO   	- attenzione che il socket corrente che era registrato in fn.socket poi vene registrato anche in fn.getcontext.socket e quindi abbiamo duplicato i reference  !!!
+
+	- manca l'allineamento dei pump state alla ripresa di una riconnessione ws col browser , see: 
+	      	// TODO allineate the ralais/ pump. in other alternative startfv_  do that with :
+      		//            startfv(eM);})// ** call setPump to allineate pump state to state.relays  JJUU 
+_________________________________________________________________
+
+ function myf (...args){ let first=args[0]}  // rest parameters   transform a param list in array
+ myf(...array) // transfom array into a list of arguments
+ so
+ arrays=[0,1,2,3]
+ 
+_______________________________________________________
+
+************   each dev can choose a state manager , client from mqttclient and wsclient with same interface .on('message'  .subscribe('topic  .pub('topic',
+_________________________________________
+remember custom write dev (type 2/4) x raspberry
+
+cust dev ctl are set in CustDevDef={66: async function (set_v = 0 ,rs485,param,exec,relais) {
+
+								calc myadds ......
+								 await runFull(myadds,set_);
+				}
+	
+	
+	runFull()
+	
+		run Mc()
+			calc exec
+			run excel x each myadd
+				await runP(myexec, i)   a promise resolvig with stderror returns
+
+				
+- in getio if find a Cust dev def we run :
+	- addCustDev(ctl,custDevDef.66):
+	
+		store  std writesync: ws=ctl.writeSync.bind(ctl);// std writeSync
+		redefine writesync(val,addparm=null) //	addparm=...;// the algo that call writesync can set the param for the cust device. specificatamente in 
+			ctl.writeSync=function(val,addparm=null) {
+				
+					 custDevDef.66(val,rs485,addparm,exec,relais)// run injected cust device
+					 answ=ws(val);// run usual writesync . nb  (in custom probes) val object can be modified by custF !
+			}
+ - in   onRelais(pump,data,coming,fn)
+ 	if we call writesync on a dev with a cust dev, we would set the param to run  CustDevDef, setting custParm before call writeSync():
+ 		writeSync_(valCorrection(data),custParm)
+ 		
+ - custParm is set usually on consolidate() :
+ 	state.splitParam.custDev={custSet:1,// 0 <> 1 , invertet values !, 0 means turn on 
+      quiet:false,section:false};
+ _____________________________________________________
+ 
+ testing haWs
+ 

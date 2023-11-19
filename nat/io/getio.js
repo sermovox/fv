@@ -1,5 +1,6 @@
-let mqtt=require('../mqtt');// nb this module should be init by fv3 itself !!!  ceck it !
-const custDev=require('./custDevDef');
+const Newmqtt=true;
+let mqtt=Newmqtt ? require('./haWs'):require('./mqtt');// nb this module should be init by fv3 itself !!!  ceck it !
+//const custDev=require('./custDevDef');
 let Gpio=false,rs485='rs485.py',pdate;// rs485 sh script on base dir
 let relais;// input gpio , temporaneamente fissi, non generati con chiamate  getctls: !
 
@@ -131,7 +132,7 @@ async function getio(num, iotype, ind, ismqtt = false,mqttInst) {// returns prom
 
       // if (custF) { injCustDev = injCustDev_; }
 
-      retu = mqttInst.fact(num, ind, iotype, injCustDev_);// returns promise , resolving into   {ctl,devNumb:ind,type:'gpio'}
+      retu = mqttInst.fact(num, ind, iotype, injCustDev_);// returns promise , resolving into   ctlpack={ctl,devNumb:ind,type:'gpio'}
       //  if iotype='out' : a state.relais pump/rele or var mqtt dev 
       //    or if (iotype='in-var' : a probe or var  mqtt dev 
       //    or if (iotype='int' , num=0   : a ctl interface using a dummy var
@@ -140,8 +141,6 @@ async function getio(num, iotype, ind, ismqtt = false,mqttInst) {// returns prom
       if (num == 66) console.log('lopo');
     } else retu = null;
     return retu;//
-
-
   } else {// embed raspberry gpio, presently only 'out' iotype, type 1
 
     // aa
@@ -161,7 +160,7 @@ async function getio(num, iotype, ind, ismqtt = false,mqttInst) {// returns prom
     console.log(' creating gpio parm: ', num, iotype);
     if (Gpio && num != null && num > 0 && num < 28) {
       ctl = new Gpio(num, iotype); 
-      injCustDev_(ctl,num);// add in writesync custF, name=num in gpio
+      injCustDev_(ctl,num);// add in writesync custF x this num gpio dev available to this plant, portid=name=num in gpio
       return { ctl, devNumb: ind, type: 'gpio' }; // as async will return a Promise.resolve(aval)
     } else {
       console.log(' getio, dev number ', ind, ', creating null ctl , type: ', iotype, ' but  forcing to gpio');
@@ -170,20 +169,18 @@ async function getio(num, iotype, ind, ismqtt = false,mqttInst) {// returns prom
 
   }
 
-
   function injCustDev_(ctl,custName){// run writeSync(val) deAsync it. todo: would be better migrate this call inside writeSync passing 
-    let custF=custDev[custName];
-    if(custF) addCustDev(ctl,custF);
+    let custF;// search for cust write dev on this raspberry gpio dev
+    if(mqttInst.custDev&&(custF=custDev[custName]))  addCustDev(ctl,custF);
   }
 
-  function addCustDev(ctl,custF){// changes the writeSync() to add custom dev write operation (then followed by call std writeSync) . 
+  function addCustDev(ctl,custF){// changes the writeSync() to add custF custom dev write operation (then followed by call std writeSync) . 
                                 // see https://stackoverflow.com/questions/21819858/how-to-wrap-async-function-calls-into-a-sync-function-in-node-js-or-javascript
+    let hasMqttCfg=ctl.cfg;// !=null if the device is not raspberry cfg
     const ws=ctl.writeSync.bind(ctl);// std writeSync
     ctl.writeSync=function(val,addparm=null){// reset writeSync. sarebbe tutto piu facile se usassimo un exec sincrona !!!
       //function AnticipatedSyncFunction(){
-        var ret,answ;
-       
-       
+        var ret,answ;       
         setTimeout(function(){// unresponsive shell cmd , anyway return true
             ret = true; },1500);
 
@@ -194,11 +191,9 @@ async function getio(num, iotype, ind, ismqtt = false,mqttInst) {// returns prom
         }
         answ=ws(val);// waiting for timeout or promise custF run std writeSync . ws(val)=ctl.ws(val) ?, so why bind ?
                     // in custom probes val object can be modified by custF !
-
         return answ;// test ret ?    
       //}
       //return AnticipatedSyncFunction;
-
     }
   }
   
@@ -224,12 +219,14 @@ item=await getio(6, 'out');relais_.push(item);
 */
 
 
-  module.exports =  {init:// no|, arrow function take this from outer object , the obj n which you call the function !!
+module.exports =  {init:// no|, arrow function take this from outer object , the obj n which you call the function !!
                           // (gp)=>{
                             function (gp,rs485_,pdate_){
                               rs485=rs485_;
                               Gpio=gp;
                               pdate=pdate_;
+
+                              // >>>> todo put in models.js
                               if(Gpio)relais= //  reserved input to check the ok . todo arrays of io ctl button x input : add to prob cfg in models.js !!
                                 // can add in getio the following ctl as probes for specific plant , use a specific property in models.js , we add a handler to feed the input and extend the possibility to have gpio probes in :
                                 //       myprobs_= getio.getctls(mqttInst,null,mqttprob,true,null);//      set null pointing to gpio probes !!!
@@ -309,7 +306,7 @@ function setMqttXWebsock(){
 }
 
 
-function fillctls() {// main run 
+function fillctls() {// main run : create  device i-esimo from dev description mqttnumb/gpionumb
 
 for(i=0;i<numOfDev;i++){
 // first ctl :
@@ -341,10 +338,11 @@ fillProm(pr);
 
 
 
-// start here : 
+// main start here : 
 
 fillctls();// fill array of resolving device (portid!=0) that when resolved ( all or after a max time) resolve the  SSSDD promise with the array of available devices ctl: resu[dev1ctl,,,]
 
+// add also a dev to manage websocket interface (commands similar to browser plant requests)
 if(mqttWebSock&&isProbe==false)setMqttXWebsock(); // set mqtt relay to websocket interface  (dev with portid=0)
 
 
@@ -375,7 +373,7 @@ resolve({ctls:resu,devmap:resolved}); // (GGDDSS) WARNING :  hopily all it has c
 console.error("All ctls done error: ",e);
 });
 
-function fillProm(pr){// called for increasing index 0,1,2,,,,numOfDev by fillctls() and if(mqttWebSock&&isProbe==false) by setMqttXWebsock() .       . nb index=it.devNumb
+function fillProm(pr){// buiding dev i-esimo. called for increasing index 0,1,2,,,,numOfDev by fillctls() and if(mqttWebSock&&isProbe==false) by setMqttXWebsock() .       . nb index=it.devNumb
 
                       //    add pr to promises[pr] that resolved in it={} will fills:
                       //    - resu[it.devNumb]=it.ctl;// the available ctl array, 
@@ -433,7 +431,7 @@ pr.then((it)=>{// when resolved fill items of resolved[devNumb]={devNumb,devtype
 }
   */
   //if(DEBUG)
-  if(it.ctl){it.ctl.writeSync_=function(val){
+  if(it.ctl){it.ctl.writeSync_=function(val){// add a logger of writesync to use if want to log calls
     console.log(' writeSync , at ' ,pdate().toLocaleString(),', called for plant:  on plant ',mqttInst.plantName,' , dev number/index : ',it.devNumb,' value: ',val);  
     return it.ctl.writeSync(val);
   }
