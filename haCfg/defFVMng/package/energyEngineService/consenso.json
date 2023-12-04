@@ -1,0 +1,112 @@
+﻿{ 
+  "automation rssi": [
+    {
+      "alias": "ws",
+      "id": "ws_",
+      "trigger": [
+        {
+          "platform": "event",
+          "event_type": "ws_event",
+          "event_data": {
+            "data": "1"
+          }
+        }
+      ],
+      "condition": null,
+      "action": [
+        {
+          "service": "switch.turn_off",
+          "data": {
+            "entity_id": "switch.rssi"
+          }
+        }
+      ]
+    },
+    {
+      "alias": "setmanual_rssi_on",
+      "id": "setmanual_rssi_on",
+      "initial_state": true,
+      "trigger": [
+        {
+          "platform": "state",
+          "entity_id": "input_button.setmanual_rssi_on_but"
+        }
+      ],
+      "condition": null,
+      "action": [
+        {
+          "event": "ws_setmanual_rssi_on",
+          "event_data": {
+            "state": "fired"
+          }
+        }
+      ]
+    },
+    {
+      "alias": "setmanual_rssi_off",
+      "id": "setmanual_rssi_off",
+      "initial_state": true,
+      "trigger": [
+        {
+          "platform": "state",
+          "entity_id": "input_button.setmanual_rssi_off_but"
+        }
+      ],
+      "condition": null,
+      "action": [
+        {
+          "event": "ws_setmanual_rssi_off",
+          "event_data": {
+            "state": "fired"
+          }
+        }
+      ]
+    }
+  ],
+  "mqtt": [
+    {
+      "switch": {
+        "name": "RSSI",
+        "qos": 1,
+        "state_topic": "shellies/shelly1-34945475F7DE/relay/0",
+        "payload_on": "on",
+        "payload_off": "off",
+        "state_on": "on",
+        "state_off": "off",
+        "command_topic": "shellies/shelly1-34945475F7DE/relay/0/command",
+        "json_attributes_topic": "shellies/shelly1-34945475F7DE/relay/0",
+        "json_attributes_template": "{ \"jsonattr\": \"{{value}}\"}    \n"
+      }
+    }
+  ],
+  "input_button": {
+    "setmanual_rssi_on_but": {
+      "name": "setmanual_rssi_on_but",
+      "icon": "mdi:bell"
+    },
+    "setmanual_rssi_off_but": {
+      "name": "setmanual_rssi_off_but",
+      "icon": "mdi:bell"
+    }
+  },
+  "climate": [
+    {
+      "platform": "generic_thermostat",
+      "name": "termostato_locale",
+      "heater": "switch.rssi",
+      "target_sensor": "sensor.shelly_ht_temp",
+      "min_temp": 10,
+      "max_temp": 21,
+      "ac_mode": false,
+      "target_temp": 17,
+      "cold_tolerance": 0.4,
+      "hot_tolerance": 0,
+      "min_cycle_duration": {
+        "seconds": 30
+      },
+      "initial_hvac_mode": "off",
+      "away_temp": 16
+    }
+  ]
+
+}

@@ -1,14 +1,21 @@
 // import hass from "homeassistant-ws";
 //import * as hassImp from 'homeassistant-ws';
 // const hass = hassImp.default;
-const readline = require('readline').createInterface({// see https://stackoverflow.com/questions/65260118/how-to-use-async-await-to-get-input-from-user-but-wait-till-entire-condition-sta
+const readline_ = require('readline').createInterface({// see https://stackoverflow.com/questions/65260118/how-to-use-async-await-to-get-input-from-user-but-wait-till-entire-condition-sta
     input: process.stdin,
     output: process.stdout,
   });
+  const readline=null;// not used in production 
+  // const readline=readline_;// only debug 
 
   const ON='turn-on',OFF='turn-off';
 
-const hass=require("homeassistant-ws");// to install : npm -i homeassistant-ws .... see YYKK 
+// if we install locally: const hass=require("homeassistant-ws");// to install : npm -i homeassistant-ws .... see YYKK 
+const hass=require("../../homeassistant_new/node_modules/homeassistant-ws/build/index.js");//install and modify node_modules/homeassistant-ws/build/index.js in a specific directory homeassistant-new
+                                                                                          // or 
+                                                                                          // follow https://www.geeksforgeeks.org/how-to-install-a-local-module-using-npm/:
+                                                                                          // cd .../raspexample & npm install ./nodeassistant-ws
+                                                                                          //    to install in loc dir  ./nodeassistant-ws then modify the index.js as above
 
                                         // hass is the exported function createclient in  homeassistant-ws-vxx package index.js  
                                         // clientobj= hass() is a promise resolving with ( see  LLHH) :
@@ -26,7 +33,7 @@ const hass=require("homeassistant-ws");// to install : npm -i homeassistant-ws .
 
 
 // console.log('ciao');
-kepAlive();
+
 // if(client)main();
 
 async function getNewCon(){
@@ -83,7 +90,7 @@ let ex=false;
     let outprompt='>>>>>>>>>>>> please input :  lights,turn_on,light.my_light ';
     console.error('now start requesting iterately: ',outprompt);
 
-    doinp();
+    // just x debug doinp();
 
   function doinp(){  requestInput(outprompt).then(readin);// debug, if we were in a async we could : await  requestInput()
   }
@@ -129,8 +136,10 @@ function getState(){
 }
 let ws,// the current ws if active
 wsArr,// the ws in fv3 ??
-client,
-Actstates={},// the upated ha state list  we want to trace, can be :
+client=null,
+Actstates={},// ex: {switch.rssi:true}
+              // the updated ha state list  we want to trace, can be :
+              // reviewing.........    are state, devices or its topics (topic,pubtopic,cmdtopic ) ???
               //  - switch state (pubtopic,topic state is only to check what the switch is doing and can be avoid) or 
               //  - probe state : topic only
               //  - switch buttonpress (cmdtopic)event
@@ -140,11 +149,14 @@ inState=null,// the updated state of Actstates: if null means there is no connec
             //  - at next update updates Actstates and call ctlcb to fill the queue 
             //    we can use the present inState if  reset inState=await client.getStates(); then :
             // - we can call ctlcb, just after the add queue request, to send present value
-ctlcb=null; // issue topic val on subscribed topic to the message handler
-            //   the cb function to fill fv3 Actstates cmdtopic/interrupt ( queue not interesting) for type 1,2
+ctlcb=null; // calls msgList(topic,msg) , the fv3 dev topic soucing income process handler : this.msgHand(topic,val)=msgList 
+            //    issue topic val on fv3 subscribed topic to the message handler:  msgList
+            //    the cb function to fill fv3 Actstates cmdtopic/interrupt ( queue not interesting) for type 1,2
             //                                      topic ovvero queue per type=3
             //    so x topic and cmdtopic
 // ctlComTopic=null;// cmdtopic entry point 
+
+kepAlive();
 
 
 function updateState(entity=null){// will call the ctl cb to fill fv3 queue
@@ -158,10 +170,10 @@ if(entity==null){
 }
 
 
-function kepAlive(reset=false){// start tracking a new connecting client, use reset x ....
+async function kepAlive(reset=false){// start tracking a new connecting client, use reset x ....
     if(reset)client=ws=null;
     if(client!=null)return;
-    getNewCon();// fills client and ws with a new connection 
+    await getNewCon();// fills client and ws with a new connection 
     if(client)main();// restart tracing state, events ,,,,
     /*
     from ws github, verify works in ws used by package hass
@@ -238,13 +250,18 @@ const controller={ /*
                         },*/
                     
                     init:// 
-                        function (ctlcb_,ctlComTopic_){
+                        function (ctlpack,ctlcb_,ctlComTopic_){
                          //  this.queues=getread_;// A) : bring queue here or 
-                          ctlcb=ctlcb_;// B) : let cb will fill queue  , ( equivale a dev topic )
+                          ctlcb=ctlcb_;// this cb(atopic,val) will pub atopic with val on wsclient 
+                                        //  B) : let cb will fill queue  , ( equivale a dev topic )
                           ctlComTopic=ctlComTopic_;// >>>>>>>>>>>>>>  can be avoid using LLCC, so got the name of topic and cmdtopic from ....  and put the topic on ctlcb(topic/cmdtopic,val)
+                          if(ctlpack);// this.transYalm();
                           return true;
                         }
                     ,
+                    transYalm:()=>{// transer or check config addend
+
+                    },
                     addDev:// useful ?
                         (swname)=>{
                           this.setSwitch(swname);
@@ -252,7 +269,7 @@ const controller={ /*
                         }
                     ,
                    
-                    queues,
+                    //queues,
                     /*
                     setProbe:(name,ent)=>{//add a listener for the state changed event to fill the switch queue , dev type=3 of name name
                                         // mapped to ha entity ent
@@ -281,31 +298,90 @@ const controller={ /*
 
                       },
                       //setSwitch:function (name,cmdent,ent,ctlpack){// see  WSTMS 
-                        setSwitch:function (ctlpack,topic, topicNodeRed,pubtopic){// will links topics and related ha entity triggers,changes
+                        setSwitch:function (ctlpack,topic, topicNodeRed,pubtopic){// *** use fv3 device topics(topic,pubtopic,cmd topic) that interfaces fv3 with real device to interface related ha entity and its triggers,changes
+                                                                                  //      returns the ha topic/pubtopic trigger handler 
+                                                          //                         type 1 :the ha entity control the real devices usually with same topics . 
+                                                          //                                    so we must relay the fv3 topics to :
+                                                          //                                      - transmit the fv3 pubtopic to real device  . this is achived changing ha switch state after received pubtopic from fv3 
+                                                          //                                            infact when writesync: fv3 publish to (topic/) pubtopic ( so not call fv3 handler msgList(topic,val) that is subscribed only to topic and cmd topic ) and 
+                                                          //                                                                    fire a ha setstate service to associated switch entity (via  writeWs func ha handler of pubtopic x this dev ) 
+                                                          //                                      - dont need to transmit back the real ha topic coming from real device  to fv3 
+                                                          //                                     and transmit the cmd topic from the dedicated button entity  to send external cmd to managed device  by interrupt handler 
+                                                          //                                            thats calling ctlcb(topic,val) that will call the msg handler : msgList(topic,val) 
+                                                          //                          type 2/4 :the ha entity monitor the fv3 published topic  
+                                                          //                                     and transmit the cmd topic from the dedicated button entity  to send external cmd to var device managed by interrupt handler
+                                                          //                          type 3  : ...........
+
+
+
+                                                          //      obsolete:
                                                           //  * ha >> fv3 :
                                                           //    - (type 3,4?) : add a ws listener for the state-changed entity (button/switch) on associated ha entity to fill the corresponding dev queue  
                                                           //      or
-                                                          //    - (type 1,2): add ws listener  for the state-changed entity (button/switch) used to send cmd topic, on associated ha entity : 
-                                                          //      directly to cmdtopic interrupt that will call a manual(user/external request/cmd) algo object   
-                                                          //          >>> nb type 1,2 dont fill dev queue because the proposal to change fv3 state must be done as cmd topic
+                                                          //    
+                                                          //    - (type 1,2):  from associated ha cmd topic button entity send a cmdtopic to fv3 message handler the will issue a interrupt to specific user interface ws handler 
+                                                          //       that will set a manual(user/external request/cmd) algo object  
+
+                                                          //          >>> nb fw3 type 1,2 dev dont receive dev topic from ha, because not interested
+                                                          //              , so device income goonP() cant fill dev queue 
+                                                          //          but the proposal to  fv3 to change dev state (event from user int like ws)  must be done as cmd topic and managed throught interrupt calling associated browser ws handler
+
                                                           //  * fv3 >> ha 
-                                                          //  - will return the writeWs func to call from writeSync to trigger ha associated switch change 
+                                                          //  - will return the writeWs func to call from writeSync to trigger ha associated switch change process (usually call a setstate service)
                                                           //    the name dev will be mapped to ha entity ent provided by customer in models numbSubscr,,, or something else
 
                                                           //  nb from fv3 , ex from models.js we get the associated ha entity and its cmd topic entity
+                          /* remember ctlpack= {ctl:new fc(gp,ind,inorout,cfg,that),devNumb:ind,type:'mqtt'}
 
-                        let cfg=ctlpack.ctl.cfg,type=ctlpack.ctl.cl,portid=ctlpack.ctl.gpio;
+                          */
+                        let cfg=ctlpack.ctl.cfg,type=ctlpack.ctl.cl,
+                        portid=ctlpack.ctl.gpio,// dev portid
+                        devind=ctlpack.devNumb;// dev index;
 
-                        let {eventMng='mqtt',haEntity,haManButton}=cfg;
-                          let cndEnt=haManButton,ent=haEntity;
+
+                        let type = ctlpack.ctl.cl;// 0,1,2,3,4 , used to .....
+
+
+
+                        // let {eventMng='mqtt',haEntity,haManButton,package,dashboard}=cfg;// cfg =plant.mqttnumb/mqttprob[dev], the dev cfg
+
+                        // ??
+                        let {eventMng='mqtt',haEntity,haManButton}=cfg;// todo : ** are recovered on cfg=ctlpack.ctl.cfg=plant.cfg.mqttnumb/mqttprob[dev], the dev cfg, 
+                                                                        // ctlpack.ctl.cfg.haEntity is the ha entity related to device with portid :  portid=ctlpack.ctl.gpio,
+                                                                        // nb  only device that are relayed on user ha can have haEntity,and (no probe ) haManButton
+                                                                        // haEntity is the target of topic or pubtopic 
+                                                                        // haMabButton event are source of cmdtopic msg to fv3
+                          
+                          /*
+                          when add a plant for a user we add a basic info in models.plants ,
+                           the user can register giving info:
+                           - its hw connected relay to connect ex consenso e probes
+                            - token per connettersi al ha del user via ws con questo modulo
+                           a questo punto posso generare i file yalm in package e in dashboards via std obj (rispecchiano i file ora usati )che updato in funzione di  info
+                            usandi il handler di app.post("/registerPlant/"  solo che riepio i package e dashboard invece che fare chiamata webhook 
+                            ora qui posso trasferirli usando il sevice di trasferimento file che temporaneamente e' in configuration.yaml che il user deve aggiungere al suo configuration 
+                            o in alternativa si copiera il pachage e il dashboard scaricabili durante la registrazione
+                            see transYalm()
+
+                            question: il supervisor ha per caso la capacità di leggere scrivere i file ??
+
+
+                          */
+
+                          // 
+
+
+
+                          let cmdent=haManButton,// the button entity to send cmd topic
+                          ent=haEntity;// ex: 'switch.rssi' , the switch entity to represent the dev state
 
                           // now 
                           // - foreach dev type we must simulate the mqtt message handler call client.on('message',msgList=function (topic, message, packet) 
                           //    that, using mqtt, would be pub on a topic from ha after a change on corresponding dev entity in ha (  entity( switch/sensor) ,cmd topic button x fire interrupt) on dev topic or cmdtopic
                           //    compreso il dev type 0 that is a dev that receives cmd topic whose interrupt call a subset of browser ws emit events
-                          //    >> in pratica ha deve mandare via wsclient nel handler msgList  i msg sui topic che i dev si aspettano come avviene usando mqtt client !
-                          //        in sostanza i topic sono :
-                          //              per il type 3 probe il  topic
+                          //    >> in pratica ha deve mandare via wsclient nel message handler msgList  gli stessi msg sui topic che i dev si aspettano usando il normale  mqtt client !
+                          //        in sostanza i topics sono :
+                          //              per il type 3 probe il  topic topic
                           //              per type 1  il pubcopy e il cmd topic (il topic non interessa)
                           //              per  il type 2 il topic e il cmd topic
                           //              per il type 0 il topic
@@ -329,30 +405,35 @@ const controller={ /*
                           //                      a fv3 comprese le dashbord def.
 
                           if(type!=-1){// useless, any type, but some ent , cmd ent can be null 
-                                        // usually not all type has  cmdent , ex type 3
+                                        // usually not all dev type has  a ha cmdent (button ) to send cmd topic , ex type 3
                                         //  type 1 and 2 and 4 and 0  are usually not interested to track the topic state of real entity ent on ha
                                         //  
                         //
                         let hasent=false,hascmdent=false;
-                        if(cmdent==null||Actstates[cmdent]==true) hascmdent=true;// already registered
-                            else  Actstates[cmdent]=true;
-                        if(ent==null||Actstates[ent]) hasent=true;// already registered
-                        else  Actstates[cmdent]=true;
-                        if(hascmdent&&hasent)return false;
+                        if(cmdent!=null) {if(Actstates[cmdent]==true) hascmdent=true;// already registered to trace cmdent state_changed event
+                            else Actstates[cmdent]=true;} // aggiungo l'entity to trace it , senza proprietà per ora
+                                                          // es x consenso sara ent=switch.rssi e cmdent=input_button.setmanual_rssi_on_but
+                            if(ent!=null) {if(Actstates[ent]==true) hasent=true;// already registered
+                        else  Actstates[ent]=true;}
+                        if(hascmdent&&hasent)return false;//  oldedy processed 
 
                           // if want present value : 
                           //  inState=await client.getStates();// store updated  state values inState[name];// start tracking the state with t
                           //  ctlcb(name,inState[name]);
 
-                         // nb this client is the haws client , not the custom ws client in haWs!
-                        client.on('state_changed', (stateChangedEvent) => {// future changes 
-                          if(!hascmdent&&stateChangedEvent.data.entity_id==cmdent){//  changes on cmdent entity 
+                          //   **  a) ha firing topics : depending on dev (use index or portid) fire  publish on topic (type 3 (probe), only ? ) or cmd topic ( type 1,2,4) 
+
+                         // nb this client is the haws client homeassistant-ws, not the custom ws client wsclient in haWs!
+                        client.on('state_changed', (stateChangedEvent) => {// future changes on (button )cmdent entity 
+
+                          if(!hascmdent&&stateChangedEvent.data.entity_id==cmdent){// >>>>>>>>>>>>>    entity var or id ???????????   changes on cmdent entity 
                           console.log(' rssi manual button state_changed event update (button press or its automation firing an event)  ',stateChangedEvent,',\n new value: ',stateChangedEvent.data.new_state.state);
                           // ctlcb(name,stateChangedEvent.data.new_state.state);// B)
-                          ctlcb(topicNodeRed,stateChangedEvent.data.new_state.state);// changes of cmdent will pub  new val on topicnodered , so incoming process handler will receive val on the dev cmdtopic 
-                          // this.queue.push(stateChangedEvent.data.new_state.state);// A)
-                          } else if(!hasent&&stateChangedEvent.data.entity_id==ent){
-                            console.log(' rssi manual button state_changed event update (button press or its automation firing an event)  ',stateChangedEvent,',\n new value: ',stateChangedEvent.data.new_state.state);
+                          ctlcb(topicNodeRed,stateChangedEvent.data.new_state.state);// press of cmdent button will pub  new val on dev topicnodered=cmdtopic , so incoming process handler goonP() will receive val on the dev cmdtopic 
+                                  // this.queue.push(stateChangedEvent.data.new_state.state);// A)
+                                  // in mqtt int  we did : ......................
+                          } else if(!hasent&&stateChangedEvent.data.entity_id==ent){//.....ever called ??????
+                            console.log(' ha entity transmit msg value to topic, only x sensor ....todo)  ',stateChangedEvent,',\n new value: ',stateChangedEvent.data.new_state.state);
                             // ctlcb(name,stateChangedEvent.data.new_state.state);// B)
                             ctlcb(topic,stateChangedEvent.data.new_state.state);// // changes of ent will pub new val on topic , so incoming process handler will receive val on the dev topic 
                             // this.queue.push(stateChangedEvent.data.new_state.state);// A)
@@ -367,18 +448,22 @@ const controller={ /*
                             //  so  on caller set :swclient.pubs[pubtopic]= the handler HHSS
                             //    that handler will be called when writesync calls wsclient.pub('thedev_pubtopic',val)
 
-                          // associate ent='rssi'  is usually a ha switch
-                          if(portid!=777)
+                          // ** b) ha receiving  topics : depending on dev do action depending on topic or pubtopic , ussually fire eent or switch service
+                          if(portid!=777){// 
+
+                            // todo implement  on dev tyoe or index .....
+                          
                           return function (val) {// HHSS : will trigger update of entity ent when writesync pubs on  dev pubtopic for type 1 and 2 and 4?:
                                                 // usually the ha entity ent is reading state from real device topic and pub on pubtopic to real device when we manually switch the device
-                                                // so this func will be called when client.pub('topic',val) call with topic= the registered pubtopic on this device , see XXFF  
-                            // if a number
+                                                // so this func will be called when client.publish('topic',val) call with topic= the registered pubtopic on this device , see XXFF  
+                            /]    here we come for msg of topics :pubtopic x type1 , topic x type 2 e 4 : check it ! 
                             
                             let act;
                             if (val==1)act=ON;else act=OFF;
-                            docmd('ser','switch',act,'switch.'+ent);
+                            docmd('ser','switch',act,'switch.'+ent);// 
                           };// call f('switch','turn_on','switch.rssi'
-                          else{// portid=777 todo  state dev: fill all std entity that depend on state var found on dev topic 
+
+                        }else{// portid=777 todo  state dev: fill all std entity that depend on state var found on dev topic 
 
                           }
                         }else{// todo other type/ portid=777 the state dev 
@@ -393,10 +478,13 @@ const controller={ /*
 
                         }
                     },
-                    setCmdInterf:function (name,startcmdentity,stopcmdentity,ent){// see  WSTMS . ent : the entity associated to algoo state , startcmdentity and stopcmdentity the button entity to stat stop the service 
-                                          // see WQSD
+                    setCmdInterf:function (name,startcmdentity,stopcmdentity,ent){// see  WSTMS . ent : the entity associated to start stop algo ,ex: startcmdentity and stopcmdentity, the button entities to start stop the service 
+                                                                                  // these entity usually are button , when pressed must send a msg on cmd topic x the interfae device (portid=0)
+                                                                                  // see WQSD
 
-                      //  * start/stop algo cmd ha >> fv3 event handler called using a interface device ( the cmd topic will call a ws event handler as interrupt) :
+                      //  * start/stop algo cmd ha >> fv3 event handler called using a interface device ( the cmd topic will call a browser ws event handler 
+                      //        ex: event,handler :  socket.on('startprogrammer',repeatHandler1) . repeatHandler1 is called by interrupt intWebSock, when in goonP we process :
+                      //                else {// isCmdTopic  ......       
                       //    - add a ws listener for the state-changed entity (button) on associated ha state cmd entity (ex: button start_progservice ) 
                       //        in mqtt si triggerava il change staus con un automation , id= strpgmserv, verso il cmdtopic interrupt  verso il interface (type 0 (~type 2)) int dev  :
                       //           @Casina_API@interface_mqtt_websock_0/NReadUser/cmd 
@@ -416,7 +504,8 @@ const controller={ /*
                       
                       //  nb fv3 , ex in models.js we get the type 4 state var and associated ha algo entity and its cmd topic entity
 
-                      //    todo review this:
+                      //   ..................... todo review following code :
+
                       let cmdent=startcmdentity,cmd;
                       if(Actstates[cmdent]) return false;// already registered
                       Actstates[cmdent]=true;

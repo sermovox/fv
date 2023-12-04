@@ -588,7 +588,7 @@ let plants={MarsonLuigi_API:{cfg:cfgs.cfgMarsonLuigi,// will be put in state.app
                 token:['123'],// really token has a client and a permission to act on some data/process
                 email:'luigi.marson@gmail.com'
                 },
-        DefFVMng_API:{  cfg:cfgs.cfgDefFVMng,
+        DefFVMng_API:{  cfg:cfgs.cfgDefFVMng,// better now use addUserPlant()
                 name:"DefFGMng_API",// duplicated FFGG
                 passord:"marson",// not used 
                 users:['john'],
@@ -622,19 +622,7 @@ for(let pl in plants){
 
 updatePBT();
 
-function addUserPlant(user,email_,password,token_){// add a std template for fv optimization
 
-        let plant=user+'_API',
-        ucfg='cfg'+user;
-        cfgs[ucfg]=new defFVMng(user);
-        plants[plant]={cfg:cfgs[ucfg],// will be put in state.app.plant
-                name:plant,// duplicated FFGG
-                passord:password,// not used 
-                users:[user],
-                token:[token_],// really token has a client and a permission to act on some data/process
-                email:email_
-                }
-}
 
 
 function getcfg(plant){// // general obj to customize the  app :functions, generator (ejs) ,,,,, 
@@ -697,9 +685,9 @@ return prods;
 }
 
 
-function defFVMng(user)// factory of a std plant tempalte of FV app 
-{ 
-       this.name='cfg'+user;// duplicated FFGG
+function defFVMng(user,plant,localEntity)// default=casina class plant factory. copyed from casina, factory of a std plant tempalte of FV app . now called by addUserPlant
+{       // plant=user+'_API',
+       this.name=plant;// duplicated FFGG
        this.apiPass='xxxx';// to do, better use .env
         // index : the index of a device . iesimo device is got with getctls(x,y) that chooses from iesimo x or y 
         // portid : the id of a device, must be unique >0. 
@@ -723,7 +711,8 @@ function defFVMng(user)// factory of a std plant tempalte of FV app
      this.mqttnumb=[
         // {portid:11,clas:'out',protocol:'shelly',subtopic:'shelly1-34945475F7DE'},// clas 'out' or 'var' , same dim than gpionumb
                                                                                         // subtopic: other protocol, different from shelly, can have different feature ex subscriptTopic and PubTopic !
-        {portid:11,clas:'out',protocol:'shelly',subtopic:'shelly1-34945475FE06'},// for test only
+        {portid:11,clas:'out',protocol:'shelly',subtopic:'shelly1-34945475FE06',
+        haEntity:localEntity.switch_consenso},// this dev has a ha entity related whose name is inserted on plant.localEntity
        null,null,null,null,
        {portid:66,clas:'var',varx:4,isprobe:false,protocol:'mqttstate',subtopic:'var_split_'}, // ex of a shelly like dev . agganciato al customdevice shell per accendere gli split 
                         // question what is difference among type 1 and 2 ? : 
@@ -734,7 +723,7 @@ function defFVMng(user)// factory of a std plant tempalte of FV app
                         // TODO : add also a topicPub property ?????
       // {portid:10,clas:'var',topic:'gas-pdc',varx:3,protocol:'mqttstate'} ex of 'out' var
       {portid:55,subtopic:'var_gas-pdc_',varx:4,isprobe:false,clas:'var',protocol:'mqttstate'},// a var
-      null];// mqtt device info/id/port. number is the device id to subscribe
+      {portid:12,clas:'out',protocol:'shelly',subtopic:'_shelly1-34945475FE06'}];// mqtt device info/id/port. number is the device id to subscribe
 
 
       this.mqttprob=[{portid:110,subtopic:'_shellyht-1E6C54',varx:null,isprobe:true,clas:'probe',protocol:'shellyht_t'},//a probe,  the shelly ht probes to register (read only) 
@@ -783,16 +772,91 @@ function defFVMng(user)// factory of a std plant tempalte of FV app
 
         this.relaisDef=[false,false,false,false,false,false,false,true];// dafault value (if none algo propose true/false)
         this.invNomPow=5;
-        this.huawei={inv:"1000000036026833",bat:"1000000036026834"}// devid
+        this.huawei={inv:"1000000036026833",bat:"1000000036026834"}// devid casina
 
         };
+function defFVMng_(user,plant)// default=casina class plant factory. copyed from casina, factory of a std plant tempalte of FV app . now called by addUserPlant
+        {  
 
+        }
 
 
 module.exports = {getconfig,// app funtionality custom cfg
         getPlant:function(token){return plantbytoken[token]},
+        addUserPlant:function addUserPlant(user,email_,password,token_,reset=false,localEntity){// add a std template for fv optimization
+                                                                                                // localEntity contiene riferimenti a entity che vengono inseriti in:
+                                                                                                //  - alcuni dev
+                                                                                                //  - in alcune delle cfg in ../packages e ../dashboards
+          if(reset)plants[plant]=null;
+          if(plants[plant]!=null)return plants[plant];// already loaded 
+                let plant=user+'_API',
+                ucfg='cfg'+user,
+                plantItem,
+                dashboard={},package={};// {filepath:yamlfile}
+                cfgs[ucfg]=new defFVMng(user,plant,localEntity);// devcfg , the std plant tempalte of FV app ,praticamente i suoi dev description 
+                                              //   cfgs={cfguser:devcfg,,,,,}      plants={user_API:{cfg:devcfg,name,password,users,token,email}
+                                              //                                                      ,,,,,,
+                                              //                                                     }
+                plants[plant]=plantItem={cfg:cfgs[ucfg],// will be put in state.app.plant
+                                                        // remember: // the dev  ha related entity is (ctlpack.ctl.cfg=plant.cfg.mqttnumb/mqttprob[dev]).haEntity/haManButton is 
+                                                        // the ha entity related to device with portid :  portid=ctlpack.ctl.gpio,
+
+                                                        
+                                                        let {eventMng='mqtt',haEntity,haManButton}=cfg;// todo : ** are recovered on cfg=ctlpack.ctl.cfg=plant.cfg.mqttnumb/mqttprob[dev], the dev cfg, 
+                                                        // ctlpack.ctl.cfg.haEntity is the ha entity related to device with portid :  portid=ctlpack.ctl.gpio,
+                                                        // nb  only device that are relayed on user ha can have haEntity,and (no probe ) haManButton
+                                                        // haEntity is the target of topic or pubtopic 
+                                                        // haMabButton event are source of cmdtopic msg to fv3
+          
+
+                        name:plant,// duplicated FFGG
+                        passord:password,// not used 
+                        users:[user],
+                        token:[token_],// really token has a client and a permission to act on some data/process
+                        email:email_
+                        ,localEntity//:{switch_consenso:'switch.rssi',sensor_t_giorno:"sensor.shelly_ht_temp"}
+                        }
+                plantItem.yaml={dashboard,package};//build config x user plant 
+
+                let add2configuration='';// to add tu user configuration.yaml 
+                // input json to map
+                let packjsonDir='./haCfg/devFVMng/package/energyEngineService/',dashjsonDir='./haCfg/devFVMng/dashboard/energyEngineService/';// the dir where we put the plant model devFVMng template
+                let dashboards=[`x.json`,`y.json`],// list of json dashboard file 
+                packages=[`anticipate_vardev.json`,`consenso.json`];
+                // custom/configurated yaml dirs
+                let dashboard=fillDash(),package=fillPack(packjsonDir,packages,localEntity);//{filepath,yaml}// a ha service or a file service will get the 2 dir to merge : dashboard , package
+                                            // ex {./energyEngineService/anticipate_vardev.yaml:itsyaml,,,,} so first item will be set in hasscfg./package/energyEngineService/anticipate_vardev.yaml
+                
+        },
         getcfg,// all
         getconfig,
         getplant,// user staff
         ejscontext};// ejs context
    //     devid_shellyname,gpionumb,mqttnumb,relaisEv
+   function fillDash(){
+
+   }
+   function fillPack(packjsonDir,packages_,userbluepr){// take the json models in packjsonDir (devFVMng ossia casina like plant) and update using user specific entity ( consenso, acs ,,) 
+    /* storia di come si sono ottenuti i devFVMng
+        le conf finali sono sotto packages e dashboards sotto dir energyEngineServices che tratta il modes Casina_API
+        in save/haws/haws_package/energyEngineServices_before/energyEngineServices si mette i file yaml che si sono ottenuti dai test su Casina_API per portare le conf sotto packages
+        poi si aggiunge la conversione  a json  che viene updatata per diventare i modelli in questa dir : haCfg/defFVMng/package/energyEngineServices/...
+        nei modelli si configurano i nomi reali del plant che si aggiunge che sono in  plants[plant].localEntity
+   
+   
+   
+   */
+   
+    // index 0 model, the user  consenso support
+      let consenso=getIt(0,packjsonDir,packages_);//0= indexto extract in packages_, returns the consenso obj , nb switch.rssi sara sul user main configuration.yaml
+      // automation rssi :
+      consenso['automation rssi'][0].action[0].data.entity_id=userbluepr.switch_consenso;// must consenso['automation rssi'][0].alias='ws';
+      // manual algo button : nothing just intercept event on hawsclient
+      consenso.climate[0].heater=userbluepr.switch_consenso;
+      consenso.climate[0].target_sensor=userbluepr.sensor_t_giorno;
+      // polo.yaml : can be deleted  automation that launch turn_on/off or receiveing topic on device portid=777: see  portio 777 topic handler in hawsclient
+    //  motion_light_tutorial0.yaml : idem , delete
+
+    // index 1 , 
+
+  }

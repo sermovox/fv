@@ -181,7 +181,7 @@ app.get("/", (req, res) => {
 app.post("/registerPlant/", (req, res) => {// 11092023, this is called when ha register for a plant configuration passing json cfgdata or a sintesis of it
 
                             // new :
-                            // user after registration pay and get a token in response to auth aiax request, then he can register the plant sending info about is shelly relays :
+                            // user after registration pay and get a token in response to auth aiax request, then he can register the plant sending info about his shelly relays :
                             // call this url with a aiax form  with  the shelly cfg  with a autorization token in header
                             // so , see moscow-city_guide_fullstackNodejs.pdf pag 164:
                             // - the user with browser  got the token when after registration (user password added to authenticate user on next login )
@@ -1063,6 +1063,10 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
   // register into the last read probes
   state.program.triggers2.lastT = [date.toLocaleString(), probes];//JSON.stringify(probes)]; anomalus array with different types
   // find zone to activate
+  let toactivate ,// [actiongiorno,actionnotte]
+  activation ,// true if at least one is in toactivate
+  activationantic; 
+
   if (probes && inp) {// inp=sched={giorno:{'16:10':-3,,,,},notte:{},probMapping:[],mapping:[],ei} 
 
     toactivate = [],// [actiongiorno,actionnotte]
@@ -3696,7 +3700,13 @@ session.socketId = socket.id;
 session.user = user;// session.user is already used ?, probably only req.user or socket.user are used !
 session.save();// save socketid
 
+socket.on('createUsrPlant',addPlantHandler);// start anticipating algo with setting and run an execute()
+function addPlantHandler(user,reset=false){// like handler app.post("/registerPlant/", ..)
+  let plant=user+'_API',plantModel=  model.addUserPlant(plant,'mail','pass','token',true);// the plant obj
+  // reset yaml
+  plantModel.yaml=genYaml1( plantModel,cfgdata,plant);
 
+}
 
   // define the listener :
   socket.on('startuserplant', function (plant_,feat) { // user press button to connect to some plant, so this event is fired , feat url enc
@@ -4197,12 +4207,12 @@ if(eM.iodev.relais_[ind]&&eM.iodev.relais_[ind].cl&&(eM.iodev.relais_[ind].cl==2
 
 // now find and process the 'int' dummy dev (gpio=0) to set a interrupt handler that map the topicNodeRed to websocket handler
 
-let mqtt2webS;
-for(let ii=relaisEv.length;ii<eM.iodev.relais_.length||!mqtt2webS;ii++){// relais_ contain the int dummy dev with index>=relaisEv.length (usually =)
+let mqtt2webS;//  dev dummy ctl, with gpio=portid=0,
+for(let ii=relaisEv.length;ii<eM.iodev.relais_.length||!mqtt2webS;ii++){// relais_ contain the int dummy dev with index>=relaisEv.length (usually =relaisEv.length)
   if(eM.iodev.relais_[ii]!=null&&eM.iodev.relais_[ii].gpio==0)mqtt2webS=eM.iodev.relais_[ii];// the ctl , dev dummy with gpio=portid=0, that read from mqtt node-red like cmd 
 }
 if(mqtt2webS){
-  mqtt2webS.intWebSoc=intWebSock;// handler point to ,,,,
+  mqtt2webS.intWebSoc=intWebSock;// set ctl interrupt handler x cmd topic  . dev handler point to ,,,,
  
   
 }else{ console.error(' abilita2() could not find intwebsoc device in iodev.relais_ list')
@@ -4300,7 +4310,7 @@ if(triggers2&&triggers2.PGMgiorno){ // complete with std data
   if(triggers2.PGMacs)triggers2.Tacs=true; 
   console.log('intWebSock() starting program  Algos');                                              
 // setTimeout(()=>{ repeatHandler1(xstart,xstop,xmin,triggers2);},1500);
-repeatHandler1(xstart,xstop,xmin,triggers2); 
+repeatHandler1(xstart,xstop,xmin,triggers2); // the handler: socket.on('startprogrammer',repeatHandler1)
 }}
       }
 
@@ -4682,7 +4692,7 @@ if(triggers2.Tacs)fillpgm( triggers2,sched.programs.acs={},triggers2.PGMacs,trig
 
 // fillpgm( triggers2,sched.programs.giorno={},triggers2.PGMgiorno,triggers2.TgiornoTollerance,triggers2.TgiornoToll);
 function fillpgm(triggers2,prog,PMG,TTollerance,TToll){// triggers2,sched.programs.giorno={},triggers2.PGMgiorno,triggers2.TgiornoTollerance,triggers2.TgiornoToll
-  let val_;                                                // fills prog
+  let val_;                                                // >> fills prog !
 if ( PMG) {
 prog.sched=PMG ;
 if (TTollerance&&TTollerance !='' && (!Number.isNaN(val_=Number(TTollerance)) ))   prog.TTollerance =val_;// ok
@@ -5330,13 +5340,7 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
     }else{
       state.splitParam.custDev={custSet:1,// 0 <> 1 , invertet values !, 0 means turn on 
       quiet:false,section:false};
-
     }
-
-
-
-
-
 
 
   console.log(' consolidate() , at hour ', date.getHours(), ', merging anticipate (', antic, '), program (', program, ') and usermanual (', user, ') applyed intermedite (', apply, ') , relays merge into: ', res);
@@ -5432,7 +5436,12 @@ function  valCorrection(value){// change 0 <> 1 user only in raspberry because t
   console.log('valCorrection() value: ',value);
   if(value==null||isNaN(value))return value ;
   if(INVERTONOFF_RELAY)if(value==0)return 1; else return 0;
-  
+  }
+  function genYaml1(model,cfgdata,plant){// edit models.js template with user devices , generate yalm
+    // take package as yaml model:
+    */
+
+
   }
   function genYaml(model,cfgdata,plant){// edit models.js template with user devices , generate yalm
     // nothing   mystring    >     "mystring"
@@ -5453,7 +5462,7 @@ function  valCorrection(value){// change 0 <> 1 user only in raspberry because t
 
 
             
-  if(cfgdata)
+  if(cfgdata)// {version:'stdFV',virtualdev: [{addr:'shelly1-34945475FE06',devType:'shelly1',},,,,,,{subtopic:'var_gas-pdc_',varx:4,devType:'mqttstate'},]}
   if(version=cfgdata.version){
     if(version=='stdFV'&&(!model.version||model.version=='stdFV')){
       virtual=cfgdata.virtualdev;// [{addr:'shelly1-34945475FE06',devType:'shelly1',},,,,,,{subtopic:'var_gas-pdc_',varx:4,devType:'mqttstate'},] , a std FV optimizator process with its  std virtual devices indexing 0,,7 
@@ -5522,7 +5531,7 @@ function  valCorrection(value){// change 0 <> 1 user only in raspberry because t
            */
 
     }
-    function yaml_dev_shelly_rele_def(name,name_){// a switch  name= shelly1-34945475FE06
+    function yaml_dev_shelly_rele_def(name,name_){// a mqtt switch  name= shelly1-34945475FE06
     
       return{ 
                         // id:FV3+"_"+name,
@@ -5556,12 +5565,12 @@ function  valCorrection(value){// change 0 <> 1 user only in raspberry because t
                       */
  }
 
- function yaml_dev_mqtt_var_def(name,attTopic){// a select  attTopic=  '@Casina_API@ctl_var_gas-pdc_4', to add  with starting and ending &
+ function yaml_dev_mqtt_var_def(name,attTopic){// a mqtt select  attTopic=  '@Casina_API@ctl_var_gas-pdc_4', to add  with starting and ending &
   return{ 
                     // id:FV3+"_"+name,
   name:name,
 
-command_topic: "Node-Red-Register",
+command_topic: "Node-Red-Register",// just x log , switch the wsitch dont cause anything, only buttom will trigger manual cmdtopic !
 json_attributes_topic:attTopic,
 json_attributes_template: ' { "algoSuggested": "{{value_json.payload}}"}',
 options:['"0"','"1"']
@@ -5591,3 +5600,4 @@ function stringIsInt(str){
   return false;
 }
   }
+

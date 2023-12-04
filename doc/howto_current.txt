@@ -3273,7 +3273,7 @@ ___________________________________________
  _________________________________
  
   home assistant test 
-  con rif a         		***************   mng summary **************   
+  con rif a         		***************   mng summary **************   ctlpackmngsum
   si è testato che :
   	- a fronte di un change del select, che rappresenta l'istanza del home assistant sulla var dev gaspdcPref, si lanci con un automation  un topic '@Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd'
   		poi in message receive dei cmdtopic dei dev type 2 (topic topicNodeRed= '@Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd' )  lanci un interrupt che lancia il manual algo eM.state.lastUserAlgo che setta 
@@ -5545,6 +5545,7 @@ nb     // reset update or new ?  todo
   _______________________________________-
   
   ws to ha management summary   WSTMS  , 				todo please do a review with corresponding comment in code !!!
+  
   	nb used sometimes ht as ha !
   
    l'interfaccia verso ha ha 2 sezioni :
@@ -5599,9 +5600,58 @@ nb     // reset update or new ?  todo
 
        
  
+ >>>>>>>>>>>>>>>>>>>>>>>   review effettuata parzialmente aggiungendo ** ai commenti updatati importanti . il resto dei commenti vanno ancora rivisti basandosi sui commenti ** 
  
+ - in particolare è fondamentale  il master review seguente  :
  
+ 	                sethaws:function(ctlpack,topic, topicNodeRed,pubtopic){ /* **
+                                                                        //  configure ha staff x a device interfaced by fv3 using 3 events/topics:topic,pubtopic,topicnodered=cmdtopic
+                                                                        //  * fv3 publish() > ha   events handler:
+                                                                        //    so we register the ha/fv3 handlers to call when (subcribed to) some topics (like events/urls) are published (issued/requested)  :
+                                                                        //    - fv3 income handler (msgHand) if the topic is subscribed using this.subscribe
+                                                                        //      > that is assured by this.pubish() !! 
+                                                                        //    - fv3 > ha   events handler :
+                                                                        //      the ha handlers on topics=topic,pubtopic are registered on stdTop,pubsTop
+                                                                        //     ( questi chiamano il service alla ricezione di un topics che faceva da trigger in ha automation com mqtt protocol)
+
+                                                                        //              using client from mqtt.js we registered some topics ( topic or pubtopic sent by fv3 (not from ha itself)) to handler that trigger some ha automation . 
+                                                                        //                  the trigger  fire some actions/service
+                                                                        //              now using this wsclient we directly set the ha topics handlers to call using websocket 
+
+
+                                                                        //  * fv3 publish() > fv3 events handler :
+                                                                        //    the fv3 topics handler is alredy assigned by msg income handler this.msgHand that is automatically called by .publish() 
+                                                                        //      this.msgHand uses registered invTopic[topic] to set the topics handlers 
+                                                                        //      > infact when call writesync() depending on type and protocol we pubish on some dev topics . 
+                                                                        //        some topics are registered by fv3 itself  and directed to msgHand handler that assign the topics handler,
+
+                                                                        //  * ha > fv3 events handler :
+                                                                        //    by haws.init() we passed ctlcb to call wsclient.income(topics,val) the relay to  this.msgHand that assigns the topics handler
+                                                                        //    so ha can call the fv3 topics handler using ctlcb(topics,msg) 
+                                                                        //    infatti in client.sethaws(ctlpack,,)/setSwitch() chiamati per ogni dev che ..... 
+                                                                        //	 si settano gli handler dei state che interessano (switch/button/... entity in dasboard e switch/sensor nativi che collegano hw locale settati dal user):
+                                                                        //		  client.on('state_changed', handler)		>> prendono il posto dei trigger degli automation nei primi yaml
+                                                                        //    nei cui handler in funzione del entity  che provoca l'evento si publicano msg verso i dev topics:
+                                                                        //       topic se voglio informare su effettivi  valori emessi dal entity (normalmente inutili nei switch ma usati nei probe) and
+                                                                        //       topicNodeRed=cmdtopic se voglio richiedere un algo request (setmanual) circa il state del dev (tipicamente da un button associato al entity switch)
+                                                                        */
  
+ ......
+ 
+     if(client.sethaws&&ctlpack.ctl.cfg.haEntity)// ** this dev has a ha related entity. ( cfg=ctlpack.ctl.cfg=plant.cfg.mqttnumb/mqttprob[dev]).haEntity/haManButton is the ha entity related to device with portid :  portid=ctlpack.ctl.gpio,
+    client.sethaws(ctlpack,topic, topicNodeRed,pubtopic);// link calculated topics (topic,pubtopic,cmdtopic=topicNodeRed) to involved (quali ?) ha entities  
+.........
+
+                        let {eventMng='mqtt',haEntity,haManButton}=cfg;// todo : ** are recovered on cfg=ctlpack.ctl.cfg=plant.cfg.mqttnumb/mqttprob[dev], the dev cfg, 
+                                                                        // ctlpack.ctl.cfg.haEntity is the ha entity related to device with portid :  portid=ctlpack.ctl.gpio,
+                                                                        // nb  only device that are relayed on user ha can have haEntity,and (no probe ) haManButton
+                                                                        // haEntity is the target of topic or pubtopic 
+                                                                        // haMabButton event are source of cmdtopic msg to fv3
+                          
+.....................
+
+
+
  _______________________________
  
  dev def in models.js 	TTRROO
@@ -5875,5 +5925,101 @@ cust dev ctl are set in CustDevDef={66: async function (set_v = 0 ,rs485,param,e
       quiet:false,section:false};
  _____________________________________________________
  
+ i/o arch :
+ 
+ 
+ 	algos
+ 	
+ 	algos manager 																algo device
+ 
+ 	algo interface			socket.on('startprogrammer',repeatHandler1)	event/topic <> interface handler			
+ 
+ 		
+ 
+ __________________
+ 
  testing haWs
+ 
+........
+__________________________
+- create a new plant from def std plant :
+
+	the def plant can be get by :
+	- cfgDefFVMng', or better use constructor addUserPlant()
+
+	so review the adduserplant() that will for a user user='MarsonLuigi', get a new  plant ='MarsonLuigi_API' to add to models plant cfg list cfgs and to available plant list plants .
+		....
+	 
+- in app.post("/registerPlant/" :
+
+	add to plants the new plant for user: DefFVMng_API    todo : or better using adduserplant() 
+	then from  DefFVMng_API  get the yaml to transfer:
+		cfgdata=
+		yaml=genYaml( plantModel=DefFVMng_API,cfgdata,plant);
+			yaml_mqtt={mqtt:[],automation:yaml_automation=[]};//  a obj={mqtt:[],automation:[]} to transform in yaml ( mqtt list + automation list )
+			
+					after updated some attributes of plant mqttnumb devices according with cfgdata
+					
+				for index 0,6,,
+					add yaml switch/select entity to starting   yaml_mqtt.mqtt: the obj={switch/select:{}}} 	:			
+					0:  yaml_mqtt.mqtt.push({switch:yaml_dev_shelly_rele_def("sunshine_startgenerator",addr)});// local mqtt consenso switch 
+					6:  yaml_mqtt.mqtt.push({select:yaml_dev_mqtt_var_def(name_,varTopic)});// mqtt select , will get the fw3 var dev  changes.   varTopic is yaml attribute_topic
+				then add automation :
+				       yaml_automation.push(yaml_dev_shelly_automation_def(name_,varTopic,plant,mqttnumb[6].portid));   
+			return YAML.stringify(yaml_mqtt,{lineWidth:200});  // the js obj tradotto in yaml  
+			
+		then after done some substitution to transfer the yalm using webhook :   const repDQuote='£',repQuote=' ££ ',repLF=' £££ ';
+		launch the webhook with data :
+		
+			   	body={
+				      //"yaml":JSON.stringify(yaml) reeror using "yaml"
+				  //  yaml:JSON.stringify(yaml)};
+				      //yaml:myjsonstr};
+				      //yaml:{pippo:'ciao'}};// ok 
+				      //data:{pippo:'ciao'}// ok ma risolto
+				      //data:'{"pippo":"ciaup"}'//
+				       //data:'che cazzo  vuoi ç£^'//
+				      data:stream2string//,filename:'pippo.txt'
+				      ,shell:'/bin/sh\necho povero > generated.txt'//'#!/bin/sh\n cd /config \n git add .'
+				      ,shellname:'fvshell.sh'
+				    };
+		
+
+quindi addUserPlant() sarà aggiunto a plants di model.js plants={MarsonLuigi_API:{},,,,}  :
+					una copia di Casina come devices : plants[plant].cfg
+					+ dati propri per il user , mail,,,
+					+ add the user ha device maps , cioe i entity che sono connessi ai device utente
+	so from plants.x we can build :
+		- the entities sui quali costruire i dashboards
+		- the dashboard definition build on the entities 
+		- and then build the obj wsclient to interface ha switches 
+			using the std protocol based on topics (topis,pubtopic,cmdtopic) 
+			 - topics emitted by mqtt  is intercepted to ha triggers that will relay the protocol msg to real user devices 
+			 or 
+			 - to build in haWs/hawsclient so, for the switches to interface, wsclient uses the topics msg to trigger the real devices directly using ws connections 
+		
+
+
+
+- how to build the .... that sostituisce 
+
+
+- how to build the dashboard:
+	from the a std json we change the reference to hw switch of customer got from plant cfg .
+	so get a std json , change user specific switch , then transform to yaml !
+	so get the file riguardate rssi : dashboard_yaml_1.json
+	 	- the entity if not user specific :
+	 				>	 "switch.rssi" and "switch.acssw"
+	 		are defined in downloaded package/fv3/ 
+	
+	
+- how 
+
+_________________________________________
+todo : inserire info in ctlpack del client che usa il device mqtt o se connesso via ws  wsclient o se connesso openremote roClient ......., see ctlpackmngsum
+
+
+
+_________________________________________________
+
  
