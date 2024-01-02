@@ -1,0 +1,65 @@
+{
+	"automation anticipate": [
+		{
+			"alias": "fv3_cmd_startAnticipate",
+			"id": "anticipate",
+			"initial_state": true,
+			"trigger": [
+				{
+					"platform": "state",
+					"entity_id": "input_button.start_ensavings"
+				}
+			],
+			"condition": null,
+			"action": [
+				{
+					"service": "mqtt.publish",
+					"data": {
+						"topic": "@Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd",
+						"payload": "{\"payload\":1,\"sender\":{\"plant\":\"Casina_API\",\"user\":1055},\"url\":\"setMan\",\"checked\":1,\"data\":{{ states.input_number.hour.state}}}\n"
+					}
+				}
+			]
+		}
+	],
+	"mqtt": [
+		{
+			"select": {
+				"command_topic": "Node-Red-Register",
+				"state_topic": "@Casina_API@ctl_var_gas-pdc_4_",
+				"json_attributes_topic": "@Casina_API@ctl_var_gas-pdc_4_",
+				"json_attributes_template": "{ \"algoSuggested\": \"{{value_json.payload}}\"}\n",
+				"name": "NRInt",
+				"options": [
+					"0",
+					"1"
+				],
+				"value_template": "{% if value_json.payload == 0 %} 0 {% elif value_json.payload == 1 %} 1 {% endif %}",
+				"command_template": "{% set value_map = {\"0\": 0,\"1\": 1 } %} {\"payload\":{{value_map[value]}},\"sender\":{\"plant\":\"Casina_API\",\"user\":1055},\"url\":\"setMan\",\"checked\":1}\n"
+			}
+		},
+		{
+			"text": {
+				"command_topic": "Node-Red-Register1",
+				"state_topic": "@Casina_API@ctl_var_gas-pdc_4",
+				"json_attributes_topic": "@Casina_API@ctl_var_gas-pdc_4",
+				"json_attributes_template": "{ \"algoSuggested\": \"{{value_json.payload}}\"}\n",
+				"name": "optimizing_fv",
+				"value_template": "{% if value_json.payload == 0 %} \"0\" {% elif value_json.payload == 1 %} \"1\" {% endif %}",
+				"command_template": "{\"payload\":{{value|int }},\"sender\":{\"plant\":\"Casina_API\",\"user\":1055},\"url\":\"setMan\",\"checked\":1}\n"
+			}
+		}
+	],
+	"input_button": {
+		"start_ensavings": {
+			"name": "Energy_Savings_send_NRInt",
+			"icon": "mdi:bell"
+		}
+	},
+	"input_text": {
+		"anticipate": {
+			"name": "anticipate_",
+			"initial": "0"
+		}
+	}
+}

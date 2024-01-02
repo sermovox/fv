@@ -1,0 +1,36 @@
+in questa dir i vary template x apps. casina e' defFVMng
+dentro defFVMng trovo i file da inserire nella home assistant config dir del user:
+ i add x il configuration.yaml e le dir da inserire nel home assistant user dir package e dashboards
+
+ - i file di config originale configuration.yaml prima dell articolazione package (SSQQ) e' : configuration_21112023_ok_beforepackage.yaml
+
+ - i file di config originali (articolazione package+dashboards) (yaml e loro conversione json)che dovrebbero funzionare con mqtt  
+  si trovano in ha host dir:
+   prima versione :
+    documents/save/from_mqtt2wsha_haws/haws_package/energyEngineService_before/energyEngineService       <<<  SSQQ : interfaccia std mqtt 
+    documents/save/from_mqtt2wsha_haws/haws_dashboard/energyEngineService_before/energyEngineService     <<<  SSWW :     "
+
+   seconda versione :
+    /home/luigi/hamount/luigi/Documents/save/from_mqtt2wsha_haws/transition_2package_perognifileinpiu/insert_acsandpp_15122023/to/packages  <<<  SSQQ1 : interfaccia std mqtt
+
+ - quindi i file template che inserisco qui sono la revisione per adattarla al mqtt + ws, e si troverebbero in  :
+ 
+   documents/save/from_mqtt2wsha_haws/haws_package/energyEngineService_after/energyEngineService      interfaccia com mqtt + ws per il template da config coi dati user plant
+   documents/save/from_mqtt2wsha_haws/haws_dashboard/energyEngineService_after/energyEngineService       "
+
+   >>>> ma in pratica la revisione degli json in SSQQ1 e fatta qui in questa dir: 
+          /home/luigi/localdev/raspexampl/fv/haCfg/defFVMng/package/energyEngineService  ,
+        metre i  json in  SSWW dovrebbero non cambiare
+
+- i file ha yaml generati dai template configurati per un registered user vanno in haYalm/user:
+      package.yaml   da inserire nella ha cfg dir del user host ha sotto : .../package/energyEngineService
+      dashboard.yaml   da inserire nella ha cfg dir del user host ha sotto : .../dashboard/energyEngineService
+      nel .../package si dovra aggiungere il addendum al configuration.yaml fisso : haCfg/defFVMng/configurationAdd.yaml
+         o inserirlo direttamente nel configuration.yaml del ha
+      naturalmente il template per la config dei device reali (dichiarati nella registrazione del user plant ) sono disponibili in :
+            haCfg/defFVMng/configurationUser.yaml
+
+
+
+
+

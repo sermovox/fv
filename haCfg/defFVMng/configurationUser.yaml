@@ -1,0 +1,35 @@
+mqtt:
+  - switch:
+      name: "acssw"
+      qos: 1
+      state_topic: shellies/shelly1-34945475DD63/relay/0
+      #      value_template: "{% if value == 'on' %} on {% else %} off {% endif %}" only x sensor ?
+      payload_on: "on"
+      payload_off: "off"
+      state_on: "on"
+      state_off: "off"
+      command_topic: shellies/shelly1-34945475DD63/relay/0/command
+      json_attributes_topic: shellies/shelly1-34945475DD63/relay/0
+      json_attributes_template: >
+        { "jsonattr": "{{value}}"} 
+  - switch:
+      name: "RSSI"
+      qos: 1
+      state_topic: shellies/shelly1-34945475F7DE/relay/0
+      #      value_template: "{% if value == 'on' %} on {% else %} off {% endif %}" only x sensor ?
+      payload_on: "on"
+      payload_off: "off"
+      state_on: "on"
+      state_off: "off"
+      command_topic: shellies/shelly1-34945475F7DE/relay/0/command
+      json_attributes_topic: shellies/shelly1-34945475F7DE/relay/0
+      json_attributes_template: >
+        { "jsonattr": "{{value}}"}  
+  - sensor:
+      name: "shelly_ht_temp"
+      state_topic: "shellies/shellyht-1E6C54/sensor/temperature"
+      value_template: "{{ value }}"
+  - sensor:
+      name: "shelly_ht_humid"
+      state_topic: "shellies/shellyht-1E6C54/sensor/humidity"
+      value_template: "{{ value }}"    

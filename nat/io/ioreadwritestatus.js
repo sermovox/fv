@@ -180,6 +180,8 @@ const api={// see https://javascript.info/promise-chaining
               desTemp=fn.state.lastProgramAlgo.desT[0];// get desidered temp
               else desTemp='';//  non available
         if((statedev= fn.iodev.probs_[stind])!=null){//!== undefined) {
+            // 15122023 better do in ha !: convert hetr true/false > 'ON'/'OFF' :            let relays_=new_scripts.relays.map();
+
             statedev.writeSync_({state:{anticipate:new_scripts.anticipate != false&&new_scripts.anticipate != null,// send to ha the status it expects
                 program:new_scripts.program != false&&new_scripts.program != null,
             battery:new_scripts.aiax.battery,

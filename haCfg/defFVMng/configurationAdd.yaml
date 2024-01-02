@@ -1,0 +1,14 @@
+lovelace:
+  mode: storage
+  # Add yaml dashboards
+  dashboards:
+    lovelace-yaml:
+      mode: yaml
+      title: YAML
+      icon: mdi:script
+      show_in_sidebar: true
+      filename: ./dashboards/dashboard_yaml_1.yaml
+# rssi switch is user defined and is not in package ! 
+homeassistant:
+  packages: !include_dir_named packages
+python_script:

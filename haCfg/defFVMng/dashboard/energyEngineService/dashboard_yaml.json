@@ -1,0 +1,255 @@
+{
+  "title": "My Awesome Home",
+  "views": [
+    {
+      "title": "Home",
+      "cards": [
+        {
+          "type": "vertical-stack",
+          "cards": [
+            {
+              "type": "entity",
+              "entity": "input_text.text4",
+              "name": "Winter/Summer : W/S"
+            },
+            {
+              "type": "entities",
+              "entities": [
+                {
+                  "entity": "input_text.text1",
+                  "name": "programmazione temperature  es: {\"9:30\": 21 , \"16:30\":19}"
+                },
+                {
+                  "entity": "input_text.text2",
+                  "name": "prog ACS, usare solo T=10/45 es:{\"9:00\":45,\"16:00\":10}"
+                }
+              ],
+              "title": "programma temperature minime desiderate "
+            },
+            {
+              "type": "entities",
+              "entities": [
+                {
+                  "entity": "input_button.start_progservice"
+                },
+                {
+                  "entity": "input_button.stop_progservice"
+                }
+              ]
+            },
+            {
+              "type": "entity",
+              "entity": "sensor.pgmrun"
+            }
+          ]
+        },
+        {
+          "type": "custom:dual-gauge-card",
+          "title": "T",
+          "min": 10,
+          "max": 40,
+          "outer": {
+            "entity": "sensor.shelly_ht_temp",
+            "label": "reale",
+            "unit": null
+          },
+          "inner": {
+            "entity": "sensor.destemp",
+            "label": "prog.",
+            "unit": null
+          },
+          "colors": [
+            {
+              "color": "var(--label-badge-red)",
+              "value": 23
+            },
+            {
+              "color": "var(--label-badge-green)",
+              "value": 19
+            },
+            {
+              "color": "var(--label-badge-yellow)",
+              "value": 21
+            },
+            {
+              "color": "var(--label-badge-blue)",
+              "value": 0
+            },
+            {
+              "color": "var(--paper-blue-400)",
+              "value": 10
+            }
+          ]
+        },
+        {
+          "type": "vertical-stack",
+          "cards": [
+            {
+              "type": "entities",
+              "entities": [
+                {
+                  "entity": "switch.rssi",
+                  "name": "clima"
+                },
+                {
+                  "entity": "switch.acssw",
+                  "name": "caldaia e acs"
+                }
+              ],
+              "title": "Comando Accensione Climatizzazione",
+              "show_header_toggle": false
+            }
+          ]
+        },
+        {
+          "type": "horizontal-stack",
+          "cards": [
+            {
+              "type": "entities",
+              "entities": [
+                {
+                  "entity": "input_button.setmanual_rssi_on_but",
+                  "name": "condizionamento ON"
+                },
+                {
+                  "entity": "input_button.setmanual_rssi_off_but",
+                  "name": "Condizionamento OFF"
+                },
+                {
+                  "entity": "input_button.setmanual_acs_on_but",
+                  "name": "ACS ON"
+                },
+                {
+                  "entity": "input_button.setmanual_acs_off_but",
+                  "name": "ACS OFF"
+                }
+              ]
+            },
+            {
+              "type": "entity",
+              "entity": "input_number.hour",
+              "name": "per le prossime ore"
+            }
+          ]
+        },
+        {
+          "type": "thermostat",
+          "entity": "climate.termostato_locale",
+          "name": "Manual Thermostat"
+        }
+      ]
+    },
+    {
+      "title": "Ottimizzatore FV",
+      "path": "ottimizzatore-fv",
+      "badges": [],
+      "cards": [
+        {
+          "type": "vertical-stack",
+          "cards": [
+            {
+              "type": "entities",
+              "entities": [
+                {
+                  "entity": "input_button.start_savingservice",
+                  "name": "Start Optimizor"
+                },
+                {
+                  "entity": "input_button.stop_savingservice",
+                  "name": "Stop Optimizor"
+                }
+              ],
+              "title": "start/stop Optimizator"
+            },
+            {
+              "type": "gauge",
+              "entity": "input_number.box1",
+              "name": "Potenza Anticipo Consumi"
+            },
+            {
+              "type": "entity",
+              "entity": "sensor.opirun",
+              "name": "Current State Optimizor"
+            }
+          ]
+        },
+        {
+          "type": "vertical-stack",
+          "cards": [
+            {
+              "type": "entity",
+              "entity": "sensor.pgmrun",
+              "name": "Programming Service Status",
+              "state_color": true
+            },
+            {
+              "type": "entities",
+              "entities": [
+                {
+                  "entity": "text.optimizing_fv",
+                  "name": "Stato Corrente Promozione Anticipo Consumi ",
+                  "secondary_info": "last-changed"
+                }
+              ]
+            },
+            {
+              "type": "gauge",
+              "entity": "sensor.battery",
+              "name": "Battery Savings",
+              "needle": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "fv",
+      "path": "fv",
+      "badges": [],
+      "cards": [
+        {
+          "type": "gauge",
+          "min": 0,
+          "max": 5,
+          "name": "Inverter Power kW",
+          "entity": "sensor.inverter"
+        },
+        {
+          "type": "gauge",
+          "entity": "sensor.battery",
+          "max": 100,
+          "name": "Battery %"
+        },
+        {
+          "graph": "line",
+          "type": "sensor",
+          "entity": "sensor.battery",
+          "detail": 2,
+          "name": "battery",
+          "unit": "%"
+        },
+        {
+          "type": "history-graph",
+          "entities": [
+            {
+              "entity": "weather.forecast_home"
+            },
+            {
+              "entity": "sensor.inverter"
+            },
+            {
+              "entity": "sensor.battery"
+            },
+            {
+              "entity": "text.optimizing_fv"
+            },
+            {
+              "entity": "switch.rssi"
+            }
+          ],
+          "title": "Optimizing History"
+        }
+      ]
+    }
+  ]
+}

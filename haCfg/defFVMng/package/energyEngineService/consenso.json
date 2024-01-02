@@ -63,22 +63,6 @@
       ]
     }
   ],
-  "mqtt": [
-    {
-      "switch": {
-        "name": "RSSI",
-        "qos": 1,
-        "state_topic": "shellies/shelly1-34945475F7DE/relay/0",
-        "payload_on": "on",
-        "payload_off": "off",
-        "state_on": "on",
-        "state_off": "off",
-        "command_topic": "shellies/shelly1-34945475F7DE/relay/0/command",
-        "json_attributes_topic": "shellies/shelly1-34945475F7DE/relay/0",
-        "json_attributes_template": "{ \"jsonattr\": \"{{value}}\"}    \n"
-      }
-    }
-  ],
   "input_button": {
     "setmanual_rssi_on_but": {
       "name": "setmanual_rssi_on_but",

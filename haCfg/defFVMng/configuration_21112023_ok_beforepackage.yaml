@@ -1,0 +1,549 @@
+# "data":[1,23,2,{"power":{{ states.input_number.box1.state }}}]   ,"data1":{{ states.sensor.pippo.state }}  "data":{{ states.input_text.text1.state }},  
+# Loads default set of integrations. Do not remove.
+# cfg here the mqtt brocker , see : .....
+default_config:
+
+# Load frontend themes from the themes folder
+frontend:
+  themes: !include_dir_merge_named themes
+  
+# The configuration required for the UI to work
+automation: !include automations.yaml
+automation myautomation:
+# move as blueprint
+#  - alias: "fv3_relay_shellyht"
+#    id: "optimize1"
+#    initial_state: true
+#    trigger:
+#      - platform: state
+#        entity_id: sensor.shelly_ht_temp
+#    condition:
+#    action:
+#      - service: mqtt.publish
+#        data:
+#          topic: '_shellies/shellyht-1E6C54/sensor/temperature'
+#          payload: >
+#            {{ states.sensor.shelly_ht_temp.state }}
+#  - alias: "fv3_relay_shelly1"
+#    id: "optimize"
+#    initial_state: true
+#    trigger:
+#      - platform: state
+#        entity_id: switch.rssi
+#    condition:
+#    action:
+#      - service: mqtt.publish
+#        data:
+#          topic: '_shellies/shelly1-34945475FE06/relay/0/command'
+#          payload: >
+#            {{ states.switch.rssi.state }}
+#
+  - alias: "ws"
+    id: "ws_"
+    trigger:
+      - platform: event
+        event_type: 'ws_event'
+        event_data:
+          data: '1'
+    condition:
+    action:
+      - service: switch.turn_off
+        data:
+          entity_id: switch.rssi
+  - alias: "fv3_presence"
+    id: "fv3_presence_"
+    initial_state: true
+    trigger:
+      - platform: time_pattern
+        minutes: "/1"
+    condition:
+    action:
+      - service: switch.turn_off
+        data:
+          entity_id: switch.opt_service1
+      - service: mqtt.publish
+        data:
+          topic: '@Casina_API@info'
+          payload: >
+                 info from fv3_presence: runned
+  - alias: "startoptimizing_service"
+    id: "strantserv"
+    initial_state: true
+    trigger:
+      - platform: state
+        entity_id: input_button.start_savingservice
+    condition: "{{ states.sensor.opirun.state == 'OFF'}}"
+    action:
+      - service: mqtt.publish
+        data:
+          topic: '@Casina_API@interface_mqtt_websock_0/NReadUser/cmd'
+          payload: >
+               {"payload":1,"sender":{"plant":"Casina_API","user":77},"url":"mqttxwebsock","event":"repeatcheckxSun","data":{{ states.sensor.pippo.state }},"data1":{{ states.input_text.text1.state }},"param":"{{ states('input_boolean.savingsservice') }}"}
+  - alias: "stopoptimizing_service"
+    id: "stopantserv"
+    initial_state: true
+    trigger:
+      - platform: state
+        entity_id: input_button.stop_savingservice
+    condition: "{{ states.sensor.opirun.state == 'ON'}}"
+    action:
+      - service: mqtt.publish
+        data:
+          topic: '@Casina_API@interface_mqtt_websock_0/NReadUser/cmd'
+          payload: >
+               {"payload":0,"sender":{"plant":"Casina_API","user":77},"url":"mqttxwebsock","event":"stopcheckxSun"}
+  - alias: "startprogramming_service"
+    id: "strpgmserv"
+    initial_state: true
+    trigger:
+      - platform: state
+        entity_id: input_button.start_progservice
+    condition: "{{ states.sensor.pgmrun.state == 'OFF'}}"
+    action:
+      - service: mqtt.publish
+        data:
+          topic: '@Casina_API@interface_mqtt_websock_0/NReadUser/cmd'
+          payload: >
+               {"payload":1,"sender":{"plant":"Casina_API","user":77},"url":"mqttxwebsock","event":"repeatcheckxPgm","data":{{ states.sensor.startprogrammer.state }},"param":{"ei":"S","state":"{{ states('input_boolean.savingsservice') }}"}}
+  - alias: "stopprogramming_service"
+    id: "stoppgmserv"
+    initial_state: true
+    trigger:
+      - platform: state
+        entity_id: input_button.stop_progservice
+    condition: "{{ states.sensor.pgmrun.state == 'ON'}}"
+    action:
+      - service: mqtt.publish
+        data:
+          topic: '@Casina_API@interface_mqtt_websock_0/NReadUser/cmd'
+          payload: >
+               {"payload":0,"sender":{"plant":"Casina_API","user":77},"url":"mqttxwebsock","event":"stopcheckxPgm"}
+  - alias: "fv3_cmd_startAnticipate"
+    id: "anticipate"
+    initial_state: true
+    trigger:
+      - platform: state
+        entity_id: input_button.start_ensavings
+    condition:
+    action:
+      - service: mqtt.publish
+        data:
+          topic: '@Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd'
+          payload: >
+            {"payload":1,"sender":{"plant":"Casina_API","user":1055},"url":"setMan","checked":1,"data":{{ states.input_number.hour.state}}}
+  - alias: "setmanual_acs_on"
+    id: "setmanual_acs_on"
+    initial_state: true
+    trigger:
+      - platform: state
+        entity_id: input_button.setmanual_acs_on_but
+    condition:
+    action:
+      - service: mqtt.publish
+        data:
+          topic: 'shellies/_shelly1-34945475DD63/relay/0/NReadUser/cmd'
+          payload: >
+            {"payload":1,"sender":{"plant":"Casina_API","user":1055},"url":"setMan","checked":1,"data":{{ states.input_number.hour.state }}}
+  - alias: "setmanual_acs_off"
+    id: "setmanual_acs_off"
+    initial_state: true
+    trigger:
+      - platform: state
+        entity_id: input_button.setmanual_acs_off_but
+    condition:
+    action:
+      - service: mqtt.publish
+        data:
+          topic: 'shellies/_shelly1-34945475DD63/relay/0/NReadUser/cmd'
+          payload: >
+            {"payload":0,"sender":{"plant":"Casina_API","user":1055},"url":"setMan","checked":1,"data":{{ states.input_number.hour.state }}}
+  - alias: "setmanual_rssi_on"
+    id: "setmanual_rssi_on"
+    initial_state: true
+    trigger:
+      - platform: state
+        entity_id: input_button.setmanual_rssi_on_but
+    condition:
+    action:
+      - service: mqtt.publish
+        data:
+          topic: 'shellies/_shelly1-34945475FE06/relay/0/NReadUser/cmd'
+          payload: >
+            {"payload":1,"sender":{"plant":"Casina_API","user":1055},"url":"setMan","checked":1,"data":{{ states.input_number.hour.state }}}
+  - alias: "setmanual_rssi_off"
+    id: "setmanual_rssi_off"
+    initial_state: true
+    trigger:
+      - platform: state
+        entity_id: input_button.setmanual_rssi_off_but
+    condition:
+    action:
+      - service: mqtt.publish
+        data:
+          topic: 'shellies/_shelly1-34945475FE06/relay/0/NReadUser/cmd'
+          payload: >
+            {"payload":0,"sender":{"plant":"Casina_API","user":1055},"url":"setMan","checked":1,"data":{{ states.input_number.hour.state }}}
+# unused:
+  - alias: "fv3_cmd_start"
+    id: "startEM"
+    initial_state: true
+    trigger:
+      - platform: state
+        entity_id: input_boolean.savingsservice
+    condition:
+    action:
+      - if:
+         - condition: state
+           entity_id: input_boolean.savingsservice
+           state: 'on'
+           
+        then:
+         - service: mqtt.publish
+           data:
+             topic: '@Casina_API@interface_mqtt_websock_0/NReadUser/cmd'
+             payload: >
+               {"payload":1,"sender":{"plant":"Casina_API","user":77},"url":"mqttxwebsock","event":"repeatcheckxSun","data":{{ states.sensor.pippo.state }},"data1":{{ states.input_text.text1.state }},"param":"{{ states('input_boolean.savingsservice') }}"}
+        else:
+         - service: mqtt.publish
+           data:
+             topic: '@Casina_API@interface_mqtt_websock_0/NReadUser/cmd'
+             payload: >
+                 {"payload":0,"sender":{"plant":"Casina_API","user":77},"url":"mqttxwebsock","event":"stopcheckxSun"}
+# unused:
+  - alias: "fv3_cmd_start_pgm"
+    id: "startpgm"
+    initial_state: true
+    trigger:
+      - platform: state
+        entity_id: input_boolean.programservice
+    condition:
+    action:
+      - if:
+         - condition: state
+           entity_id: input_boolean.programservice
+           state: 'on'
+           
+        then:
+         - service: mqtt.publish
+           data:
+             topic: '@Casina_API@interface_mqtt_websock_0/NReadUser/cmd'
+             payload: >
+               {"payload":1,"sender":{"plant":"Casina_API","user":77},"url":"mqttxwebsock","event":"repeatcheckxPgm","data":{{ states.sensor.startprogrammer.state }},"param":{"ei":"S","state":"{{ states('input_boolean.savingsservice') }}"}}
+        else:
+         - service: mqtt.publish
+           data:
+             topic: '@Casina_API@interface_mqtt_websock_0/NReadUser/cmd'
+             payload: >
+                 {"payload":0,"sender":{"plant":"Casina_API","user":77},"url":"mqttxwebsock","event":"stopcheckxPgm"}
+
+  - alias: "yaml_generator"
+    id: "yaml_gen"
+    initial_state: true
+    trigger:
+      - platform: webhook
+        webhook_id: "genyaml"
+        allowed_methods:
+          - POST
+          - PUT
+        local_only: false    
+    condition:
+    action:
+      - service: shell_command.write_yaml23
+        data:
+          filename: pippo.txt
+          shellname: "{{ trigger.json.shellname}}"
+          myjson: "{{ trigger.json}}"
+          yaml: "{{ trigger.json.data}}"
+          shell: "{{ trigger.json.shell}}"
+      - service: shell_command.write_yaml22
+        data:
+          filename: pippo.txt
+          shellname: "{{ trigger.json.shellname}}"
+          myjson: "{{ trigger.json}}"
+          yaml: "{{ trigger.json.data}}"
+      - service: shell_command.subst2
+      - service: shell_command.write_yaml24
+        data:
+          filename: pippo.txt
+script: !include scripts.yaml
+scene: !include scenes.yaml
+mqtt:
+  - sensor:
+      # fv3 emette alcune var di state in   statedev.writeSync({state:{anticipate:new_scripts.anticipate != false&&new_scripts.anticipate != null,
+      name: "battery"
+      state_topic:  '@Casina_API@ctl_var_state_0'
+      value_template: "{{value_json.payload.state.battery }}"
+      unit_of_measurement: 0/0
+  - sensor:
+      name: "inverter"
+      state_topic:  '@Casina_API@ctl_var_state_0'
+      value_template: "{{value_json.payload.state.inverter }}"  
+      unit_of_measurement: P
+# sensor acs non è strettamentenecessaron in quanto duplica l'input di acssw
+  - sensor:
+      #  aggiungi un blueprint to change the acsswitch state . oppure in automation agganciare con un topic  direttamente il switch acssw senza usare un switch/sensor  di fv3 da relayare (come fatto x consenso caldaia)
+      name: "acs"
+      state_topic:  '@Casina_API@ctl_var_state_0'
+      value_template: "{% if value_json.payload.state.relays.acs == true %} OFF {% else %} ON {% endif %}"
+  - sensor:
+      name: "acsluigi"
+      state_topic:  '@MarsonLuigi_API@ctl_var_state_0'
+      value_template: "{% if value_json.payload.state.relays.acs == true %} OFF {% else %} ON {% endif %}"
+      # acsswitch :
+  - switch:
+      name: "acssw"
+      qos: 1
+      state_topic: shellies/shelly1-34945475DD63/relay/0
+#      value_template: "{% if value == 'on' %} on {% else %} off {% endif %}" only x sensor ?
+      payload_on: "on"
+      payload_off: "off"
+      state_on: "on"
+      state_off: "off"
+      command_topic: shellies/shelly1-34945475DD63/relay/0/command
+      json_attributes_topic: shellies/shelly1-34945475DD63/relay/0
+      json_attributes_template: >
+        { "jsonattr": "{{value}}"} 
+  - sensor:
+      name: "desTemp"
+      state_topic:  '@Casina_API@ctl_var_state_0'
+      value_template: "{{value_json.payload.state.desTemp }}"  
+  - sensor:
+      name: "opirun"
+      state_topic:  '@Casina_API@ctl_var_state_0'
+      value_template: "{% if value_json.payload.state.anticipate == true %} ON {% else %} OFF {% endif %}"  
+  - sensor:
+      name: "pgmrun"
+      state_topic: '@Casina_API@ctl_var_state_0'
+      value_template: "{% if value_json.payload.state.program == true %} ON {% else %} OFF {% endif %}"   
+  - switch:
+      name: "pgmrun_old"
+      qos: 1
+      state_topic: '@Casina_API@ctl_var_state_0'
+      value_template: "{% if value_json.payload.state.program == true %} ON {% else %} OFF {% endif %}"   
+      command_topic: '@Casina_API@ctl_var_state_0/cmd'
+  - switch:
+      name: "opt_service1"
+      qos: 1
+      state_topic: '@Casina_API@ctl_var_state_0'
+      value_template: "{% if value_json.sender.user == 777 %} ON {% else %} OFF {% endif %}"  
+      command_topic: '@Casina_API@info'
+# esempio di rele dev . i state del rele sono pub su state_topic che switchano i on e off state del entity  monitorando cosi il settaggio dei rele da parte del fv3. 
+# quando switchato emette un comandtopic che e' l'input del rele o meglio potrà essere, come per i var, un nodered command topic che lancia un interrupt per settare un Manual Algo request
+  - switch:
+      name: "RSSI"
+      qos: 1
+      state_topic: shellies/shelly1-34945475F7DE/relay/0
+#      value_template: "{% if value == 'on' %} on {% else %} off {% endif %}" only x sensor ?
+      payload_on: "on"
+      payload_off: "off"
+      state_on: "on"
+      state_off: "off"
+      command_topic: shellies/shelly1-34945475F7DE/relay/0/command
+      json_attributes_topic: shellies/shelly1-34945475F7DE/relay/0
+      json_attributes_template: >
+        { "jsonattr": "{{value}}"}      
+# Example configuration.yaml entry , x numbSubscr var dev. command_topic is just a info topic (Node-Red-Register)  published with option when selected in overview 
+# when selected it will launch also automation that will fire on cmdtopic=@Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd a formatted json to lauch a interrupt to set a ManualAlgo . 
+#  nb when fv3 works with some algo on this attribute it will emit a writesync() , and  also pub on json_attributes_topic a formatted value,  value.payload ='0/1' will set the algoSuggested property of the select entity
+  - select:
+      command_topic: 'Node-Red-Register'
+      state_topic: '@Casina_API@ctl_var_gas-pdc_4_'
+      json_attributes_topic: '@Casina_API@ctl_var_gas-pdc_4_'
+      json_attributes_template: >
+        { "algoSuggested": "{{value_json.payload}}"}
+      name: "NRInt"
+      options:
+        - "0" 
+        - "1"
+      value_template:  '{% if value_json.payload == 0 %} 0 {% elif value_json.payload == 1 %} 1 {% endif %}'
+      command_template: >
+        {% set value_map = {"0": 0,"1": 1 } %}
+        {"payload":{{value_map[value]}},"sender":{"plant":"Casina_API","user":1055},"url":"setMan","checked":1} 
+  - text:
+      command_topic: 'Node-Red-Register1'
+      state_topic: '@Casina_API@ctl_var_gas-pdc_4'
+      json_attributes_topic: '@Casina_API@ctl_var_gas-pdc_4'
+      json_attributes_template: >
+        { "algoSuggested": "{{value_json.payload}}"}
+      name: "optimizing_fv"
+      value_template:  '{% if value_json.payload == 0 %} "0" {% elif value_json.payload == 1 %} "1" {% endif %}'
+      command_template: >
+        {"payload":{{value|int }},"sender":{"plant":"Casina_API","user":1055},"url":"setMan","checked":1} 
+  - sensor:
+      name: "shelly_ht_temp"
+      state_topic: "shellies/shellyht-1E6C54/sensor/temperature"
+      value_template: "{{ value }}"
+  - sensor:
+      name: "shelly_ht_humid"
+      state_topic: "shellies/shellyht-1E6C54/sensor/humidity"
+      value_template: "{{ value }}"
+  - binary_sensor:
+      name: "relay_command_consenso"
+      state_topic: "shellies/Casina_API-34945475F7DE/relay/0/command"
+      payload_on: "on"
+      payload_off: "off"
+      qos: 0
+      value_template: "{{ value }}"
+  - binary_sensor:
+      name: "opt_service"
+      state_topic: '@Casina_API@ctl_var_state_0'
+      payload_on: "777"
+      payload_off: ""
+      qos: 0
+      value_template: "{{ value_json.sender.user }}"
+input_number:
+  temp_high:
+    name: Target alto
+    min: 0
+    max: 22
+    step: 1
+  temp_low:
+    name: Target basso
+    min: 5
+    max: 20
+    step: 1
+  box1:
+    name: "minPower"
+    initial: 30
+    min: -20
+    max: 35
+    step: 1
+    mode: box
+  hour:
+    name: "ore"
+    initial: 1
+    min: 1
+    max: 24
+    step: 1
+    mode: box
+input_button:
+  start_savingservice:
+    name: start_optimazing_service
+    icon: mdi:bell
+  stop_savingservice:
+    name: stop_optimazing_service
+    icon: mdi:bell
+  start_progservice:
+    name: start_programming_service
+    icon: mdi:bell
+  stop_progservice:
+    name: stop_programming_service
+    icon: mdi:bell
+# unused:
+  start_ensavings:
+    name: "Energy_Savings_send_NRInt"
+    icon: mdi:bell
+  setmanual_acs_on_but:
+    name: "setmanual_acs_on_but"
+    icon: mdi:bell
+  setmanual_acs_off_but:
+    name: "setmanual_acs_off_but"
+    icon: mdi:bell
+  setmanual_rssi_on_but:
+    name: "setmanual_rssi_on_but"
+    icon: mdi:bell
+  setmanual_rssi_off_but:
+    name: "setmanual_rssi_off_but"
+    icon: mdi:bell
+# savings e program service on/off non usato
+input_boolean:
+  savingsservice:
+    name: use ai to savings energy
+    icon: mdi:tools
+  programservice:
+    name: temp_ctl
+    icon: mdi:tools
+# donot resolve state, so use as programmer input
+input_text:
+  text1:
+    name: Text 1
+    #initial: ' "PGMgiorno" : { "8:30" : 27, "17:00" : 30 } '
+    initial: '  { "9:30" : 20, "16:00" : 18 } '
+  text2:
+    name: Text 2
+    #initial: ' "PGMacs" : { "8:30" : 45, "16:30" : 10 } '
+    initial: ' { "9:20" : 45, "16:00" : 10 } '
+  text4:
+    name: W/S
+    initial: 'W'
+  token:
+    name: token
+template:
+  - sensor:
+      - name: "pippo"
+        state:  "[4,20,2,{\"FVPower\":{{ states.input_number.box1.state|int }}}]"
+        icon: mdi:tools
+  - sensor:
+      - name: "startprogrammer"
+        unique_id: "strpgm"
+        #state:  "[1,23,3, { {{ states.input_text.text1.state }} , {{ states.input_text.text2.state }} } ]"
+        state:  '[1,23,3, { "PGMgiorno" : {{ states.input_text.text1.state }} , "PGMacs" : {{ states.input_text.text2.state }} ,   "TgiornoTollerance" : "2" ,"ei":"{{ states.input_text.text4.state }}"} ]'
+        icon: mdi:tools
+# https://indomus.it/componenti/piattaforma-home-assistant-generic-thermostat-termostato-generico/
+#climate:
+#  - platform: generic_thermostat
+#    name: Riscaldamento
+#    heater: switch.riscaldamento_sala
+#    target_sensor: sensor.temperatura_sala
+# to complete the scheduler see https://indomus.it/progetti/creare-un-temporizzatore-per-sistemi-clima-su-home-assistant/
+climate:
+  - platform: generic_thermostat
+    name: termostato_locale
+    heater: switch.rssi
+    target_sensor: sensor.shelly_ht_temp
+    min_temp: 10
+    max_temp: 21
+    ac_mode: False
+    target_temp: 17
+    cold_tolerance: 0.4
+    hot_tolerance: 0
+    min_cycle_duration:
+      seconds: 30
+    initial_hvac_mode: "off"
+    away_temp: 16
+# see temp_high and temp_low
+# blueprint
+automation tutorial_fv3:
+  use_blueprint:
+    path: motion_light_tutorial0.yaml
+    input:
+      consenso:  switch.rssi
+# necessario non usare  !
+#automation tutorial_fv3_a:
+#  use_blueprint:
+#    path: motion_light_tutorial1.yaml
+# dont have any input !!!!!?
+automation tutorial_fv3_1:
+  use_blueprint:
+    path: polo.yaml
+    input:
+      target_switch: 
+        entity_id: switch.rssi
+automation tutorial_fv3_2:
+  use_blueprint:
+    path: motion_sonda_tutorial.yaml
+    input:
+      sondatemp: sensor.shelly_ht_temp
+# acs blueprint manca della possibilità di modificarlo come il rssi col binary.switch
+automation tutorial_acs:
+  use_blueprint:
+    path: chain_acs.yaml
+    input:
+      acs_switch: 
+        #entity_id: switch.acssw
+        entity_id: switch.acssw
+# added to install set_state.py
+python_script:
+# API
+api:
+shell_command:	    		
+   write_yaml: /bin/bash -c "echo {{ yaml }} > {{ filename }}"
+   write_yaml2: /bin/bash -c "echo '{{myjson.data}}'  >{{ filename }}"
+   write_yaml22: /bin/bash -c " echo '{{myjson.data}}'  > {{ filename }}  "
+   write_yaml23: /bin/bash -c "echo '#!{{shell}}'  > {{ shellname }} "
+   write_yaml24: fvshell.sh
+   write_yaml3: /bin/bash -c "echo '{{myjson}}'  >{{ filename }}"
+   write_yaml4: /bin/bash -c " mydata='{{myjson.data}}' && echo $mydata  >{{ filename }}"  perde blanks
+   subst: " cat {{ filename }} >  fv3.txt "
+   subst1: cat pippo.txt | sed -e "s/£££/\\n/g" | sed -e "s/££/\'/g" | sed -e "s/£/\"/g" >{{ filename }}
+   subst2:  sed -i "s/£££/\\n/g" pippo.txt&& sed -i "s/££/\'/g" pippo.txt && sed -i "s/£/\"/g" pippo.txt

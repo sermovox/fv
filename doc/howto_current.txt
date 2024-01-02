@@ -2467,19 +2467,19 @@ remember how was built the state of fm/eM/app2 inst :
 											eM.pumpsHandler={}; // not the super . the app can have many browser connected each one with its handler to manage the update of the browser
 											eM.iodev={};
 											
-											mqttInst=mqtt.init(plantconfig);// the plant mqtt instance on which works and are created  all plant mqtt dev ctl ( ctl=new fc()) 
+											mqttInst=mqtt.init(plantconfig);// the plant mqtt instance on which works and are created  all plant mqtt dev ctls ( ctl=new fc()) 
 											
 												nb   init:function(plantconfig){  return new mqttClass(plantconfig);}
 											
 
 											myctls_= getio.getctls(mqttInst,gpionumb,mqttnumb);// get devices choosing from describing gpio and mqtt info array : these are the visible rele/var in browser
-                                          								// myctls_={ctls:[ctl1,,,,,],devmap:[{devNumb,devType,portnumb},,,,]}
+                                          								// myctls_={ctls:[ctl1,,,,,],devmap:[{devNumb,devType,portnumb},,,,]}	KKGG
 													  // get pump/relais r/w devices from preferred  mqtt or gpio arrays
 													  
 													  
 													  in getio.getctls() :
 													  
-													  	return new Promise((resolve) => {  see mqttdev.txt ......
+													  	return new Promise((resolve) => {  see: mqttdev.txt ......
 													  		resolve({ctls:resu,devmap:resolved})
 													  		
 													  				/*   ***********see in mqtt the func  fillProm(pr) : 
@@ -2740,7 +2740,7 @@ remember how was built the state of fm/eM/app2 inst :
 																	-  {ctl:new Gpio(num, iotype),devNumb:ind,type:'gpio'}; // as Promise.resolve
 																	
 																	
-																	nb in fact() we run numbSubscr(val,that,ctlpack,subscred) and  probSubscr(cfg,that,ctlpack,subscred)
+																	nb in fact() we run numbSubscr(val/cfg?,that,ctlpack,subscred) and  probSubscr(cfg,that,ctlpack,subscred)
 																	
 																				that sets some dev  property in mqttInst itself , like :
 																				- that.mqttTopPub[portid]=topicPub, ..... 
@@ -3495,6 +3495,8 @@ to simulate a ha cmdtopic versus a type 0 var , protocol ....... :
 to check if is correcly send :
  	mosquitto_sub -t @Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd  -u sermovox -P sime01 -h bot.sermovox.com -p 1883
 
+to get cm topic x interface :
+mosquitto_sub -t @Casina_API@interface_mqtt_websock_0/NReadUser/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 1883
 ___________________________________________
 
   
@@ -3675,6 +3677,14 @@ console.log(typeOfNaN('polo'));
 // Expected output: "Number NaN"
 
 >> donot use Number.isNaN() !
+
+
+
+
+typeof '8'   > 'string' 
+typeof 8   > 'number' 
+
+
 ____________________________________
 too much listener sent on :             console.error(' stlist() listener no ERROR. now adding a listener x dev : ', dev, 'in current mqttinst.statuslist: ', mqttInst.statusList);// 05052023   dev is the devid x debug only
 
@@ -5646,10 +5656,93 @@ nb     // reset update or new ?  todo
                                                                         // ctlpack.ctl.cfg.haEntity is the ha entity related to device with portid :  portid=ctlpack.ctl.gpio,
                                                                         // nb  only device that are relayed on user ha can have haEntity,and (no probe ) haManButton
                                                                         // haEntity is the target of topic or pubtopic 
-                                                                        // haMabButton event are source of cmdtopic msg to fv3
+                                                                        // haManButton event are source of cmdtopic msg to fv3
+                                                                        
+                                                                        
+                                                                        
+        06122023 
+        - correggere quello sopra + finire i commenti :
+                           "automation anticipate": [          // this will be triggered on fv3 ws ctl  : use Subscribe to trigger (like that one) or Subscribe to events (state_changed)
+                                    // see in .....
+                                    
+                                    
+        - spiegare come si configura i .on in hawsclient e la sequenza dei sethaws()  e haws.setSwitch() :
+        
+        	quando in numbSubscr e probSubscr si registrano i subscription 
+        				nb in numbSubscr e probSubscr  si costruiscono i invTopic che danno info in incoming per gestire il trattamento dei topics in arrivo
+        				
+        					i msg di un dev sono emessi con FORMAT che , per ogni topics, dipende dal protocol e sono def  :			<<< DDUU
+        						- in writeSync son def i msg format di  pubtopic se previsto o topic 
+        							nel caso in cui ci sia il pubtopic il format del dev topic  , si trova nel readSync che li legge  dal queue 
+        								ATTENZIONE che per il solo type 1, puo avere 2 format  (se non c'e' il pubtopic) uno sparato dal device fisico e l'altro con il writesync
+        										SAREBBE DA TOGLIERE O MANDARLO IN OGNI CASO SUL PUBTOPIC   
+        						- per i cmdtopic dal format che è accettato dai interrupt handler del device (e dal suo topic ??)
+        						
+        					quindi sarebbe bene specificare le  function che generano i msg in un unico punto ad es in numbSubscr e probSubscr e 
+        							>>  metterle nel invTopic ???
+        						in particolare se si ricevono i cmdtopic che vanno assegnati a interrupt handler specifici per il msg che il dev che emette il cmdtopic
+        					
+        	
+				ora se il dev e' connesso al ha (wsclient=ws) si vede se ha proprietà : haEntity,haManButton
+				se cosi è allora ci sarà  definito wsclient.sethawse lo si chiama per configurare ws e hawsclient che setta gli handler di eventi/trigger relativi ai entity di ha associate al dev 
+			
+			
+        
+        		sequenza ...
+        		
+        		  "automation anticipate": [          // this will be triggered on fv3 ws ctl  : use Subscribe to trigger (like that one) or Subscribe to events (state_changed)
+    {                                 // see in haWs when in numbSubscr() registering subscriptions we call :
+                                      //     ctlpack.ctl.wsclient.sethaws(ctlpack,topic, topicNodeRed,pubtopic); that calls in numberSubscr():
+                                      //          this.pubsTop[pubtopic]= haws.setSwitch(ctlpack,topic, topicNodeRed,pubtopic); that set the handler that send cmdtopic when press button input_button.start_ensavings
+        		
+        		
+        			???: quando si chiama il communication wsclient.on, nel caso si tratti di object ws, si procede a configurare il ws broker hawsclient (non il mqtt brocker library cioe il obj client) con :
+        				 this.pubsTop[pubtopic]= haws.setSwitch(ctlpack,topic, topicNodeRed,pubtopic);
+        		
+        
+        - ricordare che il comunication (fatta con i topics) dei dev (object client se mqtt, object ws se ws con ha, si recovera in ctl.wsclient 
+        		e dove si setta il wsclient !
+        			... 
+        		
+        		e si accerti che i property in piu del ws vengono chiamati solo quando wsclient=ws e non =client !!!   > tipicamente semplicemente verificando che wsclient abbia def tale funzione
+       
+       
+       
+       - spiegare come vengono costruiti i msg per i topics in msgFormat in particolare per i cmdtopic :
+       
+       	.........
+       	
+       	    topicMsg: // will be set in ctl so ctl.write this is the ctl
+		    // dev writes on a topic or (type 1 ) on pubtopic :
+			//       >> we use pubtopic only in type 1 , protocol shelly   , 
+			//          according with content of mqttTopPub/mqttTop 
+
+			//    nb all topics(topic,pubtopic,cmdtopic) are defined in numbSubscr/probeSubscr depending on type and protocol
+			//          and put into mqttTopPub/mqttTop and invTopic 
+			//    
+			function(val_){
+			   return bank[this.cl](this.cfg.protocol,this.mqttInst.plantName,val_,this.gpio);// this.cl=type, gpio = portid
+			},
+		    cmdtopicMsg:function(url,val_=0,user='extctlId'){// there must be a url/inthandler registered on goonP() that maps to a interrupt handler 
+				                                    // url can be avoid if it is unique for a portid (ex setMan if portid!=0 )
+				                // ext ctl like node red use cmdtopic to influence the fv3 algo impacted by the dev. cmdtopic in income will interrupt with a handler that will
+				                //      process the msg with right format . the handler is designed to influence the running algos by a ext ctl event related to the device dev
+				                //          ex: the ext ctl wants to change the intermediate var type 2 (with state ) calculated by algos !  
+				                //      to get the msg just call ctl.cmdtopicMsg(0/1)
+				                
+				                // ** the msg to pass to interrupt handler of the dev has a std format depnding on url  interrupt handlers , so format depends on :
+				                //  - url (the handled interface  designed to respond to this dev cmdtopic to call ) and event (the specifiv uri/handler, like a appended /somerestcomand)
+				                //  - not from the dev type and protocol !!! ...   , 
+				                //      >>>  see income processing :isCmdTopic 
+				                //      >>    in incoming the  msg.url must address the correct handler , see isCmdTopic !!
+		       	
+       	 ........
+       
+       
                           
 .....................
-
+ todo:
+  add in probSubscr the same added in numbSubscr : wsclient.sethawse()
 
 
  _______________________________
@@ -5700,21 +5793,27 @@ nb     // reset update or new ?  todo
  	 			 ctl:
  	 			    new fc(gp,ind,inorout,cfg,that)			
  	 			    
- 	 			    									
- 	 			    									ctl=new fc(gp,ind,inorout,cfg) called in : 
- 	 			    										  ctlpack = mqttInst.fact(num, ind, iotype, injCustDev_)    called in 
+ 	 			    									nb : 
+ 	 			    									ctl=new fc(gp,ind,inorout,cfg) built/called in .fact() : 
+ 	 			    										  ctlpack={ctl,devNumb,type}= mqttInst.fact(num, ind, iotype, injCustDev_)    called in 
  	 			    										 
- 	 			    										  	getio(gpio,clas,ind,ismqtt,mqttInst); 	 called in:
+ 	 			    										  	getio.getio(gpio,clas,ind,ismqtt,mqttInst); 	 called in:
  	 			    										
- 	 			    										 		doSomethingAsync(gpio,ind,ismqtt=false	called from getctls() in :
+ 	 			    										 		doSomethingAsync(gpio,ind,ismqtt=false	called from getio.getctls() in :
  	 			    													
  	 			    													 build() with :
  	 			    													  
  	 			    													 	mqttInst=mqtt.init(plantconfig)) ; the obj containing directives and
- 	 			    													 					  the factory fact() to commect the device on mqtt topics
+ 	 			    													 					  the factory fact() to commect the device 
+ 	 			    													 					  	on/to mqtt topics, using mqtt client,
+ 	 			    													 					  	and on ha related entities using  :
+ 	 			    													 					  		
+ 	 			    													 		mqttInst.wsclient will be the mqttlike client that connects 
+ 	 			    													 		plant devs to associated ha related entities
+ 	 			    													 					  	
  	 			    													 					  	
  	 			    													 	
- 	 																 	getio.getctls(mqttInst,gpionumb,mqttnumb,false,mqttWebSock);
+ 	 																 	getio.getctls(mqttInst,gpionumb,mqttnumb,false,mqttWebSock);   KKGG
  	 																 
  	 																 	
  	 		 	 		ctl=new fc(gp,ind,inorout,cfg)= 
@@ -5983,13 +6082,14 @@ __________________________
 				      ,shell:'/bin/sh\necho povero > generated.txt'//'#!/bin/sh\n cd /config \n git add .'
 				      ,shellname:'fvshell.sh'
 				    };
-		
+
+
 
 quindi addUserPlant() sarà aggiunto a plants di model.js plants={MarsonLuigi_API:{},,,,}  :
-					una copia di Casina come devices : plants[plant].cfg
+					una copia di Casina come devices cfg: plants[plant].cfg
 					+ dati propri per il user , mail,,,
-					+ add the user ha device maps , cioe i entity che sono connessi ai device utente
-	so from plants.x we can build :
+					+ add the user ha device maps , cioe i entity che sono connessi ai device utente dai dati di registrazione utente copiati in models.haCfgData
+	so from plants.x we can build , see QQII , :
 		- the entities sui quali costruire i dashboards
 		- the dashboard definition build on the entities 
 		- and then build the obj wsclient to interface ha switches 
@@ -6008,7 +6108,7 @@ quindi addUserPlant() sarà aggiunto a plants di model.js plants={MarsonLuigi_AP
 	from the a std json we change the reference to hw switch of customer got from plant cfg .
 	so get a std json , change user specific switch , then transform to yaml !
 	so get the file riguardate rssi : dashboard_yaml_1.json
-	 	- the entity if not user specific :
+	 	- the entity if not user specific, that are  :
 	 				>	 "switch.rssi" and "switch.acssw"
 	 		are defined in downloaded package/fv3/ 
 	
@@ -6018,8 +6118,296 @@ quindi addUserPlant() sarà aggiunto a plants di model.js plants={MarsonLuigi_AP
 _________________________________________
 todo : inserire info in ctlpack del client che usa il device mqtt o se connesso via ws  wsclient o se connesso openremote roClient ......., see ctlpackmngsum
 
+_____________________________
 
+last project/testing  on homeassistant-ws is in : home/luigi/localdev/homeassistant-ws-git/homeassistant_new
 
 _________________________________________________
 
+di seguito un howto aggiornato : 
+ - organizzazione cfg di user plant :		QQII
+   si recuperano i dati di cfg dalla registrazione del user chiamando l'handler addPlantHandler:
  
+		 haCfgData={casinauser1:{// will be registered by user/installer from web  to create the user ha yaml file : addPlantHandler(user,cfgdata=haCfgData)
+		  email:'luigi.marson@gmail.com',
+		  token:'123',
+		  pass:'pass',
+		  localEntity: // AAQR this is user plant data formatted after gather it from a web. to insert on plant.localEntity and 
+			       // also merged into  mqttnumb,mqttprob as  haEntity,haManButton the ha entity that send topic and cmdtopic configured on :
+			       //        setSwitch:function (ctlpack,topic, topicNodeRed,pubtopic){// **
+
+				//was : {switch_consenso:'switch.rssi',sensor_t_giorno:'sensor.shelly_ht_temp'},changed with :
+		 
+		  {mqttnumb:[['switch.rssi',null],//  index 0 : haEntity,haManButton if the dev is connected to ha
+		      null,null,null,null,null,
+		      [?,'input_button.start_ensavings'],// var gas/fv
+		      []//  var not acs
+		    
+		    
+		    ],// 
+		    mqttprob:[
+		      [null,'input_button.start_ensavings']
+		      ,null,null,null
+		    ]
+		}}
+		}
+ 
+ 
+ 
+ 
+ dopo aver storato la cfg del plant in cfgdata=model.cfgData[user] .   {email,pass,token,reset=true, localEntity}=cfgdata;
+ si crea la plant cfg :  model.addUserPlant(plant,cfgdata);// the plant obj
+ 	si usa  localEntity x generare il plant cfg 
+ 	
+ 			devcfg : cfgs[ucfg]=new defFVMng(user,plant,localEntity);
+ 	
+ 	                plants[plant]=plantItem={cfg:cfgs[ucfg],// will be put in state.app.plant
+                                                        // remember: // the dev  ha related entity is (ctlpack.ctl.cfg=plant.cfg.mqttnumb/mqttprob[dev]).haEntity/haManButton is 
+                                                        // the ha entity related to device with portid :  portid=ctlpack.ctl.gpio,
+                        name:plant,// duplicated FFGG
+                        passord:pass,// not used 
+                        users:[user],
+                        token:[token],// really token has a client and a permission to act on some data/process
+                        email:email
+                        ,localEntity // stored here , after will be also merged to numb
+                                      // was:{switch_consenso:'switch.rssi',sensor_t_giorno:"sensor.shelly_ht_temp"}
+                        }
+ 	
+ 	:
+ 
+ quindi si genera la cfg del pachage e dashboard con : plantModel.yaml=genYaml1( plantModel,cfgdata,plant);
+ 
+ xxxxxx
+ - organizzazione package e dashboard  : see content.txt
+ 	si parte da configuration_21112023_ok_beforepackage.yaml e :
+ 	- si sposta da tale file tutta la cfg delle entities e automation, che saranno usate nella config della installazione user, in un package dir
+ 		
+ 			package/
+ 				consenso.yaml
+ 				anticipate_vardev.yaml
+ 				interface.yaml // the dev mqttWebSock
+ 				
+ 		dopo alcuni step incrementali registrati nella lib transition_2package_perognifileinpiu/...
+ 		si arriva cosi alla fine e costruire la lib: /home/luigi/hamount/luigi/Documents/save/from_mqtt2wsha_haws/transition_2package_perognifileinpiu/insert_acsandpp_15122023/to (UUJJ)
+ 		tali file vengono poi trasformati in json ,
+ 				nb ed eventualmente copiati su fv3 project defFVMng/package/energyEngineService come .comment 
+ 		tali json sono trasformati qui nei file versione websocket e posti nella lib /home/luigi/localdev/raspexampl/fv/haCfg/defFVMng/package/energyEngineService  ( HHVV )
+	 		 nb : la trasformazione ad ogni inserimento di file è tracciata in transition_2.... dir (UUJJ) 
+	 		  	es in UUJJ aggiungiamo il file interface.yaml (spostando le entities e loro automation definition in configuration.yaml), con le entities related ai dev:
+
+	 		  		- {portid:777,subtopic:'var_state_',varx:0,isprobe:false,clas:'var',protocol:'mqttstate'} type 4
+			 		  	 	compensivo di tutte le entity definite in state:
+			 		  	 	        state:[
+								          ['state.battery','input_number.battery'],// * put battery value in entity input_number.battery !
+									  ['state.inverter','input_number.inverter'],// *
+									  ['state.desTemp','input_number.desTemp'],// *
+									  // [state.relays.acs,'input_text.acs'],  // * forse già usato solo come entity di acs pump: so useless 
+									  ['state.anticipate','input_text.opirun'],// * convertite true/false > 'ON'/'OFF'
+									  ['state.program','input_text.pgmrun'],// * convertite true > 'ON'
+									  ['sender.user','input_text.opt_service1'],// *
+									  ['sender.user','input_text.opt_service'],// * todo debug its value setting , 
+
+			 		- mqttWebSock type 0 	comprensivo delle entity def in haManButton:                                  
+			 		  	  haManButton:[['input_button.start_savingservice','repeatcheckxSun'],// entity firing event on url related to cmdtopic 
+								  ['input_button.stop_savingservice','stopcheckxSun'],
+								  ['input_button.start_progservice','repeatcheckxPgm'],
+								  ['input_button.stop_progservice','stopcheckxPgm']
+								  
+								  > spostare def delle entities e loro automation !
+								  > esse spareranno i cmdtopic (con url=)....   con le event specificati al dev haManButton di fv3
+								  > manca una entity su cui inviare topic o pubtopic (non si writeSync su tale dev mqttWebSock !)!
+								  
+					- {portid:55,subtopic:'var_gas-pdc_',varx:4,isprobe:false,clas:'var',protocol:'mqttstate',	// !acs type 1 pump dev
+							      // this non depend on cust def entity so just put in the constructor :
+							      haEntity:'input_text.text',// var gas/pdc, anticipate . ha un entity text e un cmd topic setMan on e off 
+							      haManButton:[['input_button.start_ensavings','on'],// ha entity firing event on url related to cmdtopic :setMan
+							      ['input_button.stop_ensavings','off'],// todo:  add std event on , off
+							       ] },		  
+				                  
+				                  	nb as type 1 dev when migrate from client to ws we don need the blueprint trigger to update state , we use the haEntity property to 
+				                  		update the entity using a ws command 
+				                  		as soon as a pubtopic is fired by the dev 
+				                  		
+				 nb 	> we leave in configuration.yaml all user defined entity (usually mqtt entity)
+				 	> when migrating to ws (when we review the package/energyEngineService/xxx.json) in lib HHVV we dont need :
+				 		- all blueprint triggers 
+				 			as we change the ha entities using ws command in (topic/pubtopic) ha handler returned by setSwitch() 
+				 		- all triggers that send to cmdtopic as done in setSwitch
+				 			in case of input_button, if we find difficult to have a state_changed  event got in hawsclient setSwitch,   
+				 				we can fire a specific event using automation triggers, than catch thay yevent in setSwitch
+				 			ws library and so send the cmdtopic to fv3 as programmed in  setSwitch
+				 		- the configuration in UUJJ will be reduced into configurationAdd. that is the part that need to added to user configuration.haml to get the config in package and dashboards dir in   
+				 		   so user will add in cfg dir :
+				 		    	 - the extension configurationAdd.yaml
+				 		    	 and dirs in HHVV :
+				 		    	 	package/energyEngineService  and dashboard/energyEngineService 
+				 		    	 	
+				 		    	 - to be copied in local cfg package and dashboard dir
+				 		    	 
+				 		    
+				 	> we insert in models.js haCfgData only the state,haManButton,haEntity that are user defined ( dev type 1), the other will be inserted on constructor models.js defFVMng
+______________________________________________
+conversione yaml > json : www.atatus.com/tools/json-to-yaml
+
+_____________________--
+token x aiax of registered user :
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/register  or /registerPlant
+
+______________________________________________
+
+haws init trace :
+
+**  module structure 
+
+- module.exports ={
+    init:function(plantconfig){// wait connection and subsribe all gpio x plantconfig, 
+                                                    // so  as soon cb is called we have status[gp]=[] (the subscription is ok )
+                                                    //  old :  'gpio_11':[[id,topic],,,,,,]}){//console.log('rest init : load http: ',http_);
+        return new mqttClass(plantconfig);// returns the mqtt instance to connect the plant devices 
+    	}
+    }
+
+- si crea il ctl del ws verso ha :
+	- haws=require('./hawsclient.js');
+	
+	- subito si configura passando :
+			 le caratteristiche del dev (ctlpack) e il handler che porterà i topics di ha publishing   sul income di fv3    : 
+		haws.init(ctlpack,ctlcb = (topics,val)=>{}) // il handler che porta i topics di ha publishing   sul income di fv3 
+		
+- si crea il nuovo mqtt che controlla i device che operano su gpio.mqtt e ora anche verso ha
+	- ws={// LLKK 
+	....
+	}
+	
+	in pratica è come il mqtt client ma con metodi aggiuntivi per configurara la connessione ws client (haws) verso ha 
+	
+- // start here old mqtt.js code (connette dev non related to ha , es var autonome)
+	var mqtt = require('mqtt');/
+
+- connect mqtt brokers :
+	
+    console.log("mqtt starting :  asking connection to broker with ops: " + JSON.stringify(options,null,2));
+	client = mqtt.connect(options);if(OR_Present)roClient = mqtt.connect(roOptions);
+ 		     		     
+ - mqtt client connecting .... , so registering message listener ..   : 
+    client.on('message',(msgList= msgListFact(waitListReturn,waitPromiseRes,CheckPrevMessageEnd)));
+       
+ - create the dev ctl constructor :
+ 	let fc= function (gp,ind,inorout,cfg,mqttInst){// mqtt gpio constructor new fc()  will return the io ctl
+ 	
+	 	//  if dev is not connected to ws ha ( the dev is connected to some ha entity if some cfg.haEntity/haManButton is not null) use mqtt client
+	 	(cfg.haEntity!=null||cfg.haManButton!=null)?this.wsclient=mqttInst.ws: this.wsclient=client;  // ctl.wsclient is the client (mqtt like) to connect the device 
+ 	
+ - let wscon=require('haws'); ???????
+ 
+ - function mqttClass(plantconfig){ // PPLL sostituisce il vecchio mqtt instance creator  , connette mqtt via brocker e i entity ha via ws 
+ 
+ 	  this.wsclient=new ws();// LLKK ,  the ws ha connection x dev that has connection with ha entity (haEntity,haManButton). other will have mqtt client  or gpio raspberry
+		...........
+	  wscon.init   // ?????  wscon will automatically fill the dev queue 
+	   // when disconnect the queue is going void so readsync can retun null and the running algo can discard the loop run waiting a not void queue
+	   (swname,(val)=>{ // no!, arrow function take this from outer object , the obj n which you call the function !!
+	       this.mqttInst.status[gp].push
+	   });
+	}
+** trace 
+
+-0 in fv3 buildPlantDev :
+	- create the mqttInst :
+		const Newmqtt=true;//debug, true: use the new haWs client broker (see HHBB) : 
+				    // it uses mqtt std client brocker 
+				    //    > to connect mqtt real dev (type 1), var dev (type 2,4 ) without a related ha entity ,...
+				    // but also ws client
+				    //    > to connect dev topics to its ha entities) 
+	  let mqtt=Newmqtt ? require('./nat/haWs'):require('./nat/mqtt');
+	  if(!(mqttInst=mqtt.init(plantconfig))){
+		// nb mqttInst.wsclient will be the mqttlike client ws that connects plant devs to associated ha related entities
+				it will work with haws=require('./hawsclient');
+				.........
+			 nb normal mqtt client connection to brocker, is still available in haWs using (but how is the client choosen ?) :
+			 	client = mqtt.connect(options);if(OR_Present)roClient = mqtt.connect(roOptions);
+			 	client is fully operational and build the incoming fv3 process topic msg handler :
+			 		client.on('message',(msgList= msgListFact(waitListReturn,waitPromiseRes,CheckPrevMessageEnd)));
+			 		
+	- then build the dev ctl see KKGG  :
+
+		myctls_= getio.getctls(mqttInst,gpionumb,mqttnumb,false,mqttWebSock);// get devices choosing from describing gpio and mqtt info array : these are the visible rele/var in browser
+		       ={ctls:[ctl1,,,,,],devmap:[{devNumb,devType,portnumb},,,,]}
+		        ctlx e' buildato da :
+		         infatti la sequenza di call è :
+		         >  {ctls:[ctl1,,,,,],devmap:[{devNumb,devType,portnumb},,,,]}= getctls(mqttInst,gpionumb,mqttnumb,false,mqttWebSock);/
+		         	> doSomethingAsync(gpio,ind,ismqtt=false
+		         		> getio.getio(gpio,clas,ind,ismqtt,mqttInst);
+		         			>  mqttInst.fact(num, ind, iotype, injCustDev_)   
+		         				
+
+		         				> ctl=new fc(gp,ind,inorout,cfg,mqttInst) , see TTRROO
+		         				
+		         					** here we set the client to use :
+		         					(cfg.haEntity!=null||cfg.haManButton!=null)?this.wsclient=mqttInst.ws: this.wsclient=client;//  ERROR , so use > mqttInst.wsclient
+		         					.....
+		         					where we cfg the readSync and writeSync
+		         					in writeSync we publish on ctl.wsclient :
+		         						this.wsclient.publish(topic, message, pub_options, function (err) {
+		         				
+		         				ctlpack={ctl,devNumb,type}
+		         				
+		         				> numbSubscr(cfg,that,ctlpack,subscred); // where we subscribe dev topics using the dev ctl.wsclient (**)
+
+		         					 	- ctlpack will be made available in invTopic in processing the msg topic in incoming handler gooP()
+		         					 	- we call   ctlpack.ctl.wsclient.sethaws(ctlpack,topic, topicNodeRed,pubtopic);
+		         					 		that call haws.setSwitch(ctlpack,topic, topicNodeRed,pubtopic) in ha ws library haws=hawsclient.js
+ 	 			    										   
+		         
+		        	....
+		        
+		myprobs_= getio.getctls(mqttInst,null,mqttprob,true,null);// 
+		
+	- so buildPlantDev() returns promise resolving into : {myctls:ctl1,myprobs:ctl2,pythonprobs}  dove ctl1 risolto da myctls_ e ctl2 da myprobs_
+		used to fill state. ....      :  
+		..........
+
+- 1 in getio  create and init the haWs :
+	mqtt=Newmqtt ? require('./haWs')
+
+-  ......
+
+
+
+
+
+- now test the aiax to create a new plant config :
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/registerPlant
+
+
+
+
+ old discarded code :
+ - in msgformat.js :
+	// old : better do a init to do a instance to set also mqttInst, so a ref to specific plant info (to send plant attributes in dev cmd topic !!!!)
+
+ ____________________________________________
+ 
+ todo  casina in pgmrun off :
+ 	- continua a cambiare il clima se lo setto diverso. evidentemente essendo program service status on il state viene updatato ogni 5 min e i rssi e' settato conforme allo state che non viene cambiato aggiornando rssi !
+ 	> sol : stoppare sia pgm che anticipate cosi lo state non viene piu affiornato !
+ 	
+_________________________________________________
+encode \n , see https://unix.stackexchange.com/questions/191694/how-to-put-a-newline-special-character-into-a-file-using-the-echo-command-and-re
+			https://www.debian.org/doc/manuals/debian-reference/ch11.en.html#_eol_conversion
+			https://ioflood.com/blog/bash-echo-newline/
+			https://www.tutorialspoint.com/node-js-util-format-method
+			https://kodekloud.com/blog/read-file-in-bash/
+
+echo $'first line\nsecond line\nthirdline\n' | xxd 					>>> The $'...' construct expands embedded ANSI escape sequences.
+echo "first line\nsecond line\nthirdline\n" | xxd
+
+echo -en 'first line\nsecond line\nthird line\n'
+
+so in binary file the new line is xx 0a , encoding the \n in text file !
+ when watch the binary file gedit show the new line , when watch the text file show \n  !! 
+
+
+
+
+ _____________________

@@ -1,0 +1,424 @@
+see  https://forum.huawei.com/enterprise/en/communicate-with-fusionsolar-through-an-openapi-account/thread/591478-100027?page=4
+
+https://eu5.fusionsolar.huawei.com/thirdData/login
+post json raw body:
+{
+"userName":"MarsonLuigi_API",
+"systemCode":"Huawei@123"
+}
+
+Password: "Huawei@123"
+
+
+so get the token :
+
+x-dejyo75cvybw3wum9edj89nzs56o5jrtsa9i9go71djwcbgbvwcbg9ob6k6nbxfxuro6ns6n7sqneljymkpgpj096mjt87rvhg2rheo9rxuko4fy9jimtfepbxeldfbv
+______________________________________
+
+with postman:
+
+https://eu5.fusionsolar.huawei.com/thirdData/getStationList
+header param :
+XSRF-TOKEN :x-dejyo75cvybw3wum9edj89nzs56o5jrtsa9i9go71djwcbgbvwcbg9ob6k6nbxfxuro6ns6n7sqneljymkpgpj096mjt87rvhg2rheo9rxuko4fy9jimtfepbxeldfbv
+Content-Type :  application/json
+
+json body :
+{}
+
+so get the stationCodes : NE=35350463
+
+
+with curl :
+curl --location 'https://eu5.fusionsolar.huawei.com/thirdData/getStationList' \
+> --header 'XSRF-TOKEN: x-c51g856m2m1hdihiphrt2q6piq09enfy7vqm0acbeqhcc7o5nzs6mm2pipdcmqdfmnaqem444btfilrtfv88ny6paljt6ngbsaqolc885jo6cak7tc9fkblfarvs4b8b' \
+> --header 'Content-Type: application/json' \
+> --data '{
+>     
+> }'
+
+returns :
+{"data":[{"aidType":2147483647,"buildState":null,"capacity":0.005,"combineType":null,"linkmanPho":"","stationAddr":"Via Damiano Chiesa, 33170 Pordenone PN, Italia","stationCode":"NE=36026831","stationLinkman":"","stationName":"MarsonLuigi Via D. Chiesa"},{"aidType":1,"buildState":null,"capacity":0.007,"combineType":null,"linkmanPho":"","stationAddr":"Via Bunis, 27 33084 Cordenons PN, Italia","stationCode":"NE=35350463","stationLinkman":"","stationName":"MarsonLuigi"}],"failCode":0,"message":null,"params":{"currentTime":1697707053819},"success":true}
+_________________________________
+
+https://eu5.fusionsolar.huawei.com/thirdData/getStationRealKpi
+header param :
+XSRF-TOKEN :x-dejyo75cvybw3wum9edj89nzs56o5jrtsa9i9go71djwcbgbvwcbg9ob6k6nbxfxuro6ns6n7sqneljymkpgpj096mjt87rvhg2rheo9rxuko4fy9jimtfepbxeldfbv
+Content-Type :  application/json
+
+json body :
+{"stationCodes":"NE=35350463"}
+
+
+{
+    "data": [
+        {
+            "stationCode": "NE=35350463",
+            "dataItemMap": {
+                "total_income": 0.0,
+                "total_power": 426.32,
+                "day_power": 0.31,  quest'oggi prodotti 310wh  
+                "day_income": 0.0,
+                "real_health_state": 3,
+                "month_power": 16.74
+            }
+        }
+    ],
+    "failCode": 0,
+    "message": null,
+    "params": {
+        "currentTime": 1670179487432,
+        "stationCodes": "NE=35350463"
+    },
+    "success": true
+
+
+_________________________________
+
+get current time :
+date +%s000
+1667842362000
+cala 3600000 ogni ora per calcolare lo start time 
+
+o
+
+time='2022-11-07 08:00:00';date -d "$time" +%s000
+1667804400000
+
+
+
+nb to convert from milliseconds to date :
+ms_date=1667808000000; date -d @$(((ms_date + 500)/1000))
+
+
+
+https://eu5.fusionsolar.huawei.com/thirdData/getKpiStationHour
+header param :
+XSRF-TOKEN :x-dejyo75cvybw3wum9edj89nzs56o5jrtsa9i9go71djwcbgbvwcbg9ob6k6nbxfxuro6ns6n7sqneljymkpgpj096mjt87rvhg2rheo9rxuko4fy9jimtfepbxeldfbv
+Content-Type :  application/json
+
+json body :
+{"stationCodes":"NE=35350463",
+"collectTime":1667842362000
+
+}
+
+torna ogni ora il inverter_power è power medio ora ora+1 :
+        {
+            "collectTime": 1667804400000,
+            "stationCode": "NE=35350463",
+            "dataItemMap": {
+                "radiation_intensity": null,
+                "inverter_power": 0.46,
+                "power_profit": 0.0,
+                "theory_power": null,
+                "ongrid_power": 0.0
+            }
+        },
+_________________________________
+
+
+https://eu5.fusionsolar.huawei.com/thirdData/getDevList
+header param :
+XSRF-TOKEN :x-dejyo75cvybw3wum9edj89nzs56o5jrtsa9i9go71djwcbgbvwcbg9ob6k6nbxfxuro6ns6n7sqneljymkpgpj096mjt87rvhg2rheo9rxuko4fy9jimtfepbxeldfbv
+Content-Type :  application/json
+
+json body :
+{
+
+"stationCodes":"NE=35350463"		
+
+
+}
+
+get list of dev :
+
+        
+  {
+    "data": [
+        {
+            "devName": "Inverter-1",
+            "devTypeId": 38,
+            "esnCode": "HV2250541615",      S/N 
+            "id": 1000000035350464,
+            "invType": "SUN2000-6KTL-L1",
+            "latitude": 45.979023,
+            "longitude": 12.680175,
+            "optimizerNumber": 0,
+            "softwareVersion": "V200R001C00SPC122",
+            "stationCode": "NE=35350463"
+        },
+        {
+            "devName": "Battery-1",
+            "devTypeId": 39,
+            "esnCode": null,
+            "id": 1000000035350466,
+            "invType": null,
+            "latitude": 45.979023,
+            "longitude": 12.680175,
+            "optimizerNumber": null,
+            "softwareVersion": null,
+            "stationCode": "NE=35350463"
+        },
+        {
+            "devName": "Meter-1",
+            "devTypeId": 47,
+            "esnCode": null,
+            "id": 1000000035350465,
+            "invType": null,
+            "latitude": 45.979023,
+            "longitude": 12.680175,
+            "optimizerNumber": null,
+            "softwareVersion": null,
+            "stationCode": "NE=35350463"
+        }
+    ],
+    "failCode": 0,
+    "message": null,
+    "params": {
+        "currentTime": 1670182336310,
+        "stationCodes": "NE=35350463"
+    },
+    "success": true
+  
+  
+  in curl :
+  luigi@luigi-Vostro-3560:~$ curl --location 'https://eu5.fusionsolar.huawei.com/thirdData/getDevList' \
+> --header 'XSRF-TOKEN: x-c51g856m2m1hdihiphrt2q6piq09enfy7vqm0acbeqhcc7o5nzs6mm2pipdcmqdfmnaqem444btfilrtfv88ny6paljt6ngbsaqolc885jo6cak7tc9fkblfarvs4b8b' \
+> --header 'Content-Type: application/json' \
+> --data '{"stationCodes":"NE=35350463"
+> }'
+{"data":[{"devName":"Inverter-1","devTypeId":38,"esnCode":"HV2250541615","id":1000000035350464,"invType":"SUN2000-6KTL-L1","latitude":45.979023,"longitude":12.680175,"optimizerNumber":0,"softwareVersion":"V200R001C00SPC130","stationCode":"NE=35350463"},{"devName":"Battery-1","devTypeId":39,"esnCode":null,"id":1000000035350466,"invType":null,"latitude":45.979023,"longitude":12.680175,"optimizerNumber":null,"softwareVersion":null,"stationCode":"NE=35350463"},{"devName":"Meter-1","devTypeId":47,"esnCode":null,"id":1000000035350465,"invType":null,"latitude":45.979023,"longitude":12.680175,"optimizerNumber":null,"softwareVersion":null,"stationCode":"NE=35350463"}],"failCode":0,"message":null,"params":{"currentTime":1697708128876,"stationCodes":"NE=35350463"},"success":true}luigi@luigi-Vostro-3560:~$ 
+
+luigi@luigi-Vostro-3560:~$ curl --location 'https://eu5.fusionsolar.huawei.com/thirdData/getDevList' \
+> --header 'XSRF-TOKEN: x-c51g856m2m1hdihiphrt2q6piq09enfy7vqm0acbeqhcc7o5nzs6mm2pipdcmqdfmnaqem444btfilrtfv88ny6paljt6ngbsaqolc885jo6cak7tc9fkblfarvs4b8b' \
+> --header 'Content-Type: application/json' \
+> --data '{"stationCodes":"NE=36026831"
+> }'
+{"data":[{"devName":"INV-HV2160184230","devTypeId":38,"esnCode":"HV2160184230","id":1000000036026833,"invType":"SUN2000-5KTL-L1","latitude":45.965359,"longitude":12.678223,"optimizerNumber":0,"softwareVersion":"V200R001C00SPC130","stationCode":"NE=36026831"},{"devName":"Battery-1","devTypeId":39,"esnCode":null,"id":1000000036026834,"invType":null,"latitude":45.965359,"longitude":12.678223,"optimizerNumber":null,"softwareVersion":null,"stationCode":"NE=36026831"},{"devName":"Meter-1","devTypeId":47,"esnCode":null,"id":1000000036026835,"invType":null,"latitude":45.965359,"longitude":12.678223,"optimizerNumber":null,"softwareVersion":null,"stationCode":"NE=36026831"}],"failCode":0,"message":null,"params":{"currentTime":1697708461109,"stationCodes":"NE=36026831"},"success":true}luigi@luigi-Vostro-3560:~$ 
+
+
+
+so summary use : 
+
+curl --location 'https://eu5.fusionsolar.huawei.com/thirdData/getDevList' \
+--header 'XSRF-TOKEN: x-c51g856m2m1hdihiphrt2q6piq09enfy7vqm0acbeqhcc7o5nzs6mm2pipdcmqdfmnaqem444btfilrtfv88ny6paljt6ngbsaqolc885jo6cak7tc9fkblfarvs4b8b' \
+--header 'Content-Type: application/json' \
+--data '{"stationCodes":"NE=36026831"
+}'
+____________________________
+https://eu5.fusionsolar.huawei.com/thirdData/getDevRealKpi
+header param :
+XSRF-TOKEN :x-dejyo75cvybw3wum9edj89nzs56o5jrtsa9i9go71djwcbgbvwcbg9ob6k6nbxfxuro6ns6n7sqneljymkpgpj096mjt87rvhg2rheo9rxuko4fy9jimtfepbxeldfbv
+Content-Type :  application/json
+
+json body x batteria :
+{
+"devIds":"1000000035350466",
+"devTypeId":"39"
+}   
+
+returns : 
+            "dataItemMap": {
+                "max_discharge_power": 5000.0,
+                "max_charge_power": 5000.0,
+                "battery_soh": 0.0,
+                "busbar_u": 438.8,
+                "discharge_cap": 5.49,
+                "ch_discharge_power": -444.0,
+                "run_state": 1,
+                "battery_soc": 79.0,
+                "charge_cap": 8.25,
+                "ch_discharge_model": 4.0,
+                "battery_status": 2.0
+            }
+
+or x meter :
+{
+"devIds":"1000000035350465",
+"devTypeId":"47"
+}  
+returning :
+            "dataItemMap": {
+                "active_cap": 0.0,
+                "meter_status": 1.0,
+                "meter_i": -0.14,
+                "reverse_active_cap": 21.02,
+                "power_factor": 0.0,
+                "reactive_power": 44.0,
+                "active_power": -19.0,   >>>   negative means power consumption from grid
+                "run_state": 1,
+                "meter_u": 229.1,
+                "grid_frequency": 50.04
+            }
+            
+or x inverter 
+       
+ {
+"devIds":"1000000035350464",
+"devTypeId":"38"
+}  
+
+returning :
+{
+    "data": [
+        {
+            "devId": 1000000035350464,
+            "dataItemMap": {
+                "pv1_u": 0.0,				tensione stringa 1
+                "pv2_u": 0.0,
+                "pv3_u": 0.0,
+                "pv4_u": 0.0,
+                "pv5_u": 0.0,
+                "pv6_u": 0.0,
+                "power_factor": 0.998,
+                "pv7_u": 0.0,
+                "pv8_u": 0.0,
+                "inverter_state": 513.0,
+                "open_time": 1667799123000,
+                "a_i": 1.723,
+                "total_cap": 197.26,
+                "c_i": 0.0,
+                "b_i": 0.0,
+                "mppt_3_cap": 0.0,
+                "a_u": 116.6,
+                "reactive_power": 0.0,
+                "c_u": 0.0,
+                "temperature": 26.2,
+                "b_u": 0.3,
+                "bc_u": 0.0,
+                "elec_freq": 49.97,
+                "mppt_4_cap": 0.0,    
+                "efficiency": 100.0,
+                "day_cap": 13.98,
+                "mppt_power": 0.0, 				 power fv
+                "run_state": 1,
+                "close_time": "N/A",
+                "mppt_1_cap": 133.17,
+                "pv1_i": 0.0,					corrente stringa 1
+                "pv2_i": 0.0,
+                "pv3_i": 0.0,
+                "pv4_i": 0.0,
+                "active_power": 0.39,  no :power injected by inverter (home +(?) grid ?)
+                "mppt_2_cap": 107.21,
+                "pv5_i": 0.0,
+                "pv6_i": 0.0,
+                "ca_u": 0.0,
+                "ab_u": 233.4,
+                "pv7_i": 0.0,
+                "pv8_i": 0.0
+            }
+        }
+    ],
+    "failCode": 0,
+    "message": null,
+    "params": {
+        "currentTime": 1667848077463,
+        "devIds": "1000000035350464",
+        "devTypeId": 38
+    },
+    "success": true
+}
+
+example of curl equiv :
+
+- login:
+
+curl -v -location --request POST 'https://eu5.fusionsolar.huawei.com/thirdData/login' \
+--header 'Content-Type: application/json' \
+--data-raw ' {
+"userName":"MarsonLuigi_API",
+"systemCode":"Huawei@123"
+} '
+
+- overview :
+
+curl -v -location --request POST 'https://eu5.fusionsolar.huawei.com/thirdData/getKpiStationHour' \
+--header 'XSRF-TOKEN: x-ftlfdeg7jsumg9pec6ul05s9vv2kvyikuliqerhc5ciq6nfw7vgbpgbwg5s6teg6ipmpjs5feohfs42n89hfntfuiqjxnvc7ka9f5jtcpfvv2rek9goa6qs73zdfnzqk' \
+--header 'Content-Type: application/json' \
+--header 'Cookie: Path=/;Secure;
+ XSRF-TOKEN=x-3z8apfphbyhdljph48vs3w2rgamp0b4b2qrx85rtcb081cfuumk7qopiljliap86kbtjs65dlgc92p6mvziqruurrt3yfuil44g80b4abzljpgmkiontqm07ntg7tc04' \
+--data-raw ' {
+"stationCodes":"NE=35350463",
+"collectTime":"1667842362000"
+} ' 
+
+
+
+
+
+- dev list :
+
+getDevList
+
+
+
+- real time power :
+
+https://eu5.fusionsolar.huawei.com/thirdData/getDevRealKpi
+
+
+ or : 
+
+https://region03eu5.fusionsolar.huawei.com/pvmswebsite/nologin/assets/build/index.html#/kiosk?kk=gKeJze1Ft2F2EF7qcLp9GlDjjwPqJ8Au
+
+(?:([1-9]?[0-9])[a-zA-Z ]{0,20}(?:arrests|arrested))
+
+"$email" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$ ]]
+
+device :
+
+curl --location --request POST 'https://eu5.fusionsolar.huawei.com/thirdData/getDevRealKpi' \
+> --header 'XSRF-TOKEN: x-o548tcvxs409pjdf8ao9g4lfftipmlapgbdcs76pdgamqqs9hdbyjylj2lkamnmqs6li5d5ephqqrzo4endeo5mm1jdh1dfvvxqnhipcumdh1e9fk7nsftdjbzbzbzdi' \
+> --header 'Content-Type: application/json' \
+> --header 'Cookie: JSESSIONID=BBC9929868ACCEA3B8E77C2D46740B15; XSRF-TOKEN=x-o548tcvxs409pjdf8ao9g4lfftipmlapgbdcs76pdgamqqs9hdbyjylj2lkamnmqs6li5d5ephqqrzo4endeo5mm1jdh1dfvvxqnhipcumdh1e9fk7nsftdjbzbzbzdi' \
+> --data-raw ' {
+> "devIds":"1000000035350464",
+> "devTypeId":"38"
+> } '
+{"data":[{"devId":1000000035350464,"dataItemMap":{"pv1_u":338.6,"pv2_u":305.4,"pv3_u":0.0,"pv4_u":0.0,"pv5_u":0.0,"pv6_u":0.0,"power_factor":1.0,"pv7_u":0.0,"pv8_u":0.0,"inverter_state":513.0,"open_time":1668059142000,"a_i":1.231,"total_cap":226.08,"c_i":0.0,"b_i":0.0,"mppt_3_cap":0.0,"a_u":116.7,"reactive_power":0.001,"c_u":0.0,"temperature":26.9,"b_u":0.2,"bc_u":0.0,"elec_freq":49.99,"mppt_4_cap":0.0,"efficiency":100.0,"day_cap":2.84,"mppt_power":1.176,"run_state":1,"close_time":"N/A","mppt_1_cap":148.46,"pv1_i":1.92,"pv2_i":1.9,"pv3_i":0.0,"pv4_i":0.0,"active_power":0.276,"mppt_2_cap":120.06,"pv5_i":0.0,"pv6_i":0.0,"ca_u":0.0,"ab_u":233.9,"pv7_i":0.0,"pv8_i":0.0}}],"failCode":0,"message":null,"params":{"currentTime":1668075476794,"devIds":"1000000035350464","devTypeId":38},"success":true}luigi@luigi-Vostro-3560:~$ 
+
+or
+curl --location --request POST 'https://eu5.fusionsolar.huawei.com/thirdData/getDevRealKpi' \
+> --header 'XSRF-TOKEN: x-o548tcvxs409pjdf8ao9g4lfftipmlapgbdcs76pdgamqqs9hdbyjylj2lkamnmqs6li5d5ephqqrzo4endeo5mm1jdh1dfvvxqnhipcumdh1e9fk7nsftdjbzbzbzdi' \
+> --header 'Content-Type: application/json' \
+> --header 'Cookie: XSRF-TOKEN=x-o548tcvxs409pjdf8ao9g4lfftipmlapgbdcs76pdgamqqs9hdbyjylj2lkamnmqs6li5d5ephqqrzo4endeo5mm1jdh1dfvvxqnhipcumdh1e9fk7nsftdjbzbzbzdi' \
+> --data-raw ' {
+> "devIds":"1000000035350464",
+> "devTypeId":"38"
+> } '
+{"data":[{"devId":1000000035350464,"dataItemMap":{"pv1_u":338.6,"pv2_u":305.4,"pv3_u":0.0,"pv4_u":0.0,"pv5_u":0.0,"pv6_u":0.0,"power_factor":1.0,"pv7_u":0.0,"pv8_u":0.0,"inverter_state":513.0,"open_time":1668059142000,"a_i":1.231,"total_cap":226.08,"c_i":0.0,"b_i":0.0,"mppt_3_cap":0.0,"a_u":116.7,"reactive_power":0.001,"c_u":0.0,"temperature":26.9,"b_u":0.2,"bc_u":0.0,"elec_freq":49.99,"mppt_4_cap":0.0,"efficiency":100.0,"day_cap":2.84,"mppt_power":1.176,"run_state":1,"close_time":"N/A","mppt_1_cap":148.46,"pv1_i":1.92,"pv2_i":1.9,"pv3_i":0.0,"pv4_i":0.0,"active_power":0.276,"mppt_2_cap":120.06,"pv5_i":0.0,"pv6_i":0.0,"ca_u":0.0,"ab_u":233.9,"pv7_i":0.0,"pv8_i":0.0}}],"failCode":0,"message":null,"params":{"currentTime":1668075476794,"devIds":"1000000035350464","devTypeId":38},"success":true}luigi@luigi-Vostro-3560:~$ 
+
+
+or 
+curl -v --location --request POST 'https://eu5.fusionsolar.huawei.com/thirdData/getDevRealKpi' \
+--header 'XSRF-TOKEN: x-3z8apfphbyhdljph48vs3w2rgamp0b4b2qrx85rtcb081cfuumk7qopiljliap86kbtjs65dlgc92p6mvziqruurrt3yfuil44g80b4abzljpgmkiontqm07ntg7tc04' \
+--header 'Content-Type: application/json' \
+--header 'Cookie: JSESSIONID=C0E1F7188F10B32FBA0DE801091AF7C3;  XSRF-TOKEN=x-3z8apfphbyhdljph48vs3w2rgamp0b4b2qrx85rtcb081cfuumk7qopiljliap86kbtjs65dlgc92p6mvziqruurrt3yfuil44g80b4abzljpgmkiontqm07ntg7tc04' \
+--data-raw ' {
+"devIds":"1000000035350464",
+"devTypeId":"38"
+} ' > inv.json 
+
+
+
+_______________________________
+
+riassumendo :
+
+login :
+curl -v --location --request POST 'https://eu5.fusionsolar.huawei.com/thirdData/login' --header 'Content-Type: application/json' --data-raw '{"userName":"MarsonLuigi_API","systemCode":"Huawei@123"}'
+poi per device dopo aver updatato token :
+
+or better device :
+
+inv:
+curl --location --request POST 'https://eu5.fusionsolar.huawei.com/thirdData/getDevRealKpi' --header 'XSRF-TOKEN: x-s57v1cdgk5hfilntrz7sdcjsaqo8iok984pebzgabs846rumfx9f07hhga7t2ljugb85nzg51e1hkbnycb2p08bzakqn3y7yvsalbsti9f5dmrandeg6hgukardjtimo' --header 'Content-Type: application/json' --header 'Cookie: XSRF-TOKEN=x-s57v1cdgk5hfilntrz7sdcjsaqo8iok984pebzgabs846rumfx9f07hhga7t2ljugb85nzg51e1hkbnycb2p08bzakqn3y7yvsalbsti9f5dmrandeg6hgukardjtimo' --data-raw ' {
+"devIds":"1000000035350464","devTypeId":"38"} '
+
+reply  (power fv is mppt_power":1.779 ): 
+{"data":[{"devId":1000000035350464,"dataItemMap":{"pv1_u":342.5,"pv2_u":320.3,"pv3_u":0.0,"pv4_u":0.0,"pv5_u":0.0,"pv6_u":0.0,"power_factor":1.0,"pv7_u":0.0,"pv8_u":0.0,"inverter_state":513.0,"open_time":1668059142000,"a_i":8.778,"total_cap":228.73,"c_i":0.0,"b_i":0.0,"mppt_3_cap":0.0,"a_u":116.1,"reactive_power":0.0,"c_u":0.0,"temperature":31.7,"b_u":0.2,"bc_u":0.0,"elec_freq":49.97,"mppt_4_cap":0.0,"efficiency":100.0,"day_cap":5.49,"mppt_power":1.779,"run_state":1,"close_time":"N/A","mppt_1_cap":152.08,"pv1_i":3.46,"pv2_i":2.25,"pv3_i":0.0,"pv4_i":0.0,"active_power":2.036,"mppt_2_cap":123.07,"pv5_i":0.0,"pv6_i":0.0,"ca_u":0.0,"ab_u":233.5,"pv7_i":0.0,"pv8_i":0.0}}],"failCode":0,"message":null,"params":{"currentTime":1668089590592,"devIds":"1000000035350464","devTypeId":38},"success":true}
+
+battery :
+curl --location --request POST 'https://eu5.fusionsolar.huawei.com/thirdData/getDevRealKpi' --header 'XSRF-TOKEN: x-vt5chh5d07dd8949fz07o85c0b3ter893s1jvzcbrtirvu9fdfqp5g9ipcpcars4jwlduoiog6by3u1hpd5hjx85rvpemmk6pcakaqmmpj3vfuqogaby2maro7c8k4up' --header 'Content-Type: application/json' --header 'Cookie: XSRF-TOKEN=x-vt5chh5d07dd8949fz07o85c0b3ter893s1jvzcbrtirvu9fdfqp5g9ipcpcars4jwlduoiog6by3u1hpd5hjx85rvpemmk6pcakaqmmpj3vfuqogaby2maro7c8k4up' --data-raw ' {"devIds":"1000000035350466","devTypeId":"39" }'
+replay (%battery is battery_soc ) :
+{"data":[{"devId":1000000035350466,"dataItemMap":{"max_discharge_power":5000.0,"max_charge_power":5000.0,"battery_soh":0.0,"busbar_u":438.8,"discharge_cap":3.03,"ch_discharge_power":-442.0,"run_state":1,"battery_soc":70.0,"charge_cap":4.2,"ch_discharge_model":4.0,"battery_status":2.0}}],"failCode":0,"message":null,"params":{"currentTime":1668090218598,"devIds":"1000000035350466","devTypeId":39},"success":true}      

@@ -1,32 +1,46 @@
 
-let msgList;// msgList handle managing topic messages from mqtt or ha ws
-let haws=require('./hawsclient');
-let wsclient={  subTop:[],// ** the fv3 subscr topics x  msgHand income handler 
+let msgList;// msgList handle managing topic messages from mqtt and ha ws
+let hawsclient=require('./hawsclient');
+let ws={  // */ todo 1 instance x plant. it will be used if there are some dev (old: with cfg.connect2HA=true, or)  has some haEntity/haManButton attribute
+            // ** HHBB  ws: is the dev client library to connect ( readSync writeSync ) , using  the dev topics,  when the dev want to readSync writeSync to related ha entities  
+            //          >> sostituisce il client library mqtt std x those dev
+            //      add that instance to ctl.wsclient=ws if the dev is connected to ws ha, if not  set ctl.wsclient=client to std mqtt client
+          //        nb wsclient can have 2 client instance (ws/client) like have 2 different broker but with same income handler
+          //        nb dev (both ws and client instance type)  will subscribe dev topics (topic and cmdtopic) to be collected by income handler when published by the same dev
+          //            so for dev related to ha entities (ws instance type) we add a subTop item , used when (same) dev publish subscribed topics ( same dev so same instance type)
+          //        nb a dev can publish only its topics not other dev topics !
+                connected:true,// >>>>>>>>>>>>>    todo , probably at start we must wait a first ping , and after monitor the connection state
+                subTop:[],// ** the fv3 subscr topics x  msgHand income handler 
                 // ** now the ha registered handler, raggruppati per topic e pubtopic, ma non servirebbe basta un unico registro ! ! 
-                stdTop:{}, // ** ha topic trigger handler registration, handler to call when a topics (of type topic) are published , so the handler of a url/event/topics
-                pubsTop:{}, // ** ha pubtopic trigger handler registration, handler to call when a topics (of type pubtopic) are published , so the handler of a url/event/topics
+                stdTop:{},  // ** YYKK  ha topic trigger handler registration, ha handler to call when a topics (of type topic) are published , so the handler of a url/event/topics
+                pubsTop:{}, // ** YYKK  ha pubtopic trigger handler registration, ha handler to call when a topics (of type pubtopic) are published , so the handler of a url/event/topics
                             //   registered when call setSwitch:function (name,cmdent,ent,ctlpack) in  numbSubscr(val, that, ctlpack, subscred)  when setting regtopic[topic] ????
                 msgHand:null,// set by .on, the handler of fv3 subscribed msg 
-                income:function(topic,val){
+
+                reconnection:null,// TODO reconnection offline  behaviour that will manage connected true/false
+                
+                income:function(topics,msg){// from external ha/.. (publish),  relayed by YYPP,  pass the topics msg to fv3 registered message handler
+                                            // in effetti i topics (topic and cmdtopic) sono già subscribed in fv3 !
                     //if(topicisnotonsubTop)
-                    this.msgHand(topic,val);// pass if registered
+                    if(this.msgHand)this.msgHand(topics,msg);// pass if registered
 
                 },
-                on:function(event,hand){// every published topic msg will call fv3 hand (topic, message, packet) got calling factor: hand=msgListFact(waitListReturn, waitPromiseRes, CheckPrevMessageEnd) {
+                on:function(event,hand){// every published topic msg ,if subscribed, will call fv3 hand (topic, message, packet) got calling factor: hand=msgListFact(waitListReturn, waitPromiseRes, CheckPrevMessageEnd) {
     return function (topic, message, packet) {
                     if(event=='message'){
                         this.msgHand=hand;
-                    }
+                    }else if(event=='reconnect') this.reconnection=hand;
 
                 }},
                 subscribe:function (topic,errhand){// subscribe topic to be handled by fv3 hanler , pushing to subTop. when publsh msg will be handled by msgHand
                     if(this.subTop.indexOf(topic)<0)this.subTop.push(topic);
 
                 },
-                publish:function (topics,val,option=null,errF){// publish(topics, message, pub_options, function (err){})
+                publish:function (topics,val,option=null,errF){// fv3 calls publish on this ha related dev: publish(topics, message, pub_options, function (err){})
                                                                 /* ** 
+                                                                    
                                                                 // chiama : 
-                                                                //      - fv3 income handler msgHand se subscribed to this topics ,quindi registrati in subTop[] 
+                                                                //      - fv3 income handler msgHand if subscribed to this topics ,quindi registrati in subTop[] 
                                                                 //      - ha topic handler registered in .stdTop 
                                                                 //      - ha pubtopic handler registered in .pubsTop   
                                                                 */
@@ -34,7 +48,7 @@ let wsclient={  subTop:[],// ** the fv3 subscr topics x  msgHand income handler
                     // fire fv3 .on handler 
                     if(this.subTop.indexOf(topics)>=0 &&this.msgHand)this.msgHand(val);// call fv3 income handler
                         else mret='haWs.publish(): topic not registered'
-                    if(this.stdTop[topics])this.stdTop[topics](val);// ** fire ha trigger registered for dev topic 
+                    if(this.stdTop[topics])this.stdTop[topics](val);// ** equivalent of firing ha topic trigger handler registered for dev topic or update a state of a mqtt sensor  
                     if(errF)errF(mret);// call errF
                     // fire ha trigger handler registered on topic (topic or pubtopic )
                     if(this.pubsTop[topics])this.pubsTop[topics](val);// ** fire ha trigger registered for dev pubtopic 
@@ -74,15 +88,20 @@ let wsclient={  subTop:[],// ** the fv3 subscr topics x  msgHand income handler
                                     // in  numbSubscr(val, that, ctlpack, subscred)  when setting regtopic[topic] ????
                                     // this.subTop[topic]= this.setSwitch(name_,cmdent,ent,ctlpack);// put ent,cmdent,all topics in ctlpack ?  name are useless as we are working on topics
 
-                                    this.stdTop[topic]=           // ** ha topic/pubtopic trigger handler . when writesync we publish on topic or on pubtopic , so in anycase we must call the ha trigger handler x this dev :
-                                    this.pubsTop[pubtopic]= haws.setSwitch(ctlpack,topic, topicNodeRed,pubtopic);   // ** put ent,cmdent,all topics in ctlpack ?  name are useless as we are working on topics
-                                                                                                                    // ** ha can use ctlcb   to send topic/topicnodered to fv3 income handler 
+
+                                                                // ** register topics and its handler for ha entity/trigger related to dev  
+                                                                //      > in this implementation the handler for pubtopic = for topic because in any case we update the entity related to the dev
+
+
+                                    let hand =         // ** YYKK ha topic/pubtopic trigger handler . when writesync we publish on topic or on pubtopic , so in anycase we must call the ha trigger handler x this dev :
+                                     hawsclient.setSwitch(ctlpack,topic, topicNodeRed,pubtopic);   // ** put ent,cmdent,all topics in ctlpack ?  name are useless as we are working on topics
+                                    if(ctlpack.ctl.cl==1)this.pubsTop[pubtopic]=hand;else this.stdTop[topic]=hand;  // type 1 will set pubtopic handler                                                                                                             // ** ha can use ctlcb   to send topic/topicnodered to fv3 income handler 
                                 }
 };
-const ctlComTopic_=null;// useless
-haws.init(ctlpack,(topics,val)=>{// ** =ctlcb , ctlcb(topics,stateChangedEvent.data.new_state.state); via .income(), ha entity triggers calls the dev topics fv3 income process handler : this.msgHand(topics,val);
-                        //      topics emitted from ha can be topic/topicNodeRed
-                        // >>>>>        setSwitch will call this cb  so the val can be send to income handler with topic topic
+const ctlComTopic_=null;// useless  entStates
+hawsclient.init((topics,val)=>{// ** =ctlcb , ctlcb(topics,stateChangedEvent.data.new_state.state); via .income(), ha entity triggers calls the dev topics fv3 income process handler : this.msgHand(topics,val);
+                        //      topics emitted from ha can be topic/topicNodeRed=cmdtopic
+                        // >>>>>        setSwitch will call this cb  so the val can be send to income handler with topic topics
 
                         // pay attention that mqtt will anyway active also if we are using a haws device interface
                         // so we will pubs on mqtt topic/pubtopic , then 
@@ -108,10 +127,11 @@ haws.init(ctlpack,(topics,val)=>{// ** =ctlcb , ctlcb(topics,stateChangedEvent.d
                         //                  COSI, facendo  setSwitch(name,cmdent,ent)(val): faccio anche il subscription del cmd topic handler ai change/button press di cmdent :
                         //                          quindi con setSwitch faro il subscription sia del topic che del cmd topic i cui handler saranno  ctlcb(topic,val)  e ctlcb(cmdtopic,val) 
 
-                        if(wsclient!=null)wsclient.income(topics,val);// ha wants pass message to income handler
+                        if(ws!=null)ws.income(topics,val);// ha wants pass message to income handler
                                                                     // here we simulate a wsclient.publish() that will fire all fv3 subscribed topic handler
 
-                    },ctlComTopic_);    
+            }
+                );//,ctlComTopic_);    
 
 
 // start here old mqtt.js code 
@@ -280,6 +300,7 @@ if (client) {
     const CheckPrevMessageEnd = false; // debug 
     
     client.on('message',(msgList= msgListFact(waitListReturn,waitPromiseRes,CheckPrevMessageEnd)));// msgList handle managing topic messages from mqtt or ha ws
+    ws.on('message',msgList);// both use same income handler
 }
 
 function msgListFact(waitListReturn, waitPromiseRes, CheckPrevMessageEnd) {
@@ -389,15 +410,13 @@ function msgListFact(waitListReturn, waitPromiseRes, CheckPrevMessageEnd) {
                     if (!fromthisctl)fillqueue();
                     else 
                      console.log(' mqtt Received message x dev ', dev, ' thats a var , coming from itself so wont fill its queue ');//so can readsync the fotmatted value (payload) if is not a presence  ');
-
                 }
-
-                else {// isCmdTopic  , news now also rele dev can have cmdtopic !!. // cmd topic dont write to dev queue, just interrupt ! valid now for var and also for rele dev !!!
+                else {// isCmdTopic  , news now also rele dev (type 1) can have cmdtopic !!. // cmd topic dont write to dev queue, just interrupt ! valid now for var and also for rele dev !!!
                     if (ctlpack.type == 'mqtt' && (ctlpack.ctl.cl == 2 || ctlpack.ctl.cl == 1 || ctlpack.ctl.cl == 4)|| ctlpack.ctl.cl == 0) {// a type 2 var or a rele with cmd topic.
                         //  >>>>>>>>  in future also type 4 with specific interrupt
                         let type = ctlpack.ctl.cl; if (type == 4) {
-                            fillqueue();
-                            // ..... like other type but with specific interrupt
+                            fillqueue();// ?? , perhaps just write in queue like was a internal writesync (type 2,4 writeSync dont send pubtopic but directly as simulate the dev snd in topic that fills the queue) !!!!
+                            // to do ..... like other type but with specific interrupt
                         } else {//  type 0, 1 and 2    , message_ not null if well formatted 
                                 // msg = 
                                 //      if type 0, 1 , 2 :  a number like  0/1  if type 0 and 2 is well formatted
@@ -409,12 +428,16 @@ function msgListFact(waitListReturn, waitPromiseRes, CheckPrevMessageEnd) {
                             // let ass=ctlpack.ctl.readSync;
                             console.log('  message  with cmd topic x device ', dev, ', of type ', ctlpack.ctl.cl, ' , so  interrupt to update the value. after update this dev will writesync the value x confirmation');
 
-                            if (Number.isNaN(val_ = msg))// if(Number.isNaN(val_=Number(msg)))
+                            if (Number.isNaN(val_ = msg))// if(Number.isNaN(val_=Number(msg))), the payload must be a number (also as string)
                                 console.error('  message   a cmd msg with payload ', msg, ' , x  dev ', dev, ', payload is not a string number so reject ... todo');
 
                             // if the text msg must be processed according to type in adev  call readsync otherwise can use msg
                             // if (mqttInst.status[dev].length > 0)// per sicurezza il dato deve essere nel queue
                             // ctlpack.ctl.readSync().then((read) => {// read the queue last pos
+
+                            // >>> now map requested url into a interrupt handler assigned to a property of ctl :
+                            //      setMan          <>  ctl.int1    the handler of setMan is registered on int1 property
+                            //      mqttxwebsock    <>  ctl.intWebSoc
 
                             // if cmdtopic type 2 , message_={,,sender,payload:'thevalueputinqueue',...,checked,url:'setMan',,}
                             let intHand = null, data = null;
@@ -652,6 +675,16 @@ let fc= function (gp,ind,inorout,cfg,mqttInst){// mqtt gpio constructor new fc()
                                 // type = old :  inorout is the dev type or capability requested ,must match the config data got in init()
                                 //        new :  can be 'out' for gpio like relais (cfg in mqttnumb) or 'in-var' for mqtt probes/var (cfg in mqttprob)
                                 //  update : if clas/inorout='out', now we can also  have rele/pump dev ,and also var device with similar  config data  as mqttprob[i]
+
+
+    // set the client to use to connect the dev to mqtt / ws ha
+   (cfg.haEntity!=null||cfg.haManButton!=null||cfg.state!=null)?this.wsclient=mqttInst.ws: this.wsclient=client;//  if dev is not connected to ws ha (cfg.haEntity/haManButton not null) use mqtt client
+    //if(cfg.haEntity!=null||cfg.haManButton!=null)iswshaConnect=true;else false;
+
+    this.topicMsg=msgFormat.topicMsg;       // call message=this.topicMsg(val); to get msg x topic or pubtopic ( if type =1)
+                                            //  insert plant and dev info to send cmdtopic
+    this.cmdtopicMsg=msgFormat.cmdtopicMsg; // call message=this.cmdtopicMsg(val); to get msg x cmdtopic set by external node red to dev interrupt fv3 to influence the fv3 algo                                         // 
+
     this.gpio=gp;// gp: wh gpio or in case of mqtt dev the mqttnumb/mqttprob.portid 
                 // // portid , ex 11, warning il portid è unico a livello di plant !!!!!!!!!!!!!!!!!!! infatti la sua queue e'  nella mqttinstance
     this.devNumb=ind; // the associated array  item index  as displayed in browser  and for mqttnumb case the index  in relaisEv/relais_ 
@@ -907,7 +940,7 @@ fc.prototype.readSync =//  return the promise DDEERR resolving 0/1 or null if re
         if (mqttInst.status[gp]&&(curlength=mqttInst.status[gp].length)>0){
             
             if(!isWsCon){
-            if( client.connected//if(gpio[gp]&&client.connected
+            if( this.wsclient.connected//if(gpio[gp]&&client.connected
             // &&status[gp]
         ) {// still registered, subscribed, connected 
             let resolRead;
@@ -1232,7 +1265,8 @@ fc.prototype.readSync =//  return the promise DDEERR resolving 0/1 or null if re
 
     }
 
-fc.prototype.writeSync = function (val_) {// val_=0/1, or object in some protocol. can return false if in error 
+fc.prototype.writeSync_old = function (val_) {// val_=0/1, or object in some protocol. can return false if in error 
+                                        // for the format see DDUU 
     // will send a topic KKUU as registered in init() conf data for the device 
     // todo : in dev config data we can mark a dev if is available for out (a shelly 1 relay) or 'in' a HT device
     let intval=null;
@@ -1241,12 +1275,14 @@ fc.prototype.writeSync = function (val_) {// val_=0/1, or object in some protoco
     queue=this.mqttInst.status[gp],
     that=this;
     if (//gpio[gp]&&
-        client && client.connected && this.mqttInst.status[gp]) {// registered, subscribed, connected . in type wont write anything
+        client && this.wsclient.connected && this.mqttInst.status[gp]) {// registered, subscribed, connected . in type wont write anything
 
         let message, topic,// the topic to write 
             dev = this.gpio;// gpio is the devid/portid in case of mqtt.  dev == gp ????
 
         // no, get topic from devctl :    let pub_topic = shelly_stopic + this.cfg.subtopic+ shelly_topicpp;// KKUU calc the topic to send from config (according to dev type): shellies/ + <model>-<deviceid> + /relay/0/command  
+
+        // scegli dove pub il write : topic/pubtopic :
         if (this.mqttInst.mqttTopPub[dev]) {
             if (this.mqttInst.mqttTopPub[dev] == '') return ending(true);// dummy write
             else topic = this.mqttInst.mqttTopPub[dev];
@@ -1254,14 +1290,15 @@ fc.prototype.writeSync = function (val_) {// val_=0/1, or object in some protoco
 
         if (this.cl == 1) { // a rele/pump inorout='out'   see mqttnumb set , type 1
             if(intval==null)return false;
-            if (this.cfg.protocol == 'shelly')
-                if (intval == 0) message = messageOff; else message = messageOn;
+            
+            // if (this.cfg.protocol == 'shelly') if (intval == 0) message = messageOff; else message = messageOn;
+            message=msgFormat.write[this.cl ](this.cfg.protocol,intval);
 
             // clear msg queue ( and its listener ? must be rejected ????)
             // WARNING hope a message in transit dont get here meanwile !!!!
             this.mqttInst.status[gp].length = 0; // ??????
 
-            client.publish(topic, message, pub_options, function (err) {
+            this.wsclient.publish(topic, message, pub_options, function (err) {
                 if (err) {
                     console.log(" writeSync() an error: ",err," occurred during publish on dev: ", gp);
                     return ending(null);
@@ -1283,14 +1320,18 @@ fc.prototype.writeSync = function (val_) {// val_=0/1, or object in some protoco
                 //  let topic_ = 'ctl_' + topic + varx;// warning we add ctl_   !!!!
 
                 // if (val == 0) message = messageOff; else message = messageOn;
-               if(intval!=null) message = pub(intval, this.mqttInst.plantName, gp);
-               else message = pub(val_, this.mqttInst.plantName, gp);
+                let wval;
+               // if(intval!=null) message = pub(intval, this.mqttInst.plantName, gp); else message = pub(val_, this.mqttInst.plantName, gp);
+               intval!=null? wval=intval:wval=val_;
+               message=msgFormat.write[this.cl ](this.cfg.protocol,wval,this.mqttInst.plantName, gp);
 
+
+               
                 // clear msg queue ( and its listener ? must be rejected ????)
                 // WARNING hope a message in transit dont get here meanwile !!!!
                 this.mqttInst.status[gp].length = 0; // ??????
 
-                client.publish(topic, message, pub_options, function (err) {// async cb , exit before cb is called 
+                this.wsclient.publish(topic, message, pub_options, function (err) {// async cb , exit before cb is called 
                     if (err) {
                         console.log("An error occurred during publish on dev: ", gp);
                         return  ending(null);// ending(false);
@@ -1314,7 +1355,7 @@ fc.prototype.writeSync = function (val_) {// val_=0/1, or object in some protoco
 
                 this.mqttInst.status[gp].length = 0; // ??????
 
-                client.publish(topic, message, pub_options, function (err) {
+                this.wsclient.publish(topic, message, pub_options, function (err) {
                     if (err) {
                         console.log("An error occurred during publish on dev: ", gp);
                         return ending(null);// 
@@ -1339,6 +1380,134 @@ function ending (value) {
 
 }
 
+
+fc.prototype.writeSync = function (val_) {// val_=0/1, or object in some protocol (ex: ..........). can return false if in error 
+    // for the format see DDUU 
+// will send a topic KKUU as registered in init() conf data for the device 
+// todo : in dev config data we can mark a dev if is available for out (a shelly 1 relay) or 'in' a HT device
+
+// let intval=null;if(Number.isInteger(val_))intval=valCorrection(val_);// if val is integer, inverse value 0 <> 1  , because of gpio inversion !!!!
+
+let gp = this.gpio,// portid
+queue=this.mqttInst.status[gp],
+that=this;
+if (//gpio[gp]&&
+this.wsclient// client 
+//client 
+&& this.wsclient.connected && this.mqttInst.status[gp]) {// registered, subscribed, connected . in type wont write anything
+
+let message, topic,// the topic to write 
+dev = this.gpio;// gpio is the devid/portid in case of mqtt.  dev == gp ????
+
+// no, get topic from devctl :    let pub_topic = shelly_stopic + this.cfg.subtopic+ shelly_topicpp;// KKUU calc the topic to send from config (according to dev type): shellies/ + <model>-<deviceid> + /relay/0/command  
+
+// scegli dove pub il write : topic/pubtopic :
+if (this.mqttInst.mqttTopPub[dev]) {
+if (this.mqttInst.mqttTopPub[dev] == '') return ending(true);// dummy write
+else topic = this.mqttInst.mqttTopPub[dev];
+} else topic = this.mqttInst.mqttTop[dev];// same as write topic (subscription)
+
+
+if (this.cl >= 0 &&this.cl < 5) { // a rele/pump inorout='out'   see mqttnumb set , type 1
+//if(intval==null)return false;
+
+// if (this.cfg.protocol == 'shelly') if (intval == 0) message = messageOff; else message = messageOn;
+message=this.topicMsg(val_);
+if(message==null) return false;
+
+// clear msg queue ( and its listener ? must be rejected ????)
+// WARNING hope a message in transit dont get here meanwile !!!!
+if(this.cl!=3 ){this.mqttInst.status[gp].length = 0; // ??????  when we write , reset the income queue ?
+
+this.wsclient.publish(topic, message, pub_options, function (err) {
+if (err) {
+console.log(" writeSync() an error: ",err," occurred during publish on dev: ", gp);
+return ending(null);
+} else {
+console.log("writeSync() , using instance ", that.mqttInst.id, " Published on device ", dev, " , a msg ", message, ',successfully with protocol ', this.cfg.protocol, ' and topic ', topic);
+return ending(message);
+}
+});
+}else return(message);
+return true;
+
+} 
+
+/*
+
+else if (this.cl == 2 || this.cl == 4) {// a var in mqttnumb or mqttprob[i] , type 2 e 4
+
+
+
+// let { topic, varx, isprobe, clas ,protocol} = this.cfg;// protocol:'mqttstate'
+//topic_=topic;
+
+if (this.cfg.protocol == 'mqttstate') {// si applica la regola std  per settare il topic x le variabili che metto in mqtt!
+//  let topic_ = 'ctl_' + topic + varx;// warning we add ctl_   !!!!
+
+// if (val == 0) message = messageOff; else message = messageOn;
+let wval;
+// if(intval!=null) message = pub(intval, this.mqttInst.plantName, gp); else message = pub(val_, this.mqttInst.plantName, gp);
+intval!=null? wval=intval:wval=val_;
+message=msgFormat.write[this.cl ](this.cfg.protocol,wval,this.mqttInst.plantName, gp);
+
+
+
+// clear msg queue ( and its listener ? must be rejected ????)
+// WARNING hope a message in transit dont get here meanwile !!!!
+this.mqttInst.status[gp].length = 0; // ??????
+
+this.wsclient.publish(topic, message, pub_options, function (err) {// async cb , exit before cb is called 
+if (err) {
+console.log("An error occurred during publish on dev: ", gp);
+return  ending(null);// ending(false);
+} else {
+console.log("writeSync() , using instance ", that.mqttInst.id, " Published on device ", dev, " , a var msg ", message, ",successfully to " + topic);
+let retv=ending(message);//retv=ending(true);
+return retv;// useless
+}
+});
+
+return true;// also if is in err
+}
+else return ending(false);// cant write to unknown proto 
+
+} else if (this.cl == 3) {// a probe in mqttprob[i] . a prob cant write |||||||||||||||||  sodo  return true
+return ending(true);
+}else if (this.cl == 0) {// a ctl , future use,  write as type 2 or type 4 (var), this is a dummy device for now , 
+// USUALLY till now, dont read , dont write , just process interrupt
+if (this.cfg.protocol == 'mqttxwebsock') {// val is integer 
+message = pub(intval, this.mqttInst.plantName, gp);
+
+this.mqttInst.status[gp].length = 0; // ??????
+
+this.wsclient.publish(topic, message, pub_options, function (err) {
+if (err) {
+console.log("An error occurred during publish on dev: ", gp);
+return ending(null);// 
+} else {
+console.log("writeSync() , using instance ", that.mqttInst.id, " Published on device ", dev, " , a var msg ", message, ",successfully to " + topic);
+return ending(message);
+}
+});
+return true;
+}
+else return ending(false);// cant write to unknown proto 
+} 
+
+*/
+
+else return ending(false);// return  false if error
+} else return ending(null);// cant write
+
+function ending (value) {
+that.lastwrite=value;// record last write
+console.log(' ** writesync , using instance ',that.mqttInst.id, ' for portid ',gp,', cl  ',that.cl,', is ending writing val/intval: ',val_,'/',intval,', now current dev queue is : ',queue,' returning code',value);
+return value;
+
+}
+}
+
 // built on the trace of mqtt.js
 module.exports ={// returns ...
 
@@ -1350,7 +1519,9 @@ module.exports ={// returns ...
     }
 }
 
-let wscon=require('haws');
+
+// old : let wscon=require('haws');
+const msgFormat = require('./msgFormat').setValC(valCorrection);// hust inject a func used also here
 function mqttClass(plantconfig){// PPLL now x mqtt + ws
     /* differencies from mqtt :
         in mqtt ho una connessione mqtt unica . ogni plant genera un mqttInst che permette di organizzare i topic e ottenere ctlpack con  mqttInst.fact() per avere il controller ctl , see AAKKPP in doc
@@ -1391,10 +1562,10 @@ function mqttClass(plantconfig){// PPLL now x mqtt + ws
 
 
 
-
+    this.ws=ws;//new ws();// the ws ha connection x dev that has connection with ha entity (haEntity,haManButton). other will have mqtt client  or gpio raspberry
 
     this.id= new Date().getTime();// debug 
-    this.gpio=null;// not used // deleted : gpio=plantconfig.devid_shellyname||{11:'shelly1-34945475FE06'}; 
+    // this.gpio=null;// not used // deleted : gpio=plantconfig.devid_shellyname||{11:'shelly1-34945475FE06'}; 
     this.mqttnumb=plantconfig.mqttnumb,
     this.mqttprob=plantconfig.mqttprob;// prob + var state cfg array
     this.mqttWebSock=plantconfig.mqttWebSock; // ctl config , standard 
@@ -1429,7 +1600,7 @@ function mqttClass(plantconfig){// PPLL now x mqtt + ws
     }}
 
    if(this.start()){
-    this.avail=true;// connected to broker, wating for all dev subscription cb
+    this.avail=true;// connected to broker, and to ha?, wating for all dev subscription cb
     // return this;
    }else {
     this.avail=false;
@@ -1437,36 +1608,36 @@ function mqttClass(plantconfig){// PPLL now x mqtt + ws
    }
 
 
-
+/* old to delete : 
    wscon.init   // wscon will automatically fill the dev queue 
    // when disconnect the queue is going void so readsync can retun null and the running algo can discard the loop run waiting a not void queue
-              
-   
    (swname,(val)=>{ // no!, arrow function take this from outer object , the obj n which you call the function !!
        this.mqttInst.status[gp].push
    });
-
+*/
 
 
     avail:null// null, true,false th connection to broker is ok
     // use : await read()
 
-}
+}// end  mqttClass 
 
 mqttClass.prototype.start = function
    (){// wait/check connection and subscribe all gpio , so  as soon cb is called we have set status[gp]=[] (the subscription is ok )
         // in future subscribe when the fc(gp,ind,type) is called as the device can be used differently depending on the type requested 
         //  and we can also add the ctl to the invTopic[topic]  so we can have info from ctl to do some preelaboration (?)
         let that=this;
+
+// >>>  todo : wait x connection of this.ws too ????
+
 if(!client){
-console.error("mqtt start() :client not available jet, too late ! recovering  todo ....");
+console.error("mqtt start() :mqtt client (or ws ha ?)  not available jet x plant ",this.plantName," , too late ! recovering  todo ....");
 return false }
-console.log("mqtt start() :  checking connection cb  to mosquitto, connection state: " + client.connected);
+console.log("mqtt start() :  checking connection cb  to mosquitto, x plant ",this.plantName,",  connection state: " + client.connected);
 let onlyone=false;
 
-if(!client.connected)client.on("connect",onconnection);else if(client.connected)onconnection();// check connection
-
-function onconnection() {// subscribe topic 'presence' only at connection start
+if(!client.connected)client.on("connect",onconnection);else if(client.connected)onconnection();// wait connection  to goon 
+function onconnection() {// subscribe topic 'presence' only at connection start on a new plant
 if (onlyone) return;
 onlyone = true;
 console.log("mqtt connected to mosquitto: " + client.connected, ' now we have to  subscript all devices with its topic ');
@@ -1578,8 +1749,6 @@ mqttClass.prototype.fact = function(gp,ind,inorout='out',injCustDev){// // gp=po
                 if(inorout=='in-var')  probSubscr(cfg,that,ctlpack,subscred); /// mqttprob described device // nb added ctlpack to give more info. that = mqttInst 
                 else if(inorout=='out'||inorout=='int') numbSubscr(cfg,that,ctlpack,subscred); // mqttnumb described device or a dummy ctl device x mqtt websocket interface
 
-
-
                 }
             }else{// alredy tryed to subscribe in onconnect (not std ), better avoid this case
             if(that.status[gp]){// is already subscript by numbSubscr() as the subscript cb is called and set status[gp]
@@ -1689,7 +1858,7 @@ function numbSubscr(val, that, ctlpack, subscred) { // see TTRROO
                 shelly_stopic + subtopic + shelly_topicp;// shellies/<model>-<deviceid>/relay  must be unique in all plants
             topicPub = shelly_stopic + subtopic + shelly_topicpp;// writesync pub to a rele cmd topic = pubtopic
             topicNodeRed = topic + nodeRedp;// news : anche i shelly possono essere comandati con meccanismo virtual da un ext ctl come node red o openremote usando questo topic
-            client.subscribe(topic, shelly_options, function (err) {// in bash do : mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+            ctlpack.ctl.wsclient.subscribe(topic, shelly_options, function (err) {// in bash do : mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
                 if (err) {
                     console.log("An error occurred while subscribing shelly: ", err);
                 } else {
@@ -1700,7 +1869,7 @@ function numbSubscr(val, that, ctlpack, subscred) { // see TTRROO
                 }
             });
 
-            if (topicNodeRed) client.subscribe(topicNodeRed, shelly_options, function (err) {// in bash do : mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+            if (topicNodeRed) ctlpack.ctl.wsclient.subscribe(topicNodeRed, shelly_options, function (err) {// in bash do : mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
                 if (err) {
                     console.log("An error occurred while subscribing a dev var")
                 } else;  // register a handler !
@@ -1760,8 +1929,8 @@ function numbSubscr(val, that, ctlpack, subscred) { // see TTRROO
     if (topicPub) that.mqttTopPub[portid] = topicPub;// register topic x publish if different from subscribe. can be null if writesync receves a null value
 
     //if(client.setSwitch)client.setSwitch(ctlpack.ctl.cfg,topic, topicNodeRed,pubtopic);// link calculated topics (topic,pubtopic,cmdtopic=topicNodeRed) to involved ha entities  
-    if(client.sethaws&&ctlpack.ctl.cfg.haEntity)// ** this dev has a ha related entity. ( cfg=ctlpack.ctl.cfg=plant.mqttnumb/mqttprob[dev]).haEntity/haManButton is the ha entity related to device with portid :  portid=ctlpack.ctl.gpio,
-    client.sethaws(ctlpack,topic, topicNodeRed,pubtopic);// link calculated topics (topic,pubtopic,cmdtopic=topicNodeRed) to involved (haEntity/haManButton ) ha entities  
+    if(ctlpack.ctl.wsclient.sethaws)//&&ctlpack.ctl.cfg.haEntity)// ** this dev has a ha related entity. ( cfg=ctlpack.ctl.cfg=plant.mqttnumb/mqttprob[dev]).haEntity/haManButton is the ha entity related to device with portid :  portid=ctlpack.ctl.gpio,
+    ctlpack.ctl.wsclient.sethaws(ctlpack,topic, topicNodeRed,topicPub);// link calculated topics (topic,pubtopic,cmdtopic=topicNodeRed) to involved (haEntity/haManButton ) ha entities  
     
     return true;// ??
 
@@ -1784,7 +1953,7 @@ function numbSubscr(val, that, ctlpack, subscred) { // see TTRROO
                           //      - will be customized using gpio set from device model config data in init() according with the type requested 
                           //      - must be done when fc device is created because the subsciption data can depend on the way we want to use the device ( the type requested in fc(gp,ind,type))
           */
-        client.subscribe(topic, shelly_options, function (err) {// in bash do : mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+        ctlpack.ctl.wsclient.subscribe(topic, shelly_options, function (err) {// in bash do : mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
             if (err) {
                 console.log("An error occurred while subscribing a dev var")
             } else {
@@ -1798,7 +1967,7 @@ function numbSubscr(val, that, ctlpack, subscred) { // see TTRROO
                 // >>> if the server keeps last var state we delete the current value ! 
                 // forse e meglio mndare il msg >ctlpresent solo se dopo aver subscribed non ricevo nulla e so che sto aprendo per la prima volta questa var 
                 let msgg=pub(">ctlpresent", that.plantName, portid); // todo avoid pub on topic !
-                client.publish(topicNodeRedPubish, msgg, opt,
+                ctlpack.ctl.wsclient.publish(topicNodeRedPubish, msgg, opt,
                 function (err) {
                     if (err) {
                         console.log("An error occurred during publish on portid: ", portid,'to ' + topicNodeRedPubish);
@@ -1815,7 +1984,7 @@ function numbSubscr(val, that, ctlpack, subscred) { // see TTRROO
                 //client.publish(topic, 'giovanni', opt);
 
                 // subscribe to receive  node-red cmd
-                if (topicNodeRed) client.subscribe(topicNodeRed, shelly_options, function (err) {// in bash do : mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+                if (topicNodeRed) ctlpack.ctl.wsclient.subscribe(topicNodeRed, shelly_options, function (err) {// in bash do : mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
                     if (err) {
                         console.log("An error occurred while subscribing a dev var")
                     } else;  // register a handler !
@@ -1878,7 +2047,7 @@ function numbSubscr(val, that, ctlpack, subscred) { // see TTRROO
             //      - will be customized using gpio set from device model config data in init() according with the type requested 
             //      - must be done when fc device is created because the subsciption data can depend on the way we want to use the device ( the type requested in fc(gp,ind,type))
 */                
-            client.subscribe(topic, shelly_options, function (err) {// in bash do : mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+            ctlpack.ctl.wsclient.subscribe(topic, shelly_options, function (err) {// in bash do : mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
                 if (err) {
                     console.log("An error occurred while subscribing a dev var")
                 } else {
@@ -1888,11 +2057,11 @@ function numbSubscr(val, that, ctlpack, subscred) { // see TTRROO
                     if (that.futurecb[portid]) that.futurecb[portid]();// check point to goon later when we want the gp ctl 
                     if(subscred)subscred({topic,cl_class});
 
-//client.publish(topic, "buona sera", opt);  // send msg with testtopic topic for debug and trace in var itself a connection was asked?
+//ctlpack.ctl.client.publish(topic, "buona sera", opt);  // send msg with testtopic topic for debug and trace in var itself a connection was asked?
                                     // >>> if the server keeps last var state we delete the current value ! 
                                     // forse e meglio mndare il msg >ctlpresent solo se dopo aver subscribed non ricevo nulla e so che sto aprendo per la prima volta questa var 
                         let msgg=pub(">ctlpresent",that.plantName,portid);
-                        client.publish(topicNodeRedPubish, msgg, opt,                    
+                        ctlpack.ctl.wsclient.publish(topicNodeRedPubish, msgg, opt,                    
                             function (err) {
                                 if (err) {
                                     console.log("An error occurred during publish on portid: ", portid,'to ' + topicNodeRedPubish);
@@ -1903,12 +2072,12 @@ function numbSubscr(val, that, ctlpack, subscred) { // see TTRROO
                                 }
                             }             
                         );// better send in specific sub topic 
-                        //client.publish(topic, 'paolo', opt);
-                        // client.publish(topic, defVar, opt);
-                        //client.publish(topic, 'giovanni', opt);
+                        //ctlpack.ctl.client.publish(topic, 'paolo', opt);
+                        // ctlpack.ctl.client.publish(topic, defVar, opt);
+                        //ctlpack.ctl.client.publish(topic, 'giovanni', opt);
 
                                             // subscribe to receive  node-red cmd
-                        client.subscribe(topicNodeRed, shelly_options, function (err) {// in bash do : mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+                        ctlpack.ctl.wsclient.subscribe(topicNodeRed, shelly_options, function (err) {// in bash do : mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
                             if (err) {
                                 console.log("An error occurred while subscribing a dev var")
                             } });
@@ -1932,7 +2101,7 @@ function numbSubscr(val, that, ctlpack, subscred) { // see TTRROO
     }
     if(topic){
         
-        client.subscribe(topic, shelly_options, function (err) {// in bash do : mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+        ctlpack.ctl.wsclient.subscribe(topic, shelly_options, function (err) {// in bash do : mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
             if (err) {
                 console.log("An error occurred while subscribing shelly")
             } else {

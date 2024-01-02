@@ -1,5 +1,5 @@
 const Newmqtt=true;
-let mqtt=Newmqtt ? require('./haWs'):require('./mqtt');// nb this module should be init by fv3 itself !!!  ceck it !
+let mqtt=Newmqtt ? require('../haWs'):require('../mqtt');// useless : nb this module should be init by fv3 itself !!!  ceck it !
 //const custDev=require('./custDevDef');
 let Gpio=false,rs485='rs485.py',pdate;// rs485 sh script on base dir
 let relais;// input gpio , temporaneamente fissi, non generati con chiamate  getctls: !

@@ -10,7 +10,7 @@
 require('dotenv').config();// load .env
 const INVERTONOFF_RELAY=process.env.INVERTONOFF_RELAY||(process.env.INVERTONOFF_RELAY=='true');
 
-const model=require("./nat/models.js");
+const model=require("./nat/models.js").init();// todo : add a .init() to recover added registered plants
 const dOraLegale=parseInt(process.env.dOraLegale)||0;
 const  pdate=function (){let d=new Date();d.setHours(d.getHours()+dOraLegale);return d;}
 
@@ -178,7 +178,7 @@ app.get("/", (req, res) => {
 
 });
 
-app.post("/registerPlant/", (req, res) => {// 11092023, this is called when ha register for a plant configuration passing json cfgdata or a sintesis of it
+app.post("/registerPlant_/", (req, res) => {// testing 11092023, this is called when ha register for a plant configuration passing json cfgdata or a sintesis of it
 
                             // new :
                             // user after registration pay and get a token in response to auth aiax request, then he can register the plant sending info about his shelly relays :
@@ -190,14 +190,14 @@ app.post("/registerPlant/", (req, res) => {// 11092023, this is called when ha r
                             // -  after when wants to access to restricted url from browser, as this url,
                             //         he will need to add token to auth header to access to url handler 
                             //  - OR he can do the same using a http request from a different connection, but after a login if connects with browser to this 
-                            // - infact at next post call (browser or after from different http client (curl,,,)  the middleware try to get the token from sssion if exists  or from  header  
+                            // - infact at next post call (browser or after from different http client (curl,,,)  the middleware try to get the token from session if exists  or from  header  
                             //    then the middleware can :
                             //    1: can check , depending from the url serving (unknowes user),  if token missing or invalid or expired to return a login  page to set the token
                             //    2: if is a non unknowed user url  will recover the user from the token or cookies to see if can serve this url
                             
                             
                             //    nb the token can also retrived from email instead of returned immediately after we generate it 
-                            //     instead of generate in service payed page  (.....) we can generate in different proces ( but using the same protocol and secret)
+                            //     instead of generate in service paying page  (.....) we can generate in different proces ( but using the same protocol and secret)
                             //      and given to user with email so the user can add the token with its http call in any other http tool (curl,,) 
 
 
@@ -262,7 +262,8 @@ yaml=genYaml( plantModel,cfgdata,plant); //  todo : create a new plant model upd
                               //          the rest will fill another text entity with the yaml  to set with another shell script   
 
                              // yaml=yaml.replace(/'/g, `yyy`);
-                              let myjsonstr=JSON.stringify(yaml);
+                             
+                             // let myjsonstr=JSON.stringify(yaml);
 
   // see https://www.geeksforgeeks.org/node-js-new-console-method/    https://nodesource.com/blog/understanding-streams-in-nodejs/ https://www.npmjs.com/package/stream-to-string
 
@@ -340,6 +341,74 @@ if(stream2string){
   res.json({ yaml,data: stream2string});
 
 });
+app.post("/registerPlant/", (req, res) => {// 22122023,see the  app.post("/registerPlant_/",
+                                            // this is called when ha register for a plant configuration passing json cfgdata or a sintesis of it
+
+  // new :
+  // user after registration pay and get a token in response to auth aiax request, then he can register the plant sending info about his shelly relays :
+  // call this url with a aiax form  with  the shelly cfg  with a autorization token in header
+  // so , see moscow-city_guide_fullstackNodejs.pdf pag 164:
+  // - the user with browser  got the token when after registration (user password added to authenticate user on next login )
+  //    , he login and then will pay for the service the  token is created and returned to user browser 
+  // -  save in browser var  the token that should contain the user and the url can call
+  // -  after when wants to access to restricted url from browser, as this url,
+  //         he will need to add token to auth header to access to url handler 
+  //  - OR he can do the same using a http request from a different connection, but after a login if connects with browser to this 
+  // - infact at next post call (browser or after from different http client (curl,,,)  the middleware try to get the token from sssion if exists  or from  header  
+  //    then the middleware can :
+  //    1: can check , depending from the url serving (unknowes user),  if token missing or invalid or expired to return a login  page to set the token
+  //    2: if is a non unknowed user url  will recover the user from the token or cookies to see if can serve this url
+  
+  
+  //    nb the token can also retrived from email instead of returned immediately after we generate it 
+  //     instead of generate in service payed page  (.....) we can generate in different proces ( but using the same protocol and secret)
+  //      and given to user with email so the user can add the token with its http call in any other http tool (curl,,) 
+
+
+
+  //  after login only if in middleware  we check for auth user got from passport user retrival  from session cookies or token 
+  //    , need to call this route need to add the token in authorization header 
+  // old :
+  // a button trigger a automation that call rest_command service whose payload is a text entity filled with cfg data
+  // but first we must check the user is registered 
+  // returns a yaml cfg , the mqtt credentials and will register the user to join a role 
+  // the 
+const isAuthenticated = !!req.user;// the auth middleware try to idetify the user fron cookies or header token
+if (isAuthenticated) {
+console.log('user ',req.user,', is authenticated, session is ',req.session.id);
+} else {
+console.log("unknown user");
+}
+let plantUser='casinauser1',// debug only, plantname='casinauser1_API'
+ browserUser='john';// req.user;// should be browserUser=req.user
+let cfgdata,
+reset=true;//if cfg exists in cfgData[user], just get the yaml cfg 
+// cfgdata=getfromuserregistration();// get data from user form
+if(cfgdata)reset=true;
+else cfgdata=model.cfgData[plantUser];// use old cfgdata if miss
+
+model.cfgData[plantUser]=cfgdata;// rewrite, just to record user info after registration . user info will be used to create the plant obj and the update/merge the yaml files
+
+addPlantHandler(plantUser,
+  browserUser,reset,// recover/build(if reset) plant cfg, send to webhook , returns plant cfg staff. 
+    function(code,yamlpackage){// cb  code={result,data:plantmodel}
+    if(code==null){// rejected 
+      res.send(' cant process ');// .send ?
+
+    }else{
+      //res.json(code);// return yaml
+      res.send('***** now the plant in json format:\n'+JSON.stringify(code.data)+'\n ***** now the yaml dashboardin json format:\n'+code.data.yaml.dashboard+'\n ***** now the yaml package:\n'+code.data.yaml.package+'\n *** now again the yaml package:\n'+yamlpackage);// astring is the yaml package
+    }
+
+  });
+
+
+// function addPlantHandler(user,browserUser,reset,cb){// this  handler can be called by a user web call app.post("/registerPlant/", ..) o by a installer browser  call 
+
+
+
+});
+
 
 function index(res){// ejs debug
 
@@ -526,7 +595,11 @@ io.use((socket, next) => {// 092023 : probabilmente qui si verifica che :
 
 
 //console.log('after createserver , http_.request:',http.request);
-const Newmqtt=true;
+const Newmqtt=true;//debug, true: use the new haWs client broker (see HHBB) : 
+                    // it uses mqtt std client brocker 
+                    //    > to connect mqtt real dev (type 1), var dev (type 2,4 ) without a related ha entity ,...
+                    // but also ws client
+                    //    > to connect dev topics to its ha entities) 
 let mqtt=Newmqtt ? require('./nat/haWs'):require('./nat/mqtt');
 var fs = require('fs'); //require filesystem module
 
@@ -3700,13 +3773,16 @@ session.socketId = socket.id;
 session.user = user;// session.user is already used ?, probably only req.user or socket.user are used !
 session.save();// save socketid
 
-socket.on('createUsrPlant',addPlantHandler);// start anticipating algo with setting and run an execute()
-function addPlantHandler(user,reset=false){// like handler app.post("/registerPlant/", ..)
-  let plant=user+'_API',plantModel=  model.addUserPlant(plant,'mail','pass','token',true);// the plant obj
-  // reset yaml
-  plantModel.yaml=genYaml1( plantModel,cfgdata,plant);
+socket.on('createUsrPlant',// to do emit in browser.  create the plant config in models , with yaml file in plant.yaml={dashboard,package}
+                                            // after the user got and insert the yaml file  we can now start the plant with :  socket.on('startuserplant'
+  function(plantUser,browserUser){
 
-}
+    addPlantHandler(plantUser,
+    browserUser,true,// recover/build(if reset) plant cfg, send to webhook , returns plant cfg staff. 
+      function(code,plantmodel){// do some returns on some emit
+        // plantmodel=code.data;
+      }
+  );});
 
   // define the listener :
   socket.on('startuserplant', function (plant_,feat) { // user press button to connect to some plant, so this event is fired , feat url enc
@@ -3819,7 +3895,6 @@ function addPlantHandler(user,reset=false){// like handler app.post("/registerPl
                    // quando vedo che non arriva piu niente in .onmessage pongo ha_ws=null e setto interval per ritentare la connessione ogni 5 minuti
       // ha_tocken ??
     }
-
 
 
     // error here eM is the closure so it il like a object static property available at every func call 
@@ -4143,9 +4218,9 @@ if(relais&&relais[ind])relais[ind].watch(pumpsHandler[ind]);// attach same handl
 
 if(eM.iodev.relais_[ind]&&eM.iodev.relais_[ind].cl&&(eM.iodev.relais_[ind].cl==2||eM.iodev.relais_[ind].cl==1)){// the dev is a mqtt var , see VVCC in howto
 
-  // define interrupt handler for hadling cmd topic topicNodeRed in cl 1 e 2 
+  // define interrupt handler for hadling cmd topic topicNodeRed in cl 1 e 2 , cioe mappa il url nel msg di topicNodeRed in handler via .int0
   eM.iodev.relais_[ind].int0=Inter0;// handler point to setPump()
-  eM.iodev.relais_[ind].int1=Inter1;// handler point to setManual()
+  eM.iodev.relais_[ind].int1=Inter1;// handler point to setManual(). the registered handlr x cmdtopic that asks url ='setMan'
     
     function Inter0 (val='0',queue,lastwrite){// the int func . 25052023 val is '0' or '1' > error !!!  .  call setPump !
 
@@ -5437,13 +5512,8 @@ function  valCorrection(value){// change 0 <> 1 user only in raspberry because t
   if(value==null||isNaN(value))return value ;
   if(INVERTONOFF_RELAY)if(value==0)return 1; else return 0;
   }
-  function genYaml1(model,cfgdata,plant){// edit models.js template with user devices , generate yalm
-    // take package as yaml model:
-    */
 
-
-  }
-  function genYaml(model,cfgdata,plant){// edit models.js template with user devices , generate yalm
+  function genYaml(model,cfgdata,plant){// edit models.js template with user devices : , generate json yaml cofigured yaml and return it in yaml format 
     // nothing   mystring    >     "mystring"
     //    "mystring"          >    "£mystring£"   
     // &  is  : '
@@ -5458,7 +5528,7 @@ function  valCorrection(value){// change 0 <> 1 user only in raspberry because t
   const FV3='fv3_optimize_'
   let version,virtual,addr,
   yaml_automation=[],
-      yaml_mqtt={mqtt:[],automation:yaml_automation};
+      yaml_mqtt={mqtt:[],automation:yaml_automation};// JSON YAML FILE HAS ONLY MQTT AND AUTOMATION ITEMS
 
 
             
@@ -5467,7 +5537,7 @@ function  valCorrection(value){// change 0 <> 1 user only in raspberry because t
     if(version=='stdFV'&&(!model.version||model.version=='stdFV')){
       virtual=cfgdata.virtualdev;// [{addr:'shelly1-34945475FE06',devType:'shelly1',},,,,,,{subtopic:'var_gas-pdc_',varx:4,devType:'mqttstate'},] , a std FV optimizator process with its  std virtual devices indexing 0,,7 
       // relaisEv:['heat','pdc','g','n','s','split','gaspdcPref','block acs']
-      if(virtual&&virtual.length&&virtual.length>=7&&virtual[0]&&virtual[6]){
+      if(virtual&&virtual.length&&virtual.length>=7&&virtual[0]&&virtual[6]){// consider only shelly id and mqttnumb[6] dev specification 
 
         let mqttnumb=model.cfg.mqttnumb;
 
@@ -5485,10 +5555,11 @@ function  valCorrection(value){// change 0 <> 1 user only in raspberry because t
 
 
         // mandatory : index 6 : preferred gas/fv var dev 
+        // virtual[6]={subtopic:'var_gas-pdc_',varx:4,devType:'mqttstate'}
         if(addr=virtual[6].subtopic)// virtual=[{devType:'shelly1',addr:'shelly1-34945475FE06'},,,,,,{subtopic:'var_gas-pdc_',varx:4,devType:'mqttstate'},]
         //  {portid:55,subtopic:'var_gas-pdc_',varx:4,isprobe:false,clas:'var',protocol:'mqttstate'}
         if (virtual[6].devType='mqttstate'){// mandatory virtual[0]={devType:'shelly1',addr:'shelly1-34945475FE06'}
-          mqttnumb[6].subtopic=addr;// update dev 1 model on numbmqtt
+          mqttnumb[6].subtopic=addr;// update dev 6  numbmqtt subtopic property
           mqttnumb[6].varx=virtual[6].varx;
           let varTopic='@'+plant+'@'+addr+virtual[6].varx,// '@Casina_API@ctl_var_gas-pdc_4'
           name_="sunshine_optimizing";
@@ -5505,7 +5576,7 @@ function  valCorrection(value){// change 0 <> 1 user only in raspberry because t
 
     }
   }
-  function yaml_dev_shelly_automation_def(name,topic,plant,user){
+  function yaml_dev_shelly_automation_def(name,topic,plant,user){// generate automation yaml item in json format 
     const topic2snd=topic+'/NReadUser/cmd';
     return{alias: FV3+name,
                       id:FV3+name,
@@ -5532,6 +5603,7 @@ function  valCorrection(value){// change 0 <> 1 user only in raspberry because t
 
     }
     function yaml_dev_shelly_rele_def(name,name_){// a mqtt switch  name= shelly1-34945475FE06
+                                                  // // generate a yaml mqtt switch entity item in json format 
     
       return{ 
                         // id:FV3+"_"+name,
@@ -5601,3 +5673,66 @@ function stringIsInt(str){
 }
   }
 
+  function addPlantHandler(user,browserUser,reset,cb){// this  handler can be called by a user web call app.post("/registerPlant/", ..) o by a installer browser  call 
+    // return the plantmodel, or if reset 
+    // - rebuild the plant model if there is the user cfg : model.cfgData[user]
+    // - fills haYalms/user
+    // - try webhook the user ha
+let plant=user+'_API', plantModel=model.getplant(plant);
+
+if(!reset&&plantModel){// returns present plantModel
+
+
+}else{// try adding readding plant
+if(model.cfgData[user]){
+
+
+
+plantModel=  model.addUserPlant(user,browserUser,true);// ,cfgdata must be in model.cfgData[user] , recover/adds plants item, the plant obj with plantModel.package and plantModel.dashboard yaml config files
+if(plantModel){
+// store user conf for package and dashboard yaml 
+try{
+fs.writeFileSync('./haYaml/'+plant+'/package.yaml', plantModel.yaml.package);
+fs.writeFileSync('./haYaml/'+plant+'/dashboard.yaml', plantModel.yaml.dashboard);
+} catch(err) {
+console.error('Cannot write new ha registering plant  yamls to file in dir /haYaml , err: ' + err);
+
+throw err;
+
+}     
+
+// add yaml encoding
+const repDQuote='£',repQuote=' ££ ',repLF=' £££ ';// replace quote, double quote. lf
+plantModel.yaml.packageEncr=plantModel.yaml.package.replace(/'/g, repQuote);
+plantModel.yaml.packageEncr.replaceAll('\n', repLF);plantModel.yaml.package.replaceAll('*', repDQuote);
+plantModel.yaml.dashboardEncr=plantModel.yaml.dashboard.replace(/'/g, repQuote);
+plantModel.yaml.dashboardEncr.replaceAll('\n', repLF);plantModel.yaml.dashboard.replaceAll('*', repDQuote);
+}  }
+}  
+
+
+
+if(!plantModel){
+cb(null);
+return;
+} else{// send to webhooke ha the yaml files plantModel.yaml
+
+let body={
+data:plantModel.yaml.packageEncr//??,filename:'pippo.txt'
+,shell:'/bin/sh\necho povero > generated.txt'//'#!/bin/sh\n cd /config \n git add .'
+,shellname:'fvshell.sh',
+data1:plantModel.yaml.dashboardEncr//,??filename:'pippo.txt'
+};
+
+// now send ha cfgto ha webhook:
+let   url='http://192.168.1.212:8123/api/webhook/genyaml',
+head={"Content-Type": "application/json"};
+
+let ret=aiax(url,'POST',body,head);// a promise
+ret.then((code)=>{
+console.log('returning a promise from yaml resolving as : ',cb({result:'yaml transferred to ha client',data:plantModel},
+plantModel.yaml.package))}// ok yaml transferred to ha, return also the package yaml just to debug
+,()=> {
+console.log('returning a promise from yaml resolving as : ',cb({result:'yaml not transferred to ha client',data:plantModel}))}// return yamls={package:packageyaml,dashboard:dashboardyaml}
+);
+}}
