@@ -909,7 +909,7 @@ nb relaisEv sono i nomi dei custom/real pump rele (inorout='out') dei relais_ ch
  									//		mqttnumb(if inorout='out') or 
  									//		mqttprob (if inorout='in-var') depending on inorout !!
  									
- 									// // >>  return promise resolving in  PRX=	{ctl:new fc(gp,ind,inorout,cfg)= 	
+ 									// // >>  fact() return promise resolving in  PRX=	{ctl:new fc(gp,ind,inorout,cfg)= 	
  																		{gpio=11,
  																		devNumb=0,// array index 0,1,2
  																		type=inout,
@@ -6124,11 +6124,11 @@ last project/testing  on homeassistant-ws is in : home/luigi/localdev/homeassist
 
 _________________________________________________
 
-di seguito un howto aggiornato : 
+di seguito un howto aggiornato per la generazione di una plant def e relativoi yaml file : 
  - organizzazione cfg di user plant :		QQII
    si recuperano i dati di cfg dalla registrazione del user chiamando l'handler addPlantHandler:
  
-		 haCfgData={casinauser1:{// will be registered by user/installer from web  to create the user ha yaml file : addPlantHandler(user,cfgdata=haCfgData)
+		 haCfgData_={casinauser1:{// will be registered by user/installer from web  to create the user ha yaml file : addPlantHandler(user,cfgdata=haCfgData)
 		  email:'luigi.marson@gmail.com',
 		  token:'123',
 		  pass:'pass',
@@ -6138,7 +6138,9 @@ di seguito un howto aggiornato :
 
 				//was : {switch_consenso:'switch.rssi',sensor_t_giorno:'sensor.shelly_ht_temp'},changed with :
 		 
-		  {mqttnumb:[['switch.rssi',null],//  index 0 : haEntity,haManButton if the dev is connected to ha
+		  {
+		  connCfg:cfgRawData_.connCfg,
+		  mqttnumb:[['switch.rssi',null],//  index 0 : haEntity,haManButton if the dev is connected to ha
 		      null,null,null,null,null,
 		      [?,'input_button.start_ensavings'],// var gas/fv
 		      []//  var not acs
@@ -6378,6 +6380,8 @@ haws init trace :
 
 - now test the aiax to create a new plant config :
 curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/registerPlant
+or
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml" ,"cfgdata":"{\"casinauser1_API\": {\"cfg\": {\"Ent_Prefix\": \"casinauser1_\",\"name\": \"casinauser1_API\"}}}" }' 192.168.1.214:8080/registerPlant
 
 
 
@@ -6408,6 +6412,546 @@ so in binary file the new line is xx 0a , encoding the \n in text file !
  when watch the binary file gedit show the new line , when watch the text file show \n  !! 
 
 
+___________________________________________________________________________________________________
 
+corrected:	resolved[it.devNumb].portnumb=mqttnumb[it.devNumb] 
+		resolved[it.devNumb].portnumb=mqttnumb[it.devNumb].portid;// must be on mqttnumb
+___________________________________________________________
+06012024 : todo debug :  state.forEach(el =>//    
+         ad see logging1.txt at row:1234:
+         		writeSync(), using instance  1704626667886  PUBLISHED successfully  from device portid: 777  on ha ws client a msg: .........
+         		
+_________________________________________________
+si ricorda sempre di annullare i log lunghi di :
+ stlist() listener . now adding a listener x dev .........
+ ____________________________________________-
+ 
+ curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml"}' 192.168.1.214:8080/registerPlant
 
+_______________________________________________
+    let split=relaisEv[5];// 5 DOTO correct bug   17222024
  _____________________
+ error :
+   ***** found  in  mqttnumb  a device of type:  var  protocol  mqttstate
+ numbsubscr: published on device portid: 66  a msg: {"payload":">ctlpresent","sender":{"plant":"casinauser1_API","user":66}}, topic undefined, info: haWs.publish(): msg={"payload":">ctlpresent","sender":{"plant":"casinauser1_API","user":66}}, topic @casinauser1_API@ctl_var_split_4/NReadUser/publish registered in fv3: NO
+registerIncomeInfo(portid,topics,that,ctlpack,cl_class, protocol), is now registering income info
+  ....  numbSubscr() , subscribing dev portid:  66  on topics:  {
+  topic: '@casinauser1_API@ctl_var_split_4',
+  topicPub: null,
+  topicNodeRed: '@casinauser1_API@ctl_var_split_4/NReadUser/cmd',
+  topicNodeRedPubish: '@casinauser1_API@ctl_var_split_4/NReadUser/publish'
+} , is now registering income info
+
+>>>>>>>>>>>>>>><   error : 
+hawsclient setswitch registering listener ha statechange to catch cmdentity for dev portid: 66
+hawsclient setswitch ,  setting the pubtopic handler to send  dev portit:  66 writeSync msg (type 2/4) using ws docmd to send a change entity state service  for state entities: undefined
+ 
+ 
+ bug out5 :
+ 
+  repeatcheckxSun ************** procedure  startProg_14/01/2024, 07:18:54 setinterval hndler didnt match the firing condition, it is still to fire:  false
+ repeatcheckxSun : setinterval  handler called x procName:  startAntic_13/01/2024, 05:56:00 ,  at hour:  9 (dOraLegale: 1 ) and minutes:  27 . present time norm:  283.5 must be in:  120 - 600
+ normalization in minutes is: period:  2  hourin:  4  hourout:  20
+ repeatcheckxSun ************** procedure  startAntic_13/01/2024, 05:56:00 setinterval hndler didnt match the firing condition, it is still to fire:  false
+ stopRepeat event fired
+ stopRepeat() called . we must reset the runing intervals
+.. setanticipateflag() eM is null 
+.. setanticipateflag() eM is null 
+ setanticipateflag() called to set running algo:  anticipate  init param:  false  , in state. anticipate  ,(if null init parm will also  reset state. lastAnticAlgo
+anticipateFlag(), eM is null!, probably after a debugging stop point
+anticipateFlag(), eM is null 
+/home/luigi/localdev/fv20/fv3.js:4741
+  let state=fn.state;
+               ^
+
+TypeError: Cannot read properties of undefined (reading 'state')
+    at anticipateFlag (/home/luigi/localdev/fv20/fv3.js:4741:16)
+    at setanticipateflag (/home/luigi/localdev/fv20/fv3.js:4468:5)
+    at Socket.stopRepeat (/home/luigi/localdev/fv20/fv3.js:4509:3)
+    at Socket.emit (node:events:513:28)
+    at Socket.emitUntyped (/home/luigi/localdev/fv20/node_modules/socket.io/dist/typed-events.js:69:22)
+    at /home/luigi/localdev/fv20/node_modules/socket.io/dist/socket.js:614:39
+    at process.processTicksAndRejections (node:internal/process/task_queues:77:11)
+
+Node.js v18.8.0
+
+
+
+
+
+23012024: bug out.6 from raspberry in debug of custom dev 23012024 :
+
+error: pump socket event called ,param:  gaspdcPref 0 browserchangeflag
+pump socket event, eM is null  gaspdcPref 0 browserchangeflag
+onRelaisClos(), eM is null , cant process browser old event call
+onRelaisClos(), eM is null , ssessionid  Kq-J-RBE_wKf7dBUKHKqSq63OcM6KW2q  socketid  hD1VUydYdwNW-e11AAAH
+ repeatHandler(), eM is null 
+ repeatHandler(), eM is null 
+/home/luigi/localdev/fv20/fv3.js:4495
+    if(repeat.repeatcheckxSun(starthour,stophour,dminutes,antic_parmFact())==0)// exit ok 
+              ^
+
+TypeError: Cannot read properties of undefined (reading 'repeatcheckxSun')
+    at Socket.repeatHandler (/home/luigi/localdev/fv20/fv3.js:4495:15)
+    at Socket.emit (node:events:513:28)
+    at Socket.emitUntyped (/home/luigi/localdev/fv20/node_modules/socket.io/dist/typed-events.js:69:22)
+    at /home/luigi/localdev/fv20/node_modules/socket.io/dist/socket.js:614:39
+    at process.processTicksAndRejections (node:internal/process/task_queues:77:11)
+
+ ________________________________________________
+ 23012024  reference for rasp in fv20 is still /Documents/f20_19112023_prehaws_split2debugbug
+ 	start in f20 some debug for split custom dev at 23012023
+_____________________________- 	
+tintaverde@libero.it
+_________________________
+
+ripetendo review il state management:
+- premessa 
+	allo start con run() :
+		si recupera app2 :
+			fsmmanager = require('./app2.js');   funzione di configurazione 
+			si configura con un cb :
+				fsmmanager(opt, cb=function (app, opt, no_ccbb){}
+					nel cb si configura app.cfg dopo aver recuperato 
+						il ctl :  eMClass = app.getEventMng() e
+						lo appstate=app.state
+					eMClass.prototype.cfg = function (plantname) {// add a cfg static func 
+			si def  eMCustomClass=function () ... che non sembra essere usata 
+			// so we instatiate or recover  the fsm con ccbb:
+			ccbbRef=function ccbb(plantname) {}	
+			il reference ccbbRef sarà usato in  socket.on('startuserplant',cb) come si vede in seguito 	
+			
+
+- allo start di un plamt :socket.on('startuserplant',cb} :
+	si cerca o crea  il istanza in plants con :
+
+    		eM =  ccbbRef(plantcfg.name).inst;
+	si aggiorna lo state , parte sessione , con  :
+		eM.getcontext={getSession,
+				...}
+	si appiccica il socket per renderlo disponibile :
+		 eM.socket=socket;
+	si recupera il ctl state (eM.state) e da inizio alla catena di config dei device :
+	 	recoverstatus.call(eM,plantcfg,plantcnt,plantconfig,feature).then((em_) => {...}
+	 	nb recoverstatus chiama  api.loadScriptsFromFile(plantcfg,plantcnt,plantconfig,that,feature)
+	 
+- allo start di un procedure : socket.on('startprogrammer',repeatHandler1);// start anticipating algo with setting and run an execute()
+	si lancia l'handler che passai parametri del procedure:
+		function repeatHandler1(starthour,stophour,dminutes,triggers2) {...}
+		
+	tra i parametri ci possono essere dei parametri alle funzioni handler dei custom dev , es quali split attivare al set on del state relays.split
+	 - ora dove mettiamo questi parametri tenendo cont della visibilita(context e params vari ) nei lanciati custom dev ??
+	 - inoltre se noi aggiungiamo dei rele scaldabagno come li attiviamo in consolidate, con dei custom dev del device gas/pdc 
+	 	senza creare uno state split specializzato che non c'e' bisogno di controllarlo/comandarlo indipendentemente dalla var gas/pdc !!! 
+	 	infatti creo in ha un paio di button che dice:
+	 		quando attivare i scaldabagni ( con relativo termostato? serve?) (tutta roba ha indipendente ) e
+	 		 in caso di sole quali sono le condizioni per attivare in ogni caso i scaldabagno , parametri che giro a fv3 >>>> come ???
+	 		 nb  nel cust dev inject  una func da models che potrebbe sparare un external entity set diversa da haEntity 	
+	 		 						>>> nb custom dev agisce sul server che deve comandare via server library o con funzioni mqtt proprie
+	 		 							se no devo fare come per lo state che e' in grado di updatare entity varie , potrei anche qui iniettare delle func il cui nome si trovano in dev state like config !
+	 		     MA è meglio  lavorere 
+	 		     		in setSwitch()  
+	 		     			che usano i msg inviati su pubtopic  per arrivare ai entity/event del user ha 
+	 		     		e non con i custF()   !
+	 		 
+		 		 es haExtEntity:cfgRawData.customDevParam={ext_entity:'switch.boiler',custFunc2Inject=(event=on/off) => {
+						 		 	catt to a func that ccontrols the events in the scaldabagno controller che 
+						 		 	lancia gli update state alla extentity
+						 		 	} 
+						 		 	{ext_entity:'switch.boiler',custFunc2Inject=(event=on/off) => {
+						 		 	catt to a func that ccontrols the events in the scaldabagno controller che 
+						 		 	lancia gli update state alla extentity
+						 		 	}
+						 		 	
+						 		 	oppure invece di updatare la entity :
+						 		 		>>> fire un event che viene gestito da un trigger ha che in base a action (il python che controlla lo switch.scaldabagno ) stabilisce cosa fare quando c'e' sole 
+						 		 		
+						 		 		
+estratti :
+in models.js :
+        {portid:777,subtopic:'var_state_',varx:0,isprobe:false,clas:'var',protocol:'mqttstate',
+        state:[
+          // >>>>>>>>>  il func returned by setSwitch fillera le entity !  .    this non depend on cust def entity so just put here in the constructor
+          // - remember the msg built in QQIIJJ of ioreadwritestatus.js is :
+          //                                {"payload":{"state":{"anticipate":true,"program":true,"battery":1,"inverter":0,"desTemp":20,
+          //                                 "relays":{"heat":false,"pdc":false,"g":false,"n":false,"s":false,"split":false,"gaspdcPref":false,"acs":true}}},
+          //                                 "sender":{"plant":"Casina_API","user":777}}
+
+          // this var dev will send a msg (see in QQIIJK of hawsclient.js) to set different ha entities ( different from haEntity is the ent to write the new dev values extracted from the std format for a var msg (payload))
+          //    - if .[0]=state.x : the msg.payload.state.x value is used to set the entity .[1]
+          //    - if .[0]=sender.user   >  write to entity .[1] ON/OFF depending on msg.sender.user value 
+
+          ['state.'+Ent_Prefix+'battery','input_number.battery'],// * put battery value in entity input_number.battery !
+          ['state.'+Ent_Prefix+'inverter','input_number.inverter'],// *
+          ['state.desTemp','input_number.desTemp'],// *
+          // [state.relays.acs,'input_text.acs'],  // * forse già usato solo come entity di acs pump: so useless 
+          ['state.'+Ent_Prefix+'anticipate','input_text.opirun'],// * convertite true/false > 'ON'/'OFF'
+          ['state.'+Ent_Prefix+'program','input_text.pgmrun'],// * convertite true > 'ON'
+          // nbnb : ['sender.user', ....     non presently used because there is not entity ...opt_service1  !!
+          ['sender.user','input_text.'+Ent_Prefix+'opt_service1'],// *
+          ['sender.user','input_text.'+Ent_Prefix+'opt_service'],// * todo debug its value setting , 
+
+in haws :
+                publish:function (topics,val,option=null,errF){// fv3 calls publish on this ha related dev: publish(topics, message, pub_options, function (err){})
+                                                                // option = params x injected handler XXT 
+                                                                XXT ::: writeSync caller would pass state.customParam as param , see XXE
+                                                                    >>>>> in XXE , todo : also std writeSync will pass received param to publish 
+                                                                        like that param is passed to custF in XXRR
+                                                                /* ** 
+                                                                    
+                                                                // chiama : 
+                                                                //      - fv3 income handler msgHand if subscribed to this topics ,quindi registrati in subTop[] 
+                                                                //      - ha topic handler registered in .ha_stdTop 
+                                                                //      - ha pubtopic handler registered in .ha_pubsTop   
+                                                                
+                                                                
+in hawsclient.js : 'func' in setswitch:
+                                }else if (el[0].substring(0,6) == 'state.') {
+                                  let attr=el[0].substring(6)
+                                  if (typeof val.payload.state[attr] == 'boolean') { val.payload.state[attr] ? nval = 'ON' : nval = 'OFF'; } else nval = val.payload.state[attr];// true/false > ON/OFF  
+                                  docmd(myf.topic,'state. :'+attr,'ser', 'python_script', 'set_state', el[1], nval);
+                                }                                                           */
+                                                                
+in getio.js
+	 ctl.writeSync=function(val,addparm=null){// reset writeSync. sarebbe tutto piu facile se usassimo un exec sincrona !!!
+                                              // the new writeSync is set in ctl.writeSync(value,param )
+                                              //  so when fv3 calls ctl.writeSync(value,param ) it will run :
+                                              //   - a cust dev writesync custF(value,rs485,param=addparm)  where 
+                                                          ::  attenzione XXRR nella prossima row 
+                                              //     * value and param is set in ctl.writeSync_() in fv3 :  see XXTT in fv3.              <<<<<<     XXRR
+                                              //           rs485, a directive for custF (to inform custF def in in custDevDef.js/plantconfig.custDev, the helper func  to use set by fv3 framework), is set here in init(see QQWW1) 
+                                              //     * custF is  def in custDevDef.js/plantconfig.custDev . infact :
+                                              //      nb custF is injected in writeSync that uses it :
+                                              //            custF(val,rs485,addparm,exec,relais)
+                                              //        - in addCustDev 
+                                              //          - addCustDev iscalled in  the injector  injCustDev_(ctl,custName) che dal nome recupera la f da iniettare da custDev :
+                                              //                              custF=custF=mqttInst.custDev[custName]  
+                                              
+                                              //                                    mqttInst is created in  AAAQQ
+                                              //                                        this.custDev=plantconfig.custDev;         here in this implementation
+                                              //                                              BEFORE WAS in custDevDef.js  !!!!!!!!!!!
+                                              //                                        >>> quindi custF si trova def in plantconfig.custDev/custDevDef.js !!!
+                                              //                                          
+                                              //                              addCustDev(ctl,custF)
+
+                                              //                  the injector is injected in ctl factory  : mqttClass.prototype.fact = function(gp,ind,inorout='out',injCustDev){
+                                              //                                                                nb : injCustDev=injCustDev_
+                                              //                                                                custDevN=injCustDev(ctl,cfg.custDev[gp])
+
+                                              //                              - ctl factory will be called in  getio(num, iotype, ind, ismqtt = false,mqttInst) (called in ...)
+                                              //                                              ctl= mqttInst.fact(num, ind, iotype, injCustDev_)
+                                              //                                          ... getio() is called in getio.getctls(mqttInst,gpionumb,mqttnumb,false,mqttWebSock)
+
+                                              //                                                                     
+                                              //                                                getctls is called in fv3.buildplantdev()
+                                              //                                                          getio.getctls(mqttInst,gpionumb,mqttnumb,false,mqttWebSock)
+                                              //                                                            mqttInst is created in buildPlantDev()
+                                              //                                                                mqttInst=haWs/mqtt.init(plantconfig,PRTLEV))) AAAQQ
+
+                                              //                                                    to set the state.devicectl...... = ctl
+                                              //     
+                                              //        problem : we define a std params to use in custom dev func in custDevDef. but perhaps we need to use different param in different device ?  
+                                              //                  ex we should add state.relays or state itself ?           
+in custondevdef
+    7077:  async function (set_v = 0 ,directiveFromFv3 , param_
+        // ={custSet:1, quiet:false, section:false}
+        , exec,conf) {// really is 55:  .  example x gas/pdc custom dev 
+                // in this case we dont have a dedicated split relays state, x example in gas/pdc custom dev that must control a scaldabagno without create a new relays state  
+                //  among other staff will control scaldabagnos
+
+        let state=param_,relays=state.relays;// assume that
+        // this ctl will start stop all splits by modbus ctl
+        param=state.customParam;// {}// set in socket.on('startprogrammer',repeatHandler1);, the param x this handler, set in 
+        if(param){scaldaB=param.scaldaB;// {topic,protocol} address od scaldab to activate
+        if(scaldaB){
+            let topic=scaldaB.topic,
+                protocol=scaldaB.protocol;
+            
+
+
+            
+        }
+        
+ in fv3 :                                                        
+    if(fn.iodev.relais_[pump_])fn.iodev.relais_[pump_].writeSync_(valCorrection(data),custParm); //turn LED on or off       XXTT
+    if(PRTLEV>7)console.log(' onRelais,  todo : verifying current rele  position/value changing  x ',pump,' now is: ',data); 
+    //console.log(' ****\n browser/algo ask ',pump,' relay to change value into : ',data); // ex 0
+    /*
+
+
+>>>>>  di seguito ok , fare piccola revisione 
+riassunto/conclusioni : 
+-in fv3 si vede chiamare getio che gli inietta il custF, ricoverato da  in writesync (fv3 fa update dei dev chiamando writesync) passandogli i param ricevuti in sede di start program algo settando param=state.custParm ricevui dal browser
+	dopo lanciato il custF si chiama  il writesync normale : ws(val,state);
+		writeSync = function (val_,state) esegue  un publish(topic, message, pub_options, (info) => {})  dove pub_options.state=state;
+			publish è gestito da un handler  (iniettato, cablato) che è def dal return di setswitch :  return=myf(val,topic,state)
+			- ora myf , per il dev 777, invia a ws un update (estratto dal msg invito da 777 da public su topic ... in conseguenza della chiamata di writesync(val)) si crea un msg con topicMsg() :
+					  return bank[this.cl](this.cfg.protocol, this.mqttInst.plantName, val_, this.gpio);// this.cl=type, gpio = portid
+					  
+					  	cioe la func in bank che è prevista per il type 4  che è
+					  		function varf (protocol,plantName,intval, gpio){// type 2,4
+							    let message='';
+									if(protocol=='mqttstate'){
+									message=pub(intval,plantName,gpio);}  >> torna  return JSON.stringify({payload:load,sender:{plant:Plant,user:portid}}) 
+										dove in load c'e' il val (dev 777) che contiene i state attr che voglio inviare
+									    return message;
+									    
+			sul ent specificato in dev cfg  ['state.'+Ent_Prefix+'battery','input_number.battery'], in models.js
+			
+	>>> quindi ora in un dev type 2/4 se lo trovo abilitato per il custF , recupero custF dalla cfg e poi ottengo le action da custF :
+			custF(msg,topic,state);// returns actions={ent:[[entname,newval,newattr]],events:[[eventN,attr,attrVal]],,,]}. state={customParam=param ,,,,}                                                        
+   	e quindi procedo al lancio di event o il settaggio di switch con new state e attributes
+   
+** sunto : 
+ vorrei iniettare custF
+ - oltre che via custF nel writesync settato in getio.js (va solo per raspberry server, usa custF per agire su hw locale! ) anche da 
+ - writesync std nel caso si usi interfaccia ws . tale custF agisce verso il ha del user (switch anche con attributi) usando il cfg attrbute 
+ 	(like state usato per inviare lo state in alcune ha entity o 
+ 	 in futuroo si potrebbe anche inviare msg via local broker o via http a device esterni)
+ quindi far convergere il custF def in custDev immettendolo (anche) in defFVMng, come fatto per i dev attributi state,  cosicche posso attivare gli split o i scaldabagno anche sul ha del customer oltre che a settare i state entities !!
+ 
+  es posso settare custF per il dev    	in defFVMng (se non dipende dal user cfg) :
+  
+  				this.mqttnumb[6]={portid:55,subtopic:'var_gas-pdc_',varx:4,isprobe:false,clas:'var',protocol:'mqttstate',
+						      // this non depend on cust def entity so just put in the constructor :
+						      haEntity:'input_text.'+Ent_Prefix+'optimizing_fv',// var gas/pdc, anticipate . ha un entity text e un cmd topic setMan on e off 
+						      haManButton:[['input_button.'+Ent_Prefix+'start_ensavings','on'],// ha entity firing event on url related to cmdtopic :setMan
+						      ['input_button.'+Ent_Prefix+'stop_ensavings','off'],// todo:  add std event on , off
+						       ],
+						       
+						>>>   custF:function (msg,topic,state){// returns actions={ent:[[entname,newval,newattr]],events:[[eventN,attr,attrVal]],,,]}. state={customParam,,,,}
+										  //,state)}// nb if we need we can also get here state oby that is full state info, so better that an extract put already in msg.payload.state:
+										  //    msg, if  std format for type 2,4 (nod dev 777 that set payload an obj )will be :
+										  //                                {payload:0/1,sender:{plant:Plant,user:portid}}
+							let payload=msg.payload,
+							scaldabagno=state.customParam;// the custF param from browser start pgm algo attributes. tat are browser param to activate scaldabagno. ex: switch entity and allowed hours
+							if(msg.payload==1){// the dev val
+							    if(customParam)return {ent:[scaldabagno.name,'on',{temp:50,inthour:scaldabagno.hours}]};// accendi switch.scaldabagno con attributo temp di 50 gradi
+							}else return {ent:[scaldabagno.name,'off',null]};
+						       }
+  
+  
+  
+  				o nel file di cfg del user (haCfgData.casinauser1:{
+																  email:'luigi.marson@gmail.com',
+																  token:'123',
+																  pass:'pass',
+																 
+																  localEntity.mqttnumb[6]={,,,,custF}
+										}					  
+																  
+
+__________________________________________________
+attenzione che in core5 la config  ha aggiunto solo in pacages il generato in energyEngineService, ma non ho ancora restartato
+ forse è meglio farlo in una clone di container cosi da avere un container di test 
+ inoltre si ricorda che interface3.yaml corrente ha modofiche nel layout che non sono state caricate in fv3 
+ __________________________________
+ 
+BBVV 
+ aggiungere settare attribute in https://community.home-assistant.io/t/how-to-manually-set-state-value-of-sensor/43975/3?page=6
+ 
+ modificare aggiungendo attributi :
+ 
+		#==================================================================================================
+		#  python_scripts/set_state.py 
+		#  modified from - https://community.home-assistant.io/t/how-to-manually-set-state-value-of-sensor/43975/37
+		#==================================================================================================
+
+		#--------------------------------------------------------------------------------------------------
+		# Set the state or other attributes for the entity specified in the Automation Action
+		#----------------- data={entity_id,state,attrib1,attrib2,,,}
+
+		inputEntity = data.get('entity_id')
+		if inputEntity is None:
+		    logger.warning("===== entity_id is required if you want to set something.")
+		else:    
+		    inputStateObject = hass.states.get(inputEntity)
+		    if inputStateObject is None and not data.get('allow_create'):
+			logger.warning("===== unknown entity_id: %s", inputEntity)
+		    else:
+			if not inputStateObject is None:
+			    inputState = inputStateObject.state
+			    inputAttributesObject = inputStateObject.attributes.copy()
+			else:
+			    inputAttributesObject = {}
+		    
+			for item in data:
+			    newAttribute = data.get(item)
+			    logger.debug("===== item = {0}; value = {1}".format(item,newAttribute))
+			    if item == 'entity_id':
+				continue            # already handled
+			    elif item == 'allow_create':
+				continue            # already handled
+			    elif item == 'state':
+				inputState = newAttribute
+			    else:
+				inputAttributesObject[item] = newAttribute
+			    
+			hass.states.set(inputEntity, inputState, inputAttributesObject)
+ ________________________________
+ writeSync summary comment 06022024:
+     ctl.writeSync=function(val,state=null){// reset writeSync. sarebbe tutto piu facile se usassimo un exec sincrona !!!
+                                              // state={customParam set in fv3 GGSS, + state} !!
+                                              // the writeSync is now reset embedding the std writeSync
+                                              // so when fv3 calls ctl.writeSync(value,state={customParam  + state},, ), 
+                                              // 			or ctl.writeSync_(value,state,, ) so tracking/logging writeSync in getctls() : 	
+    										if(PRTLEV>7)console.log(' getctls(): TRACKING writeSync : at ' ,pdate().toLocaleString(),', called on plant ',mqttInst.plantName,' , dev number/index : ',
+    										it.devNumb,', portid: ',it.ctl.cfg.portid,', value: ',val,', state is passed: ',state!=null,', state.customParam x custom Function setted to: ',state.customParam ,
+    										',\n  .... nb state is passed if ctl.wsclient is hawsclient(!mqttclient) with this dev portid in its registered list: ',it.ctl.wsclient.haDevList,
+    										', infact dev cfg.client==haWebSoc : ',it.ctl.cfg.client=='haWebSoc');  
+                                              //  writeSync will run :
+                                              //   - a cust dev writesync custF(value,rs485,state)  where :
+                                              //     * value and state is set before call ctl.writeSync_() in fv3 :  see XXTT in fv3.              <<<<<<     XXRR
+                                              //           rs485, a directive for custF (to inform custF def in in custDevDef.js/plantconfig.custDev, the helper func  to use set by fv3 framework), is set here in init(see QQWW1) 
+                                              //     * >>>  nbnb  ws, the client/std writeSync, will use state only in  haws client  writeSync and not in mqtt client writeSync . 
+                                              //                the client is set in haWs : see KKUU :
+                                              //                haws client is choosen if specified in dev config : cfg.client='haWebSoc' 
+                                              //     * custF is  def in custDevDef.js/plantconfig.custDev . infact :
+                                              //      nb custF is injected in writeSync that uses it :
+                                              //            custF(val,rs485,state,exec,relais)
+                                              //        - in addCustDev 
+                                              //          - addCustDev iscalled in  the injector  injCustDev_(ctl,custName) che dal nome recupera la f da iniettare da custDev :
+                                              //                              custF=custF=mqttInst.custDev[custName]  
+                                              
+                                              //                                    mqttInst is created in  AAAQQ
+                                              //                                        this.custDev=plantconfig.custDev;         here in this implementation
+                                              //                                              BEFORE WAS in custDevDef.js  !!!!!!!!!!!
+                                              //                                        >>> quindi custF si trova def in plantconfig.custDev/custDevDef.js !!!
+                                              //                                          
+                                              //                              addCustDev(ctl,custF)
+
+                                              //                  the injector is injected in ctl factory  : mqttClass.prototype.fact = function(gp,ind,inorout='out',injCustDev){
+                                              //                                                                nb : injCustDev=injCustDev_
+                                              //                                                                custDevN=injCustDev(ctl,cfg.custDev[gp])
+
+                                              //                              - ctl factory will be called in  getio(num, iotype, ind, ismqtt = false,mqttInst) (called in ...)
+                                              //                                              ctl= mqttInst.fact(num, ind, iotype, injCustDev_)
+                                              //                                          ... getio() is called in getio.getctls(mqttInst,gpionumb,mqttnumb,false,mqttWebSock)
+
+                                              //                                                                     
+                                              //                                                getctls is called in fv3.buildplantdev()
+                                              //                                                          getio.getctls(mqttInst,gpionumb,mqttnumb,false,mqttWebSock)
+                                              //                                                            mqttInst is created in buildPlantDev()
+                                              //                                                                mqttInst=haWs/mqtt.init(plantconfig,PRTLEV))) AAAQQ
+
+                                              //                                                    to set the state.devicectl...... = ctl
+                                              //     
+                                              //        problem : we define a std params to use in custom dev func in custDevDef. but perhaps we need to use different param in different device ?  
+                                              //                  ex we should add state.relays or state itself ?      
+                                              //
+                                              //   - call std writeSync() after  waiting for timeout or promise custF
+                                              
+_________________________
+
+ management summary 
+  state mngment logic :
+  - every devices/devs is a event driven logic ( from browser button press) that modify state and :
+  	- update the dev associated handler (HA) and 
+  	- fire customFunction custF
+  - algo are eventdriven logic that updates devices and  state 
+  	program algo will do major state updates
+
+  - when use haws:
+  	HA will fire ha events or entity updates  
+  	custF  will fire more complicated ha events or entity updates  
+_____________________________________
+
+nb in setswitch() when return the function clled by publish, attenzione che va sincronizzati i ha event e ha sevice sparati dai msg di updating dei dev , eventualmente customizzati da custF() con :
+- per gli event name si veda gli automation in consenso.json che chiamano i local switch che vengono rinominati secondo userEnt   in fillpack :
+
+
+		     if(i==1){  // better: packages_[i]='consenso.json'
+                // consenso (mqttnumb index = 0) is the only file to merge,  // other file has no local ref to update , 
+            // set entity to configure in automation rssi :
+            //  todo : select the automation by alias and not by index !!
+            js['automation £rssi'][0].action[0].data.entity_id=localEntity.mqttnumb[0].haEntity;// switch.rssi,  must be also : consenso['automation rssi'][0].alias='ws';      <<<<< DDEEWW
+            js['automation £rssi'][1].action[0].data.entity_id=cfgdata.userEnt.scaldabagno;// automation x event fired by custF() registered in some mqttnumb dev
+            js['automation £rssi'][2].action[0].data.entity_id=cfgdata.userEnt.scaldabagno;
+            js['automation £rssi'][3].action[0].data.entity_id=cfgdata.userEnt.consAcs;
+            js['automation £rssi'][4].action[0].data.entity_id=cfgdata.userEnt.consAcs;
+- per i service (turn on/off switch) i switch interessati devono essere nominati secondo userEnt
+
+
+ question : il rssi dev chiama direttamente il service per updatare la entity :
+
+ 		 }else{// normal type 2,4  , topics=topic , update ent entity using msg.payload (msg in var dev has  std format )
+                        let value=val.payload;// 0/1
+                        let act;
+                            if (value==1)act='1';else act='0';
+               
+                            docmd(myf.topic,' new value on topic ','ser','python_script','set_state',ent,act) ;// text,set_text
+	ora la domanda è : perche si usa anche un event associato a rssi in consenso.json (see DDEEWW) ??
+
+________________________________________
+
+19022024: ripresa app/project nodejs che si connette a ha via ws e fa dei test
+- si trova nell'ultimo project : /home/luigi/localdev/homeassistant-ws-git/homeassistant_new		>>>  see YYKK
+	infatti il entry  index.js ha last update : 16/11/2023, 5,8 kB
+		mentre negli altri precedenti test project , il index.js e' piu vecchio e piu piccolo :
+		/home/luigi/localdev/homeassistant-ws-git/homeassistant-ws-2
+		.....
+		
+	il index,js, usa la libreria  hass=require("homeassistant-ws") (LLBB)
+			cioe /home/luigi/localdev/homeassistant-ws-git/homeassistant_new/node_modules/homeassistant-ws/build/index.js
+				che è modifica (last update : mer 6 dic 2023) dell'installato con :
+						npm -i homeassistant-ws
+		hass viene chiamato in main() per ottenere l'istanza 
+		che mantiene la connessione ws con il target ha
+	il index,js, è stato preso come modello per scivere in fv3 il hawsclient 
+	hawsclient usa la stessa libreria LLBB puntandola con require 
+		come sappiamo , require: lancia un 'istanza' :
+		- del index.js su una directory /node_modules/ o 
+		- sul file indicato 
+	
+	per restartare la connection rappresentata dal ctl cient,  si chiama kepAlive che chiama geetNewCon che crea client e ws , 
+		poi si chiama main che programma il client a gestre api verso un istanza di ha via ws
+		kepAlive è chiamato 
+		- allo start del modulo, o 
+		- dopo un timeout in  heartbeat o 
+		-come funzione getCon del controller esportato da hawsclient (future use?)
+question : come mai è null quando si vuole sparare comand ws ??? :  .......
+________________________________________
+
+ howto rigenerate a yalm cfg plant 
+ -store the old yaml cfg copyng  its subdir in ./haYaml
+ - store the old ws ha plant def in haPlants.json 
+ - run debug load: (in debug basta dare file di config cfgdata a caso!) , QQGGFF
+ 	curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A" -H "Content-Type: application/json" -d '{"filename": "yaml_ex.txt","yaml":"atextyaml" ,"cfgdata":"{\"casinauser1_API\": {\"cfg\": {\"Ent_Prefix\": \"casinauser1_\",\"name\": \"casinauser1_API\"}}}" }' 192.168.1.214:8080/registerPlant
+
+- poi si copia dal haYaml/plantname_API/... nella dir /home/luigi/hamount/luigi/locdev/ha/hass-ha/hass-cfg-gen che si monta nel container 
+	che gestisce  i plant haws che corrispondera al dati di connessione estratti da QQGGFF in particolare da cfgdata.connCfg : 
+	- /home/luigi/localdev/raspexampl/fv/haYaml/casinauser1_API/dashboards/energyEngineService >  /home/luigi/hamount/luigi/locdev/ha/hass-ha/hass-cfg-gen/dashboards/energyEngineService 
+	- copy i 3 file da  /home/luigi/localdev/raspexampl/fv/haYaml/casinauser1_API/packages/energyEngineService  in /home/luigi/hamount/luigi/locdev/ha/hass-ha/hass-cfg-gen/packages/eneryEngineService
+		
+		 package.yaml,configurationuser.yaml 
+		 e
+		 configurationadd.yaml 
+		 e
+		 come illustrato nel template configuration_base_template.yaml in /home/luigi/localdev/raspexampl/fv/haCfg/defFVMng
+		 controllero la cfg di base configuration.yaml in /home/luigi/hamount/luigi/locdev/ha/hass-ha/hass-cfg-gen  , in particolare la porta che deve corrispondere a quanto detto in cfgdata.connCfg :
+		 	default_config:
+			http:
+			  server_port: 8124
+
+		 
+- poi si restart il container sulla dir ha/hass-ha:
+	- controllare lo stato dei container creati :
+		sudo docker ps -a
+	- restartare il container homeassistant-gen usando la config docker-compose-gen.yaml :
+		sudo docker compose -f docker-compose-gen.yaml start homeassistant-gen 
+		nb come da cfg docker docker-compose-gen.yaml , il container girera sui dir di config /hass-cfg-gen montata con :
+			    volumes:
+			      - ./hass-cfg-gen:/config
+			      - /etc/localtime:/etc/localtime:ro
+		nb in docker-compose-gen.yaml si sono messi 2 container uno std casina l'altro che gira i ha connessi con ws 
+	- start log :	sudo docker compose  container logs homeassistant-gen -f  
+			o
+			sudo docker compose  container logs homeassistant -f  
+	
+__________________________________
+
+in hawsclientFact heartbeat must be checked
+
+______________________________________
+
+

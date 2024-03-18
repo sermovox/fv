@@ -1,0 +1,115 @@
+ref : https://www.digitalocean.com/community/tutorials/how-to-install-and-secure-the-mosquitto-mqtt-messaging-broker-on-ubuntu-18-04
+
+
+
+so error because priviledge on cert files .
+tryed (see https://unix.stackexchange.com/questions/625413/mosquitto-unable-to-use-certificates-from-letsencrypt) to :
+sudo su
+chmod 755 /etc/letsencrypt/archive
+chmod 755 /etc/letsencrypt/live
+so (see https://www.howtoforge.com/how-to-install-and-secure-the-mosquitto-mqtt-messaging-broker-on-ubuntu-20-04/ ) copied to anoher mosquitto folder :/etc/mosquitto/certs
+
+todo : add ssl renewal !! in ........
+
+	tutorial:
+	see http://www.steves-internet-guide.com/mosquitto-tls/    tutorial on server and client certificate
+
+see also : https://upcloud.com/resources/tutorials/install-secure-mqtt-broker-ubuntu
+		We have configured three listeners. First is on port 1883 which is unencrypted and only allowed to be used in the localhost environment. It is mostly intended for testing purposes.
+		 The second listener is on port 8883, which is encrypted with TLS certificate. 
+		 The third listener is on port 8083 which is encrypted with TLS certificate as well, but it is intended for use over WebSocket protocol.
+
+and 	https://upcloud.com/resources/tutorials/install-secure-mqtt-broker-ubuntu
+
+
+
+
+finally we have :
+allow_anonymous false
+password_file /etc/mosquitto/passwd
+listener 1883
+
+listener 8883
+certfile /etc/mosquitto/certs/cert.pem
+cafile /etc/mosquitto/certs/chain.pem
+keyfile /etc/mosquitto/certs/privkey.pem
+
+listener 8083
+protocol websockets
+certfile /etc/mosquitto/certs/cert.pem
+cafile /etc/mosquitto/certs/chain.pem				>> is the cafile to put in ca option in mqtt node js 
+keyfile /etc/mosquitto/certs/privkey.pem
+
+
+
+
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 8883 --capath /etc/ssl/certs/ -u sermovox -P sime01
+mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "off" -p 1883  -u sermovox -P sime01
+ mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01
+ mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+
+
+
+for ca connection option mqtt module see : http://www.steves-internet-guide.com/mosquitto-tls/   and http://www.steves-internet-guide.com/using-node-mqtt-client/
+so copy the cafile /etc/mosquitto/certs/chain.pem in a folder in nodejs app 
+__________________________________
+allow_anonymous false
+
+
+
+general question :
+
+nb to test ws see http://www.steves-internet-guide.com/mqtt-websockets/    >>>>  
+										The mosquitto_pub and mosquitto_sub tools do not support websockets
+	il client mqtt node js : http://www.steves-internet-guide.com/using-node-mqtt-client/ che use il mqtt di node js , anche col ssl sia server cert e anche client cert 
+			see also :https://stackoverflow.com/questions/70110392/mqtt-tls-certificate-verify-failed-self-signed-certificate/70337211#70337211
+				>>>  For any real internet facing broker you should probably be using a public trusted CA and they will supply the CA cert (actually normally CA certificate chain)
+				
+	e il client browser che usa paho: http://www.steves-internet-guide.com/using-javascript-mqtt-client-websockets/
+	e quello consigliato da mosquitto : https://test.mosquitto.org/ws.html
+	o quello di rif: https://upcloud.com/resources/tutorials/install-secure-mqtt-broker-ubuntu sempre usando node js mqtt.  con ssl e ws 
+	
+	
+nb   perche non abbiamo usato mqtt client nodejs con il server hivemq ?  see https://www.macrometa.com/iot-infrastructure/node-js-mqtt	
+	ne abbiamo gia generato uno : https://console.hivemq.cloud/ con ssl/tsl  su port 8883 
+	forse che non riusciamo a far funzionare il client browser ? 
+		(testato per provare il mqtt broker in : http://www.steves-internet-guide.com/using-node-mqtt-client/  e 
+			https://www.howtoforge.com/how-to-install-and-secure-the-mosquitto-mqtt-messaging-broker-on-ubuntu-20-04/)
+	oppure perche usa solo ssl ?
+	
+	
+nb  perche non provare in dell il masquitto client verso mosquitto server (senza  ws) ?
+	ok va con il mosquitto_pub del server : mosquitto_pub -h bot.sermovox.com -t test -m "hello again" -p 8883 --capath /etc/ssl/certs/ -u sermovox -P sime01
+	
+nb perche non provare il browser example in ref example :https://upcloud.com/resources/tutorials/install-secure-mqtt-broker-ubuntu ??
+		suggerisce anche di usare i browser client : 
+			To test your MQTT broker via WebSocket you can use some popular online services like Eclipse Paho, HiveMQ, MQTTLens, or some other that you prefer.
+
+
+nb in qualche citato url si parla di server e client certificate !   è il : .................
+
+
+nb  come config shelly x mqtt :
+	es di usa mosquitto con shelly gen 2 : https://shelly-api-docs.shelly.cloud/gen2/ComponentsAndServices/Mqtt/
+	in gen 1 : Shelly devices do not support secure MQTT:  https://shelly-api-docs.shelly.cloud/gen1/#mqtt-support
+		https://www.domotica-per-tutti.it/corso-shelly-script-1-parte-impariamo-a-sfruttare-gli-script-per-recuperare-informazioni-su-mqtt/#comment-187
+		https://lamiacasaelettrica.com/shelly-cloud-app/#internetsicurezza
+			collegarsi al shelly access wifi , http://192.168.33.1/  usando l'accesspoint (selezionare il wifi shelly senza password)
+				attach to router ind 192.168.1.150 (wifi WiFi mode - Client) TIM-19810315 dare ind statico e gatewaw e dns 192.168.1.1
+				advanced-developer settings:
+					username sermovox
+					password sime01
+					server  bot.sermovox.com:1883
+					min rec time 2
+					clean session
+					retain
+					max qos 0
+				registrare il id (device info) , es 34945475FE06
+				
+				ora si puo usare :
+				mosquitto_pub -h bot.sermovox.com -t shellies/shelly1-34945475FE06/relay/0/command -m "on" -p 1883  -u sermovox -P sime01
+				mosquitto_sub -t shellies/shelly1-34945475FE06/relay/0 -u sermovox -P sime01
+
+		
+	
+

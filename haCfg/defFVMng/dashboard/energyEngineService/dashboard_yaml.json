@@ -9,18 +9,18 @@
           "cards": [
             {
               "type": "entity",
-              "entity": "input_text.text4",
+              "entity": "input_text.£text4",
               "name": "Winter/Summer : W/S"
             },
             {
               "type": "entities",
               "entities": [
                 {
-                  "entity": "input_text.text1",
+                  "entity": "input_text.£text1",
                   "name": "programmazione temperature  es: {\"9:30\": 21 , \"16:30\":19}"
                 },
                 {
-                  "entity": "input_text.text2",
+                  "entity": "input_text.£text2",
                   "name": "prog ACS, usare solo T=10/45 es:{\"9:00\":45,\"16:00\":10}"
                 }
               ],
@@ -30,16 +30,16 @@
               "type": "entities",
               "entities": [
                 {
-                  "entity": "input_button.start_progservice"
+                  "entity": "input_button.£start_progservice"
                 },
                 {
-                  "entity": "input_button.stop_progservice"
+                  "entity": "input_button.£stop_progservice"
                 }
               ]
             },
             {
               "type": "entity",
-              "entity": "sensor.pgmrun"
+              "entity": "input_text.£pgmrun"
             }
           ]
         },
@@ -54,7 +54,7 @@
             "unit": null
           },
           "inner": {
-            "entity": "sensor.destemp",
+            "entity": "input_text.£destemp",
             "label": "prog.",
             "unit": null
           },
@@ -108,33 +108,33 @@
               "type": "entities",
               "entities": [
                 {
-                  "entity": "input_button.setmanual_rssi_on_but",
+                  "entity": "input_button.£setmanual_rssi_on_but",
                   "name": "condizionamento ON"
                 },
                 {
-                  "entity": "input_button.setmanual_rssi_off_but",
+                  "entity": "input_button.£setmanual_rssi_off_but",
                   "name": "Condizionamento OFF"
                 },
                 {
-                  "entity": "input_button.setmanual_acs_on_but",
+                  "entity": "input_button.£setmanual_acs_on_but",
                   "name": "ACS ON"
                 },
                 {
-                  "entity": "input_button.setmanual_acs_off_but",
+                  "entity": "input_button.£setmanual_acs_off_but",
                   "name": "ACS OFF"
                 }
               ]
             },
             {
               "type": "entity",
-              "entity": "input_number.hour",
+              "entity": "input_number.£hour",
               "name": "per le prossime ore"
             }
           ]
         },
         {
           "type": "thermostat",
-          "entity": "climate.termostato_locale",
+          "entity": "climate.£termostato_locale",
           "name": "Manual Thermostat"
         }
       ]
@@ -151,11 +151,11 @@
               "type": "entities",
               "entities": [
                 {
-                  "entity": "input_button.start_savingservice",
+                  "entity": "input_button.£start_savingservice",
                   "name": "Start Optimizor"
                 },
                 {
-                  "entity": "input_button.stop_savingservice",
+                  "entity": "input_button.£stop_savingservice",
                   "name": "Stop Optimizor"
                 }
               ],
@@ -163,12 +163,12 @@
             },
             {
               "type": "gauge",
-              "entity": "input_number.box1",
+              "entity": "input_number.£box1",
               "name": "Potenza Anticipo Consumi"
             },
             {
               "type": "entity",
-              "entity": "sensor.opirun",
+              "entity": "input_text.£opirun",
               "name": "Current State Optimizor"
             }
           ]
@@ -178,7 +178,7 @@
           "cards": [
             {
               "type": "entity",
-              "entity": "sensor.pgmrun",
+              "entity": "input_text.£pgmrun",
               "name": "Programming Service Status",
               "state_color": true
             },
@@ -186,7 +186,7 @@
               "type": "entities",
               "entities": [
                 {
-                  "entity": "text.optimizing_fv",
+                  "entity": "input_text.£optimizing_fv",
                   "name": "Stato Corrente Promozione Anticipo Consumi ",
                   "secondary_info": "last-changed"
                 }
@@ -194,7 +194,7 @@
             },
             {
               "type": "gauge",
-              "entity": "sensor.battery",
+              "entity": "input_number.£battery",
               "name": "Battery Savings",
               "needle": false
             }
@@ -212,18 +212,18 @@
           "min": 0,
           "max": 5,
           "name": "Inverter Power kW",
-          "entity": "sensor.inverter"
+          "entity": "input_number.£inverter"
         },
         {
           "type": "gauge",
-          "entity": "sensor.battery",
+          "entity": "input_number.£battery",
           "max": 100,
           "name": "Battery %"
         },
         {
           "graph": "line",
           "type": "sensor",
-          "entity": "sensor.battery",
+          "entity": "input_number.£battery",
           "detail": 2,
           "name": "battery",
           "unit": "%"
@@ -235,13 +235,13 @@
               "entity": "weather.forecast_home"
             },
             {
-              "entity": "sensor.inverter"
+              "entity": "input_number.£inverter"
             },
             {
-              "entity": "sensor.battery"
+              "entity": "input_number.£battery"
             },
             {
-              "entity": "text.optimizing_fv"
+              "entity": "text.£optimizing_fv"
             },
             {
               "entity": "switch.rssi"

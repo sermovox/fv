@@ -1,0 +1,59 @@
+# "data":[1,23,2,{"power":{{ states.input_number.box1.state }}}]   ,"data1":{{ states.sensor.pippo.state }}  "data":{{ states.input_text.text1.state }},  
+# Loads default set of integrations. Do not remove.
+# cfg here the mqtt brocker , see : .....
+default_config:
+
+http:
+  server_port: 8124
+
+# Load frontend themes from the themes folder
+frontend:
+  themes: !include_dir_merge_named themes
+homeassistant:
+  packages: !include_dir_named packages
+automation: !include automations.yaml
+automation myautomation:
+  - alias: "yaml_generator"
+    id: "yaml_gen"
+    initial_state: true
+    trigger:
+      - platform: webhook
+        webhook_id: "genyaml"
+        allowed_methods:
+          - POST
+          - PUT
+        local_only: false    
+    condition:
+    action:
+      - service: shell_command.write_yaml23
+        data:
+          filename: pippo.txt
+          shellname: "{{ trigger.json.shellname}}"
+          myjson: "{{ trigger.json}}"
+          yaml: "{{ trigger.json.data}}"
+          shell: "{{ trigger.json.shell}}"
+      - service: shell_command.write_yaml22
+        data:
+          filename: pippo.txt
+          shellname: "{{ trigger.json.shellname}}"
+          myjson: "{{ trigger.json}}"
+          yaml: "{{ trigger.json.data}}"
+      - service: shell_command.subst2
+      - service: shell_command.write_yaml24
+        data:
+          filename: pippo.txt
+script: !include scripts.yaml
+scene: !include scenes.yaml
+# API
+api:
+shell_command:	    		
+   write_yaml: /bin/bash -c "echo {{ yaml }} > {{ filename }}"
+   write_yaml2: /bin/bash -c "echo '{{myjson.data}}'  >{{ filename }}"
+   write_yaml22: /bin/bash -c " echo '{{myjson.data}}'  > {{ filename }}  "
+   write_yaml23: /bin/bash -c "echo '#!{{shell}}'  > {{ shellname }} "
+   write_yaml24: fvshell.sh
+   write_yaml3: /bin/bash -c "echo '{{myjson}}'  >{{ filename }}"
+   write_yaml4: /bin/bash -c " mydata='{{myjson.data}}' && echo $mydata  >{{ filename }}"  perde blanks
+   subst: " cat {{ filename }} >  fv3.txt "
+   subst1: cat pippo.txt | sed -e "s/£££/\\n/g" | sed -e "s/££/\'/g" | sed -e "s/£/\"/g" >{{ filename }}
+   subst2:  sed -i "s/£££/\\n/g" pippo.txt&& sed -i "s/££/\'/g" pippo.txt && sed -i "s/£/\"/g" pippo.txt

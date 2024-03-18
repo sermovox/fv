@@ -1,6 +1,12 @@
 {
   "casinauser1_API": {
     "cfg": {
+      "connCfg": {
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A",
+        "host": "192.168.1.212",
+        "port": 8124
+      },
+      "Ent_Prefix": "casinauser1_",
       "name": "casinauser1_API",
       "apiPass": "xxxx",
       "gpionumb": [
@@ -22,22 +28,23 @@
         "protocol": "mqttxwebsock",
         "haManButton": [
           [
-            "input_button.start_savingservice",
+            "input_button.casinauser1_start_savingservice",
             "repeatcheckxSun"
           ],
           [
-            "input_button.stop_savingservice",
+            "input_button.casinauser1_stop_savingservice",
             "stopcheckxSun"
           ],
           [
-            "input_button.start_progservice",
+            "input_button.casinauser1_start_progservice",
             "repeatcheckxPgm"
           ],
           [
-            "input_button.stop_progservice",
+            "input_button.casinauser1_stop_progservice",
             "stopcheckxPgm"
           ]
-        ]
+        ],
+        "client": "haWebSoc"
       },
       "mqttnumb": [
         {
@@ -48,14 +55,15 @@
           "haEntity": "switch.rssi",
           "haManButton": [
             [
-              "input_button.setmanual_rssi_on_but",
+              "input_button.casinauser1_setmanual_rssi_on_but",
               "on"
             ],
             [
-              "input_button.setmanual_rssi_off_but",
+              "input_button.casinauser1_setmanual_rssi_off_but",
               "off"
             ]
-          ]
+          ],
+          "client": "haWebSoc"
         },
         null,
         null,
@@ -76,17 +84,18 @@
           "isprobe": false,
           "clas": "var",
           "protocol": "mqttstate",
-          "haEntity": "input_text.text",
+          "haEntity": "input_text.casinauser1_optimizing_fv",
           "haManButton": [
             [
-              "input_button.start_ensavings",
+              "input_button.casinauser1_start_ensavings",
               "on"
             ],
             [
-              "input_button.stop_ensavings",
+              "input_button.casinauser1_stop_ensavings",
               "off"
             ]
-          ]
+          ],
+          "client": "haWebSoc"
         },
         {
           "portid": 12,
@@ -95,15 +104,16 @@
           "subtopic": "_shelly1-34945475FE06",
           "haManButton": [
             [
-              "input_button.setmanual_acs_on_but",
+              "input_button.casinauser1_setmanual_acs_on_but",
               "on"
             ],
             [
-              "input_button.setmanual_acs_off_but",
+              "input_button.casinauser1_setmanual_acs_off_but",
               "off"
             ]
           ],
-          "haEntity": "switch.acssw"
+          "haEntity": "switch.acssw",
+          "client": "haWebSoc"
         }
       ],
       "mqttprob": [
@@ -114,7 +124,8 @@
           "isprobe": true,
           "clas": "probe",
           "protocol": "shellyht_t",
-          "haEntity": "sensor.shelly_ht_temp"
+          "haEntity": "sensor.shelly_ht_temp",
+          "client": "haWebSoc"
         },
         {
           "portid": 111,
@@ -142,35 +153,37 @@
           "state": [
             [
               "state.battery",
-              "input_number.battery"
+              "input_number.casinauser1_battery"
             ],
             [
               "state.inverter",
-              "input_number.inverter"
+              "input_number.casinauser1_inverter"
             ],
             [
               "state.desTemp",
-              "input_number.desTemp"
+              "input_number.casinauser1_desTemp"
             ],
             [
               "state.anticipate",
-              "input_text.opirun"
+              "input_text.casinauser1_opirun"
             ],
             [
               "state.program",
-              "input_text.pgmrun"
+              "input_text.casinauser1_pgmrun"
             ],
             [
               "sender.user",
-              "input_text.opt_service1"
+              "input_text.casinauser1_opt_service1"
             ],
             [
               "sender.user",
-              "input_text.opt_service"
+              "input_text.casinauser1_opt_service"
             ]
-          ]
+          ],
+          "client": "haWebSoc"
         }
       ],
+      "isHaWebSoc": true,
       "pythonprob": [
         2,
         4,
@@ -242,20 +255,31 @@
         "inv": "1000000036026833",
         "bat": "1000000036026834",
         "credential": null
-      }
+      },
+      "custDev": {}
     },
+    "email": "luigi.marson@gmail.com",
+    "password": "pass",
     "name": "casinauser1_API",
-    "passord": "pass",
     "users": [
       "john"
     ],
     "token": [
       "123"
     ],
-    "email": "luigi.marson@gmail.com",
     "localEntity": {
+      "connCfg": {
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A",
+        "host": "192.168.1.212",
+        "port": 8124
+      },
+      "Ent_Prefix": "casinauser1_",
+      "mqttWebSock": {
+        "client": "haWebSoc"
+      },
       "mqttnumb": [
         {
+          "client": "haWebSoc",
           "haEntity": "switch.rssi"
         },
         null,
@@ -263,28 +287,37 @@
         null,
         null,
         null,
-        null,
         {
+          "client": "haWebSoc"
+        },
+        {
+          "client": "haWebSoc",
           "haEntity": "switch.acssw"
         }
       ],
       "mqttprob": [
         {
+          "client": "haWebSoc",
           "haEntity": "sensor.shelly_ht_temp"
         },
         null,
         null,
-        null
+        {
+          "client": "haWebSoc"
+        }
       ],
       "huawei": {
         "inv": "1000000036026833",
         "bat": "1000000036026834",
         "credential": null
-      }
+      },
+      "invNomPow": 5
     },
     "yaml": {
-      "dashboard": "title: My Awesome Home\nviews:\n  - title: Home\n    cards:\n      - type: vertical-stack\n        cards:\n          - type: entity\n            entity: input_text.text4\n            name: \"Winter/Summer : W/S\"\n          - type: entities\n            entities:\n              - entity: input_text.text1\n                name: 'programmazione temperature  es: {\"9:30\": 21 , \"16:30\":19}'\n              - entity: input_text.text2\n                name: prog ACS, usare solo T=10/45 es:{\"9:00\":45,\"16:00\":10}\n            title: \"programma temperature minime desiderate \"\n          - type: entities\n            entities:\n              - entity: input_button.start_progservice\n              - entity: input_button.stop_progservice\n          - type: entity\n            entity: sensor.pgmrun\n      - type: custom:dual-gauge-card\n        title: T\n        min: 10\n        max: 40\n        outer:\n          entity: sensor.shelly_ht_temp\n          label: reale\n          unit: null\n        inner:\n          entity: sensor.destemp\n          label: prog.\n          unit: null\n        colors:\n          - color: var(--label-badge-red)\n            value: 23\n          - color: var(--label-badge-green)\n            value: 19\n          - color: var(--label-badge-yellow)\n            value: 21\n          - color: var(--label-badge-blue)\n            value: 0\n          - color: var(--paper-blue-400)\n            value: 10\n      - type: vertical-stack\n        cards:\n          - type: entities\n            entities:\n              - entity: switch.rssi\n                name: clima\n              - entity: switch.acssw\n                name: caldaia e acs\n            title: Comando Accensione Climatizzazione\n            show_header_toggle: false\n      - type: horizontal-stack\n        cards:\n          - type: entities\n            entities:\n              - entity: input_button.setmanual_rssi_on_but\n                name: condizionamento ON\n              - entity: input_button.setmanual_rssi_off_but\n                name: Condizionamento OFF\n              - entity: input_button.setmanual_acs_on_but\n                name: ACS ON\n              - entity: input_button.setmanual_acs_off_but\n                name: ACS OFF\n          - type: entity\n            entity: input_number.hour\n            name: per le prossime ore\n      - type: thermostat\n        entity: climate.termostato_locale\n        name: Manual Thermostat\n  - title: Ottimizzatore FV\n    path: ottimizzatore-fv\n    badges: []\n    cards:\n      - type: vertical-stack\n        cards:\n          - type: entities\n            entities:\n              - entity: input_button.start_savingservice\n                name: Start Optimizor\n              - entity: input_button.stop_savingservice\n                name: Stop Optimizor\n            title: start/stop Optimizator\n          - type: gauge\n            entity: input_number.box1\n            name: Potenza Anticipo Consumi\n          - type: entity\n            entity: sensor.opirun\n            name: Current State Optimizor\n      - type: vertical-stack\n        cards:\n          - type: entity\n            entity: sensor.pgmrun\n            name: Programming Service Status\n            state_color: true\n          - type: entities\n            entities:\n              - entity: text.optimizing_fv\n                name: \"Stato Corrente Promozione Anticipo Consumi \"\n                secondary_info: last-changed\n          - type: gauge\n            entity: sensor.battery\n            name: Battery Savings\n            needle: false\n  - title: fv\n    path: fv\n    badges: []\n    cards:\n      - type: gauge\n        min: 0\n        max: 5\n        name: Inverter Power kW\n        entity: sensor.inverter\n      - type: gauge\n        entity: sensor.battery\n        max: 100\n        name: Battery %\n      - graph: line\n        type: sensor\n        entity: sensor.battery\n        detail: 2\n        name: battery\n        unit: \"%\"\n      - type: history-graph\n        entities:\n          - entity: weather.forecast_home\n          - entity: sensor.inverter\n          - entity: sensor.battery\n          - entity: text.optimizing_fv\n          - entity: switch.rssi\n        title: Optimizing History\n",
-      "package": "automation anticipate:\n  - alias: fv3_cmd_startAnticipate\n    id: anticipate\n    initial_state: true\n    trigger:\n      - platform: state\n        entity_id: input_button.start_ensavings\n    condition: null\n    action:\n      - event: ws_fv3_cmd_startAnticipate\n        event_data:\n          state: fired\ninput_text:\n  optimizing_fv:\n    name: optimizing_fv_\n    initial: \"0\"\n  opirun:\n    name: opirun_\n    initial: \"0\"\n  prgrun:\n    name: pgmrun_\n    initial: \"0\"\nautomation rssi:\n  - alias: ws\n    id: ws_\n    trigger:\n      - platform: event\n        event_type: ws_event\n        event_data:\n          data: \"1\"\n    condition: null\n    action:\n      - service: switch.turn_off\n        data:\n          entity_id: switch.rssi\n  - alias: setmanual_rssi_on\n    id: setmanual_rssi_on\n    initial_state: true\n    trigger:\n      - platform: state\n        entity_id: input_button.setmanual_rssi_on_but\n    condition: null\n    action:\n      - event: ws_setmanual_rssi_on\n        event_data:\n          state: fired\n  - alias: setmanual_rssi_off\n    id: setmanual_rssi_off\n    initial_state: true\n    trigger:\n      - platform: state\n        entity_id: input_button.setmanual_rssi_off_but\n    condition: null\n    action:\n      - event: ws_setmanual_rssi_off\n        event_data:\n          state: fired\ninput_button:\n  setmanual_rssi_on_but:\n    name: setmanual_rssi_on_but\n    icon: mdi:bell\n  setmanual_rssi_off_but:\n    name: setmanual_rssi_off_but\n    icon: mdi:bell\n  start_savingservice:\n    name: start_optimazing_service\n    icon: mdi:bell\n  stop_savingservice:\n    name: stop_optimazing_service\n    icon: mdi:bell\n  start_progservice:\n    name: start_programming_service\n    icon: mdi:bell\n  stop_progservice:\n    name: stop_programming_service\n    icon: mdi:bell\n  setmanual_acs_on_but:\n    name: setmanual_acs_on_but\n    icon: mdi:bell\n  setmanual_acs_off_but:\n    name: setmanual_acs_off_but\n    icon: mdi:bell\nclimate:\n  - platform: generic_thermostat\n    name: termostato_locale\n    heater: switch.rssi\n    target_sensor: sensor.shelly_ht_temp\n    min_temp: 10\n    max_temp: 21\n    ac_mode: false\n    target_temp: 17\n    cold_tolerance: 0.4\n    hot_tolerance: 0\n    min_cycle_duration:\n      seconds: 30\n    initial_hvac_mode: off\n    away_temp: 16\nautomation interface:\n  - alias: startoptimizing_service\n    id: strantserv\n    initial_state: true\n    trigger:\n      - platform: state\n        entity_id: input_button.start_savingservice\n    condition: \"{{ states.sensor.opirun.state == 'OFF'}}\"\n    action:\n      - event: ws_startoptimizing_service\n        event_data:\n          state: fired\n  - alias: stopoptimizing_service\n    id: stopantserv\n    initial_state: true\n    trigger:\n      - platform: state\n        entity_id: input_button.stop_savingservice\n    condition: \"{{ states.sensor.opirun.state == 'ON'}}\"\n    action:\n      - event: ws_stopoptimizing_service\n        event_data:\n          state: fired\n  - alias: startprogramming_service\n    id: strpgmserv\n    initial_state: true\n    trigger:\n      - platform: state\n        entity_id: input_button.start_progservice\n    condition: \"{{ states.sensor.pgmrun.state == 'OFF'}}\"\n    action:\n      - event: ws_startprogramming_service\n        event_data:\n          state: fired\n  - alias: stopprogramming_service\n    id: stoppgmserv\n    initial_state: true\n    trigger:\n      - platform: state\n        entity_id: input_button.stop_progservice\n    condition: \"{{ states.sensor.pgmrun.state == 'ON'}}\"\n    action:\n      - event: ws_stopprogramming_service\n        event_data:\n          state: fired\nautomation sensor:\n  - alias: setmanual_acs_on\n    id: setmanual_acs_on\n    initial_state: true\n    trigger:\n      - platform: state\n        entity_id: input_button.setmanual_acs_on_but\n    condition: null\n    action:\n      - event: ws_setmanual_acs_on\n        event_data:\n          state: fired\n  - alias: setmanual_acs_off\n    id: setmanual_acs_off\n    initial_state: true\n    trigger:\n      - platform: state\n        entity_id: input_button.setmanual_acs_off_but\n    condition: null\n    action:\n      - event: ws_setmanual_acs_off\n        event_data:\n          state: fired\n"
+      "dashboard": "title: My Awesome Home\nviews:\n  - title: Home\n    cards:\n      - type: vertical-stack\n        cards:\n          - type: entity\n            entity: input_text.casinauser1_text4\n            name: \"Winter/Summer : W/S\"\n          - type: entities\n            entities:\n              - entity: input_text.casinauser1_text1\n                name: 'programmazione temperature  es: {\"9:30\": 21 , \"16:30\":19}'\n              - entity: input_text.casinauser1_text2\n                name: prog ACS, usare solo T=10/45 es:{\"9:00\":45,\"16:00\":10}\n            title: \"programma temperature minime desiderate \"\n          - type: entities\n            entities:\n              - entity: input_button.casinauser1_start_progservice\n              - entity: input_button.casinauser1_stop_progservice\n          - type: entity\n            entity: input_text.casinauser1_pgmrun\n      - type: custom:dual-gauge-card\n        title: T\n        min: 10\n        max: 40\n        outer:\n          entity: sensor.shelly_ht_temp\n          label: reale\n          unit: null\n        inner:\n          entity: input_text.casinauser1_destemp\n          label: prog.\n          unit: null\n        colors:\n          - color: var(--label-badge-red)\n            value: 23\n          - color: var(--label-badge-green)\n            value: 19\n          - color: var(--label-badge-yellow)\n            value: 21\n          - color: var(--label-badge-blue)\n            value: 0\n          - color: var(--paper-blue-400)\n            value: 10\n      - type: vertical-stack\n        cards:\n          - type: entities\n            entities:\n              - entity: switch.rssi\n                name: clima\n              - entity: switch.acssw\n                name: caldaia e acs\n            title: Comando Accensione Climatizzazione\n            show_header_toggle: false\n      - type: horizontal-stack\n        cards:\n          - type: entities\n            entities:\n              - entity: input_button.casinauser1_setmanual_rssi_on_but\n                name: condizionamento ON\n              - entity: input_button.casinauser1_setmanual_rssi_off_but\n                name: Condizionamento OFF\n              - entity: input_button.casinauser1_setmanual_acs_on_but\n                name: ACS ON\n              - entity: input_button.casinauser1_setmanual_acs_off_but\n                name: ACS OFF\n          - type: entity\n            entity: input_number.casinauser1_hour\n            name: per le prossime ore\n      - type: thermostat\n        entity: climate.casinauser1_termostato_locale\n        name: Manual Thermostat\n  - title: Ottimizzatore FV\n    path: ottimizzatore-fv\n    badges: []\n    cards:\n      - type: vertical-stack\n        cards:\n          - type: entities\n            entities:\n              - entity: input_button.casinauser1_start_savingservice\n                name: Start Optimizor\n              - entity: input_button.casinauser1_stop_savingservice\n                name: Stop Optimizor\n            title: start/stop Optimizator\n          - type: gauge\n            entity: input_number.casinauser1_box1\n            name: Potenza Anticipo Consumi\n          - type: entity\n            entity: input_text.casinauser1_opirun\n            name: Current State Optimizor\n      - type: vertical-stack\n        cards:\n          - type: entity\n            entity: input_text.casinauser1_pgmrun\n            name: Programming Service Status\n            state_color: true\n          - type: entities\n            entities:\n              - entity: input_text.casinauser1_optimizing_fv\n                name: \"Stato Corrente Promozione Anticipo Consumi \"\n                secondary_info: last-changed\n          - type: gauge\n            entity: input_number.casinauser1_battery\n            name: Battery Savings\n            needle: false\n  - title: fv\n    path: fv\n    badges: []\n    cards:\n      - type: gauge\n        min: 0\n        max: 5\n        name: Inverter Power kW\n        entity: input_number.casinauser1_inverter\n      - type: gauge\n        entity: input_number.casinauser1_battery\n        max: 100\n        name: Battery %\n      - graph: line\n        type: sensor\n        entity: input_number.casinauser1_battery\n        detail: 2\n        name: battery\n        unit: \"%\"\n      - type: history-graph\n        entities:\n          - entity: weather.forecast_home\n          - entity: input_number.casinauser1_inverter\n          - entity: input_number.casinauser1_battery\n          - entity: text.casinauser1_optimizing_fv\n          - entity: switch.rssi\n        title: Optimizing History\n",
+      "package": "automation casinauser1_anticipate:\n  - alias: casinauser1_fv3_cmd_startAnticipate\n    id: casinauser1_anticipate\n    initial_state: true\n    trigger:\n      - platform: state\n        entity_id: input_button.casinauser1_start_ensavings\n    condition: null\n    action:\n      - event: casinauser1_ws_fv3_cmd_startAnticipate\n        event_data:\n          state: fired\ninput_text:\n  casinauser1_optimizing_fv:\n    name: casinauser1_optimizing_fv_\n    initial: \"0\"\n  casinauser1_laststaterefresh:\n    name: casinauser1_todo\n    initial: \"01012024\"\n  casinauser1_opirun:\n    name: casinauser1_opirun_\n    initial: \"0\"\n  casinauser1_pgmrun:\n    name: casinauser1_pgmrun_\n    initial: \"0\"\n  casinauser1_text1:\n    name: Text 1\n    initial: '{ \"9:30\" : 20, \"16:00\" : 18 }'\n  casinauser1_text4:\n    name: W/S\n    initial: W\n  casinauser1_text2:\n    name: Text 2\n    initial: ' {\"9:20\": 45 , \"16:30\":10}'\n  casinauser1_destemp:\n    name: destemp\n    initial: ' {\"9:20\": 45 , \"16:30\":10}'\nautomation casinauser1_rssi:\n  - alias: casinauser1_ws\n    id: casinauser1_ws_\n    trigger:\n      - platform: event\n        event_type: ws_event\n        event_data:\n          data: \"1\"\n    condition: null\n    action:\n      - service: switch.turn_off\n        data:\n          entity_id: switch.rssi\n  - alias: casinauser1_scaldabagnoev\n    id: casinauser1_scaldabagnoev_\n    trigger:\n      - platform: event\n        event_type: casinauser1_scaldabagno_event\n        event_data:\n          data: \"1\"\n    condition: null\n    action:\n      - service: switch.turn_on\n        data:\n          entity_id: switch.scaldabagno\n  - alias: casinauser1_scaldabagnoevoff\n    id: casinauser1_scaldabagnoev_off\n    trigger:\n      - platform: event\n        event_type: scaldabagno_event_off\n        event_data:\n          data: na\n    condition: null\n    action:\n      - service: switch.turn_off\n        data:\n          entity_id: switch.scaldabagno\n  - alias: casinauser1_prgm_state_mainev\n    id: casinauser1_prgm_state_mainev_\n    trigger:\n      - platform: event\n        event_type: casinauser1_prgm_state_main\n        event_data:\n          val: true\n    condition: null\n    action:\n      - service: switch.turn_on\n        data:\n          entity_id: switch.acssw\n  - alias: casinauser1_prgm_state_mainevoff\n    id: casinauser1_prgm_state_mainevoff_\n    trigger:\n      - platform: event\n        event_type: casinauser1_prgm_state_main\n        event_data:\n          val: false\n    condition: null\n    action:\n      - service: switch.turn_off\n        data:\n          entity_id: switch.acssw\n  - alias: casinauser1_setmanual_rssi_on\n    id: casinauser1_setmanual_rssi_on\n    initial_state: true\n    trigger:\n      - platform: state\n        entity_id: input_button.casinauser1_setmanual_rssi_on_but\n    condition: null\n    action:\n      - event: casinauser1_ws_setmanual_rssi_on\n        event_data:\n          state: fired\n  - alias: casinauser1_setmanual_rssi_off\n    id: casinauser1_setmanual_rssi_off\n    initial_state: true\n    trigger:\n      - platform: state\n        entity_id: input_button.casinauser1_setmanual_rssi_off_but\n    condition: null\n    action:\n      - event: casinauser1_ws_setmanual_rssi_off\n        event_data:\n          state: fired\ninput_button:\n  casinauser1_setmanual_rssi_on_but:\n    name: casinauser1_setmanual_rssi_on_but\n    icon: mdi:bell\n  casinauser1_setmanual_rssi_off_but:\n    name: casinauser1_setmanual_rssi_off_but\n    icon: mdi:bell\n  casinauser1_start_savingservice:\n    name: casinauser1_start_optimazing_service\n    icon: mdi:bell\n  casinauser1_stop_savingservice:\n    name: casinauser1_stop_optimazing_service\n    icon: mdi:bell\n  casinauser1_start_progservice:\n    name: casinauser1_start_programming_service\n    icon: mdi:bell\n  casinauser1_stop_progservice:\n    name: casinauser1_stop_programming_service\n    icon: mdi:bell\n  casinauser1_setmanual_acs_on_but:\n    name: casinauser1_setmanual_acs_on_but\n    icon: mdi:bell\n  casinauser1_setmanual_acs_off_but:\n    name: casinauser1_setmanual_acs_off_but\n    icon: mdi:bell\nclimate:\n  - platform: generic_thermostat\n    name: casinauser1_termostato_locale\n    heater: switch.rssi\n    target_sensor: sensor.shelly_ht_temp\n    min_temp: 10\n    max_temp: 21\n    ac_mode: false\n    target_temp: 17\n    cold_tolerance: 0.4\n    hot_tolerance: 0\n    min_cycle_duration:\n      seconds: 30\n    initial_hvac_mode: \"off\"\n    away_temp: 16\nautomation casinauser1_interface:\n  - alias: casinauser1_startoptimizing_service\n    id: casinauser1_strantserv\n    initial_state: true\n    trigger:\n      - platform: state\n        entity_id: input_button.casinauser1_start_savingservice\n    condition: \"{{ states.input_text.casinauser1_opirun.state == 'OFF'}}\"\n    action:\n      - event: casinauser1_ws_startoptimizing_service\n        event_data:\n          state: fired\n  - alias: casinauser1_stopoptimizing_service\n    id: casinauser1_stopantserv\n    initial_state: true\n    trigger:\n      - platform: state\n        entity_id: input_button.casinauser1_stop_savingservice\n    condition: \"{{ states.input_text.casinauser1_opirun.state == 'ON'}}\"\n    action:\n      - event: casinauser1_ws_stopoptimizing_service\n        event_data:\n          state: fired\n  - alias: casinauser1_startprogramming_service\n    id: casinauser1_strpgmserv\n    initial_state: true\n    trigger:\n      - platform: state\n        entity_id: input_button.casinauser1_start_progservice\n    condition: \"{{ states.input_text.casinauser1_pgmrun.state == 'OFF'}}\"\n    action:\n      - event: casinauser1_ws_startprogramming_service\n        event_data:\n          state: fired\n  - alias: casinauser1_stopprogramming_service\n    id: casinauser1_stoppgmserv\n    initial_state: true\n    trigger:\n      - platform: state\n        entity_id: input_button.casinauser1_stop_progservice\n    condition: \"{{ states.input_text.casinauser1_pgmrun.state == 'ON'}}\"\n    action:\n      - event: casinauser1_ws_stopprogramming_service\n        event_data:\n          state: fired\nautomation casinauser1_sensor:\n  - alias: casinauser1_setmanual_acs_on\n    id: casinauser1_setmanual_acs_on\n    initial_state: true\n    trigger:\n      - platform: state\n        entity_id: input_button.casinauser1_setmanual_acs_on_but\n    condition: null\n    action:\n      - event: casinauser1_ws_setmanual_acs_on\n        event_data:\n          state: fired\n  - alias: casinauser1_setmanual_acs_off\n    id: casinauser1_setmanual_acs_off\n    initial_state: true\n    trigger:\n      - platform: state\n        entity_id: input_button.casinauser1_setmanual_acs_off_but\n    condition: null\n    action:\n      - event: casinauser1_ws_setmanual_acs_off\n        event_data:\n          state: fired\ninput_number:\n  casinauser1_hour:\n    name: ore\n    initial: 1\n    min: 1\n    max: 24\n    step: 1\n    mode: box\n  casinauser1_box1:\n    name: minPower\n    initial: 30\n    min: -20\n    max: 35\n    step: 1\n    mode: box\n  casinauser1_battery:\n    name: ore\n    initial: 0\n    min: 0\n    max: 100\n    unit_of_measurement: 0/0\n    mode: box\n  casinauser1_inverter:\n    name: inverter\n    initial: 0\n    min: 0\n    max: 20\n    unit_of_measurement: P\n    mode: box\ntemplate:\n  - sensor:\n      - name: casinauser1_pippo\n        state: '[4,20,2,{\"FVPower\":{{ states.input_number.casinauser1_box1.state|int }}}]'\n        icon: mdi:tools\n  - sensor:\n      - name: casinauser1_startprogrammer\n        unique_id: casinauser1_strpgm\n        state: '[1,23,3, { \"PGMgiorno\" : {{ states.input_text.casinauser1_text1.state }} , \"PGMacs\" : {{ states.input_text.casinauser1_text2.state }} ,   \"TgiornoTollerance\" : \"2\" ,\"ei\":\"{{ states.input_text.casinauser1_text4.state }}\"} ]'\n        icon: mdi:tools\n",
+      "configurationAdd": "lovelace:\n  mode: storage\n  # Add yaml dashboards\n  dashboards:\n    lovelace-yaml:\n      mode: yaml\n      title: casinauser1_\n      icon: mdi:script\n      show_in_sidebar: true\n      filename:  ./dashboards/energyEngineService/casinauser1_dashboard.yaml\n# rssi switch is user defined and is not in package ! \n#following must be added to configuration.yaml\n#homeassistant:\n#  packages: !include_dir_named packages\npython_script:\n",
+      "configurationUser": "mqtt:\n  - switch:\n      name: \"acssw\"\n      qos: 1\n      state_topic: shellies/shelly1-34945475DD63/relay/0\n      #      value_template: \"{% if value == 'on' %} on {% else %} off {% endif %}\" only x sensor ?\n      payload_on: \"on\"\n      payload_off: \"off\"\n      state_on: \"on\"\n      state_off: \"off\"\n      command_topic: shellies/shelly1-34945475DD63/relay/0/command\n      json_attributes_topic: shellies/shelly1-34945475DD63/relay/0\n      json_attributes_template: >\n        { \"jsonattr\": \"{{value}}\"} \n  - switch:\n      name: \"rssi\"\n      qos: 1\n      state_topic: shellies/shelly1-34945475F7DE/relay/0\n      #      value_template: \"{% if value == 'on' %} on {% else %} off {% endif %}\" only x sensor ?\n      payload_on: \"on\"\n      payload_off: \"off\"\n      state_on: \"on\"\n      state_off: \"off\"\n      command_topic: shellies/shelly1-34945475F7DE/relay/0/command\n      json_attributes_topic: shellies/shelly1-34945475F7DE/relay/0\n      json_attributes_template: >\n        { \"jsonattr\": \"{{value}}\"}  \n  # now the local entity managed via a custom ws device custF attched to gas/pdc type 2 device . in this case we add a local switch and eventually its event trigger in automation \n  - switch:\n      name: \"scaldabagno\"\n      qos: 1\n      state_topic: shellies/shelly1-34945475xxxx/relay/0\n      #      value_template: \"{% if value == 'on' %} on {% else %} off {% endif %}\" only x sensor ?\n      payload_on: \"on\"\n      payload_off: \"off\"\n      state_on: \"on\"\n      state_off: \"off\"\n      command_topic: shellies/shelly1-34945475xxxx/relay/0/command\n      json_attributes_topic: shellies/shelly1-34945475xxxx/relay/0\n      json_attributes_template: >\n        { \"jsonattr\": \"{{value}}\"}  \n  - sensor:\n      name: \"shelly_ht_temp\"\n      state_topic: \"shellies/shellyht-1E6C54/sensor/temperature\"\n      value_template: \"{{ value }}\"\n  - sensor:\n      name: \"shelly_ht_humid\"\n      state_topic: \"shellies/shellyht-1E6C54/sensor/humidity\"\n      value_template: \"{{ value }}\"\n"
     }
   }
 }

@@ -1,0 +1,78 @@
+{
+
+    "input_text": {
+		"£text1":{
+		  "name":  "Text 1",
+		  "initial": "{ \"9:30\" : 20, \"16:00\" : 18 }"
+		  },
+		"£text4":{
+		  "name":  "W/S",
+		  "initial": "W"
+		  },
+		"£text2":{
+		  "name":  "Text 2",
+		  "initial": " {\"9:20\": 45 , \"16:30\":10}" 
+		  },
+		"£destemp":{
+		  "name":  "destemp",
+		  "initial": " {\"9:20\": 45 , \"16:30\":10}" 
+		  }
+		},
+   "input_number": {
+		"£hour":{
+		  "name":  "ore",
+		  "initial":1,
+		  "min":1,
+		  "max":24,
+		  "step":1,
+		  "mode":"box"
+		  },		
+		 "£box1":{
+		  "name":  "minPower",
+		  "initial":30,
+		  "min":-20,
+		  "max":35,
+		  "step":1,
+		  "mode":"box"
+		 },
+		"£battery":{
+		  "name":  "ore",
+		  "initial":0,
+		  "min":0,
+		  "max":100,		  
+		  "unit_of_measurement": "0/0",
+		  "mode":"box"
+		  },	
+		"£inverter":{
+		  "name":  "inverter",
+		  "initial":0,
+		  "min":0,
+		  "max":20,		  
+		  "unit_of_measurement": "P",
+		  "mode":"box"
+		  }
+		  },
+		  
+  "template": [
+    {
+      "sensor": [
+        {
+          "name": "£pippo",
+          "state": "[4,20,2,{\"FVPower\":{{ states.input_number.£box1.state|int }}}]",
+          "icon": "mdi:tools"
+        }
+      ]
+    },
+    {
+      "sensor": [
+        {
+          "name": "£startprogrammer",
+          "unique_id": "£strpgm",
+          "state": "[1,23,3, { \"PGMgiorno\" : {{ states.input_text.£text1.state }} , \"PGMacs\" : {{ states.input_text.£text2.state }} ,   \"TgiornoTollerance\" : \"2\" ,\"ei\":\"{{ states.input_text.£text4.state }}\"} ]",
+          "icon": "mdi:tools"
+        }
+      ]
+    }
+    ]
+		  	
+}

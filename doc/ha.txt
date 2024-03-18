@@ -1,0 +1,5 @@
+get lovelace from saved image
+	https://community.home-assistant.io/t/how-to-restore-a-lovelace-dashboard/263733
+	
+yaml >  json :
+	https://onlineyamltools.com/convert-yaml-to-json

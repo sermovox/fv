@@ -1,19 +1,19 @@
 {
-	"automation anticipate": [
+	"automation £anticipate": [
 		{
-			"alias": "fv3_cmd_startAnticipate",
-			"id": "anticipate",
+			"alias": "£fv3_cmd_startAnticipate",
+			"id": "£anticipate",
 			"initial_state": true,
 			"trigger": [
 				{
 					"platform": "state",
-					"entity_id": "input_button.start_ensavings"
+					"entity_id": "input_button.£start_ensavings"
 				}
 			],
 			"condition": null,
 			"action": [
 				 {
-				   "event": "ws_fv3_cmd_startAnticipate",
+				   "event": "£ws_fv3_cmd_startAnticipate",
 				   "event_data": {
 				     "state": "fired"
 				   }
@@ -22,9 +22,13 @@
 		}
 	],
     "input_text": {
-		"optimizing_fv":{
-		  "name":  "optimizing_fv_",
+		"£optimizing_fv":{
+		  "name":  "£optimizing_fv_",
 		  "initial": "0"
+		  },
+		  "£laststaterefresh":{
+		  "name":  "£todo",
+		  "initial": "01012024"
 		  }
 		}
 }

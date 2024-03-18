@@ -1,19 +1,19 @@
 {
-	"automation sensor": [
+	"automation £sensor": [
 		{
-			"alias": "setmanual_acs_on",
-			"id": "setmanual_acs_on",
+			"alias": "£setmanual_acs_on",
+			"id": "£setmanual_acs_on",
 			"initial_state": true,
 			"trigger": [
 				{
 					"platform": "state",
-					"entity_id": "input_button.setmanual_acs_on_but"
+					"entity_id": "input_button.£setmanual_acs_on_but"
 				}
 			],
 			"condition": null,
 			"action": [
 				        {
-					   "event": "ws_setmanual_acs_on",
+					   "event": "£ws_setmanual_acs_on",
 					   "event_data": {
 					     "state": "fired"
 					   }
@@ -21,19 +21,19 @@
 			]
 		},
 		{
-			"alias": "setmanual_acs_off",
-			"id": "setmanual_acs_off",
+			"alias": "£setmanual_acs_off",
+			"id": "£setmanual_acs_off",
 			"initial_state": true,
 			"trigger": [
 				{
 					"platform": "state",
-					"entity_id": "input_button.setmanual_acs_off_but"
+					"entity_id": "input_button.£setmanual_acs_off_but"
 				}
 			],
 			"condition": null,
 			"action": [
 				        {
-					   "event": "ws_setmanual_acs_off",
+					   "event": "£ws_setmanual_acs_off",
 					   "event_data": {
 					     "state": "fired"
 					   }
@@ -42,12 +42,12 @@
 		}
 	],
 	"input_button": {
-		"setmanual_acs_on_but": {
-			"name": "setmanual_acs_on_but",
+		"£setmanual_acs_on_but": {
+			"name": "£setmanual_acs_on_but",
 			"icon": "mdi:bell"
 		},
-		"setmanual_acs_off_but": {
-			"name": "setmanual_acs_off_but",
+		"£setmanual_acs_off_but": {
+			"name": "£setmanual_acs_off_but",
 			"icon": "mdi:bell"
 		}
 	}

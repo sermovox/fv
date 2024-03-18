@@ -1,6 +1,6 @@
 mqtt:
   - switch:
-      name: "£acs"
+      name: "acssw"
       qos: 1
       state_topic: shellies/shelly1-34945475DD63/relay/0
       #      value_template: "{% if value == 'on' %} on {% else %} off {% endif %}" only x sensor ?
@@ -13,7 +13,7 @@ mqtt:
       json_attributes_template: >
         { "jsonattr": "{{value}}"} 
   - switch:
-      name: "£caldaia"
+      name: "rssi"
       qos: 1
       state_topic: shellies/shelly1-34945475F7DE/relay/0
       #      value_template: "{% if value == 'on' %} on {% else %} off {% endif %}" only x sensor ?
@@ -27,7 +27,7 @@ mqtt:
         { "jsonattr": "{{value}}"}  
   # now the local entity managed via a custom ws device custF attched to gas/pdc type 2 device . in this case we add a local switch and eventually its event trigger in automation 
   - switch:
-      name: "£scaldabagno"
+      name: "scaldabagno"
       qos: 1
       state_topic: shellies/shelly1-34945475xxxx/relay/0
       #      value_template: "{% if value == 'on' %} on {% else %} off {% endif %}" only x sensor ?
@@ -40,10 +40,10 @@ mqtt:
       json_attributes_template: >
         { "jsonattr": "{{value}}"}  
   - sensor:
-      name: "£temp"
+      name: "shelly_ht_temp"
       state_topic: "shellies/shellyht-1E6C54/sensor/temperature"
       value_template: "{{ value }}"
   - sensor:
-      name: "£humid"
+      name: "shelly_ht_humid"
       state_topic: "shellies/shellyht-1E6C54/sensor/humidity"
       value_template: "{{ value }}"

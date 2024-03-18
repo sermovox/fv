@@ -10,14 +10,14 @@
 require('dotenv').config();// load .env
 const INVERTONOFF_RELAY=process.env.INVERTONOFF_RELAY||(process.env.INVERTONOFF_RELAY=='true');
 
-const model=require("./nat/models.js").init();// todo : add a .init() to recover added registered plants
+const model=require("./nat/models.js");
 const dOraLegale=parseInt(process.env.dOraLegale)||0;
 const  pdate=function (){let d=new Date();d.setHours(d.getHours()+dOraLegale);return d;}
 
 // debug staff normally is false
 const DEBUG_probe=true;// assign a std 20 degrees if no read on device  
-const PRTLEV=8;// print log level, >5 many prints! 
-//const PRTLEV=5;// print log level, <=5 less prints! 
+const PRTLEV=7;// print log level, >5 many prints! 
+
 
 // let getcfg=model.getcfg;//can  be used for plant cfg
 // app custom config staff:
@@ -178,10 +178,10 @@ app.get("/", (req, res) => {
 
 });
 
-app.post("/registerPlant_/", (req, res) => {// testing 11092023, this is called when ha register for a plant configuration passing json cfgdata or a sintesis of it
+app.post("/registerPlant/", (req, res) => {// 11092023, this is called when ha register for a plant configuration passing json cfgdata or a sintesis of it
 
                             // new :
-                            // user after registration pay and get a token in response to auth aiax request, then he can register the plant sending info about his shelly relays :
+                            // user after registration pay and get a token in response to auth aiax request, then he can register the plant sending info about is shelly relays :
                             // call this url with a aiax form  with  the shelly cfg  with a autorization token in header
                             // so , see moscow-city_guide_fullstackNodejs.pdf pag 164:
                             // - the user with browser  got the token when after registration (user password added to authenticate user on next login )
@@ -190,14 +190,14 @@ app.post("/registerPlant_/", (req, res) => {// testing 11092023, this is called 
                             // -  after when wants to access to restricted url from browser, as this url,
                             //         he will need to add token to auth header to access to url handler 
                             //  - OR he can do the same using a http request from a different connection, but after a login if connects with browser to this 
-                            // - infact at next post call (browser or after from different http client (curl,,,)  the middleware try to get the token from session if exists  or from  header  
+                            // - infact at next post call (browser or after from different http client (curl,,,)  the middleware try to get the token from sssion if exists  or from  header  
                             //    then the middleware can :
                             //    1: can check , depending from the url serving (unknowes user),  if token missing or invalid or expired to return a login  page to set the token
                             //    2: if is a non unknowed user url  will recover the user from the token or cookies to see if can serve this url
                             
                             
                             //    nb the token can also retrived from email instead of returned immediately after we generate it 
-                            //     instead of generate in service paying page  (.....) we can generate in different proces ( but using the same protocol and secret)
+                            //     instead of generate in service payed page  (.....) we can generate in different proces ( but using the same protocol and secret)
                             //      and given to user with email so the user can add the token with its http call in any other http tool (curl,,) 
 
 
@@ -262,8 +262,7 @@ yaml=genYaml( plantModel,cfgdata,plant); //  todo : create a new plant model upd
                               //          the rest will fill another text entity with the yaml  to set with another shell script   
 
                              // yaml=yaml.replace(/'/g, `yyy`);
-                             
-                             // let myjsonstr=JSON.stringify(yaml);
+                              let myjsonstr=JSON.stringify(yaml);
 
   // see https://www.geeksforgeeks.org/node-js-new-console-method/    https://nodesource.com/blog/understanding-streams-in-nodejs/ https://www.npmjs.com/package/stream-to-string
 
@@ -341,114 +340,6 @@ if(stream2string){
   res.json({ yaml,data: stream2string});
 
 });
-app.post("/registerPlant/", (req, res) => {// 22122023,see the  app.post("/registerPlant_/",
-                                            // this post (from form) is called when ha register for a plant configuration passing json cfgdata or a sintesis of it
-                                            // curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A"
-                                            //  -H "Content-Type: application/json" 
-                                            //  -d '{"filename": "yaml_ex.txt","yaml":"atextyaml",cfgdata:"{\"casinauser1_API\": {\"cfg\": {\"Ent_Prefix\": \"casinauser1_\",\"name\": \"casinauser1_API\"}}}}' 192.168.1.214:8080/registerPlant
-
-  // new :
-  // user after registration pay and get a token in response to auth aiax request, then he can register the plant sending info about his shelly relays :
-  // call this url with a aiax form  with  the shelly cfg  with a autorization token in header
-  // so , see moscow-city_guide_fullstackNodejs.pdf pag 164:
-  // - the user with browser  got the token when after registration (user password added to authenticate user on next login )
-  //    , he login and then will pay for the service the  token is created and returned to user browser 
-  // -  save in browser var  the token that should contain the user and the url can call
-  // -  after when wants to access to restricted url from browser, as this url,
-  //         he will need to add token to auth header to access to url handler 
-  //  - OR he can do the same using a http request from a different connection, but after a login if connects with browser to this 
-  // - infact at next post call (browser or after from different http client (curl,,,)  the middleware try to get the token from sssion if exists  or from  header  
-  //    then the middleware can :
-  //    1: can check , depending from the url serving (unknowes user),  if token missing or invalid or expired to return a login  page to set the token
-  //    2: if is a non unknowed user url  will recover the user from the token or cookies to see if can serve this url
-  
-  
-  //    nb the token can also retrived from email instead of returned immediately after we generate it 
-  //     instead of generate in service payed page  (.....) we can generate in different proces ( but using the same protocol and secret)
-  //      and given to user with email so the user can add the token with its http call in any other http tool (curl,,) 
-
-
-
-  //  after login only if in middleware  we check for auth user got from passport user retrival  from session cookies or token 
-  //    , need to call this route need to add the token in authorization header 
-  // old :
-  // a button trigger a automation that call rest_command service whose payload is a text entity filled with cfg data
-  // but first we must check the user is registered 
-  // returns a yaml cfg , the mqtt credentials and will register the user to join a role 
-  // the 
-const isAuthenticated = !!req.user;// the auth middleware try to idetify the user fron cookies or header token
-if (isAuthenticated) {
-console.log('user ',req.user,', is authenticated, session is ',req.session.id);
-} else {
-console.log("unknown user");
-}
-let plantUser='casinauser1',// debug only, plantname='casinauser1_API'
- browserUser='john';// req.user;// should be browserUser=req.user
-let cfgdata,userEnt,
-reset=false;//if plant exist use it 
-if(req.body.cfgdata){
-    // to try 
-    cfgdata=JSON.parse(req.body.cfgdata);// get data from user form
- 
-console.log('post /registerPlant/  read cfgdata: ',cfgdata);
-cfgdata.result='ok';// set validation flag ok 
-cfgdata.result='none';// but here do debug to  just use debug data 
-}
-if(cfgdata&&cfgdata.result&&cfgdata.result=='ok');
-else{// debug : set here test data 
-userEnt={ // these dev are ha real local mqtt switch . its name diffears from the cfg template whose name are like casina implementation with a prefix : Ent_Prefix
-          // scaldabagno is updated by an action on a automation on event fired by portid=55 ?  dev (preferred gas/pdc) by dev custF,  see setSwitch()
-           //  acssw is updated by an action on event fired by portid=777 ?  dev (state dev) by dev custF
-           //  rssi is updated directly by service fired by  update entity using updating dev msg  msg.payload , see setSwitch()
-          // nb custF will fire an event based on updating dev msg and last state
-            consCaldaia:'switch.rssi',consAcs:'switch.acssw',term:'sensor.shelly_ht_temp',humid:'sensor.shelly_ht_humid',
-            consCaldaia_:'rssi',      consAcs_:'acssw',       term_:'shelly_ht_temp',       humid_:'shelly_ht_humid',
-          scaldabagno:'switch.scaldabagno',scaldabagno_:'scaldabagno'};
-// todo: to avoid 2 entry for a switch:  use a function to delete char before '.' and '.' itself !
-// nb if different user works on same entities all plant works on same entity !, use only for debug !
-
-// insert here the debug conf :
-cfgdata={Ent_Prefix:plantUser+'_',//=plant+'_';//   the prefix to put in the plant entity name to generate a ha plant clone for a ner user plant  HHYY
-                                  // sostituisce il £ nei entity name del template , see  haCfgData_() , defFVMng() ! 
-        connCfg:{  // def cfg ..... LLHH resolve with clientobj=clientObject(client)
-          token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A', 
-          host: '192.168.1.212',
-          port: 8124,
-          },              
-        userEnt,
-        user:plantUser,email:'luigi.marson@gmail.com',token:'123',pass:'pass',invNomPow:5,huawei:{inv:"1000000036026833",bat:"1000000036026834",credential:null}}; // init for debug, just to store, during user/plant registration, the user specific data localEntity to use in addUserPlant() 
-}
-let plantN=plantUser+'_API';
-
-
-if(cfgdata)reset=true;// rewrite config 
-else cfgdata=model.cfgData[plantUser];// use old cfgdata if miss
-
-if(cfgdata){
-model.cfgData[plantUser]=cfgdata;// rewrite, just to record user info after registration . user info will be used to create the plant obj and the update/merge the yaml files
-let plant=model.getPlant(plantN);
-if(plant&&!reset){}
-
-else addPlantHandler(cfgdata,plantUser,plantN,
-  browserUser,reset,// recover/build(if reset) plant cfg, send to webhook , returns plant cfg staff. 
-    function(code,yamlpackage){// cb  code={result,data:plantmodel}
-    if(code==null){// rejected 
-      res.send(' /registerPlant/ : cant process ');// .send ?
-
-    }else{
-      //res.json(code);// return yaml
-      res.send('***** now the plant in json format:\n'+JSON.stringify(code.data)+'\n ***** now the yaml dashboardin json format:\n'+code.data.yaml.dashboard+'\n ***** now the yaml package:\n'+code.data.yaml.package+'\n *** now again the yaml package:\n'+yamlpackage);// astring is the yaml package
-    }
-
-  });
-}
-
-// function addPlantHandler(user,browserUser,reset,cb){// this  handler can be called by a user web call app.post("/registerPlant/", ..) o by a installer browser  call 
-
-
-
-});
-
 
 function index(res){// ejs debug
 
@@ -508,7 +399,7 @@ app.get('/about', function(req, res) {
 app.post("/login",passport.authenticate("local", {successRedirect: "/",failureRedirect: "/"}));// login handler 
 
 app.post("/logout", (req, res) => {
-  console.log(`/logout ,id: ${req.session.id}`);
+  console.log(`logout ${req.session.id}`);
   const socketId = req.session.socketId;
   if (socketId && io.of("/").sockets.get(socketId)) {
     console.log(`forcefully closing socket ${socketId}`);
@@ -635,12 +526,7 @@ io.use((socket, next) => {// 092023 : probabilmente qui si verifica che :
 
 
 //console.log('after createserver , http_.request:',http.request);
-const Newmqtt=true;//debug, true: use the new haWs client broker (see HHBB) : 
-                    // it uses mqtt std client brocker 
-                    //    > to connect mqtt real dev (type 1), var dev (type 2,4 ) without a related ha entity ,...
-                    // but also ws client
-                    //    > to connect dev topics to its ha entities) 
-let mqtt=Newmqtt ? require('./nat/haWs'):require('./nat/mqtt');
+let mqtt=require('./nat/mqtt');
 var fs = require('fs'); //require filesystem module
 
 
@@ -716,24 +602,24 @@ getctls(gpionumb,mqttnumb).then((cts)=>{
 */
 
   // async function getio(num, iotype, ind, ismqtt = false) {}
-const getio=require('./nat/io/getio.js').init(Gpio,rs485,pdate,PRTLEV);// *****************************
+const getio=require('./nat/io/getio.js').init(Gpio,rs485,pdate);// *****************************
                                           //  getctls(gpionumb,mqttnumb) will call old getctls(gpionumb,mqttnumb) !! so in .on('',  ... call it !)
                                           // NNBB getctls+getio are now moved to  module getio. seems called only by getctls that now is moved . so why mantain getio here ?
                                           // getio will be called when browser select the plant to manage
                                           // we used goon server handler definition waiting the device built (promise resolution) before to goon the run() section that started the server
                                           // NOW goon with handler definition then run the run() section ( start the server !)
 
+
 let pumpsHandler_=[];//  relais handler , also used by anticipating algo too (actuators)
                     // both button and algo actuacor can call this bank of handler(err,newvalue) 
                     // state.relays names are mapped to pumpsheader index in attuators() : pdc>0, g>1,n>2,s>3
+
 
 // TODO  here the input def used before we write the getctls() io config. in future getctls will def following input too !
 
 var pushButton ;
 if(Gpio)pushButton= new Gpio(17, 'in', 'both'); //use GPIO pin 17 as input, and 'both' button presses, and releases should be handled
 let relais;
-
-/* now moved in getio
 if(Gpio)relais= //  reserved input to check the ok . todo arrays of io ctl button x input : add to prob cfg in models.js !!
 // can add in getio the following ctl as probes for specific plant , use a specific property in models.js , we add a handler to feed the input and extend the possibility to have gpio probes in :
 //       myprobs_= getio.getctls(mqttInst,null,mqttprob,true,null);//      set null pointing to gpio probes !!!
@@ -742,7 +628,6 @@ if(Gpio)relais= //  reserved input to check the ok . todo arrays of io ctl butto
 new Gpio(4, 'in', 'both'),
 new Gpio(17, 'in', 'both')
 ];
-*/
 
 
 
@@ -1050,6 +935,7 @@ ccbbRef=function ccbb(plantname) {// when client/plant got a request (a button) 
 
       }
       
+
     }
 
     return {inst,repeat,repeat1};
@@ -1063,6 +949,7 @@ ccbbRef=function ccbb(plantname) {// when client/plant got a request (a button) 
 // end new : xxx
 
 
+
 /*
 CXD
 // old : CXD 
@@ -1073,8 +960,12 @@ module.exports = function(ap,opt,ccbb){// CXD :the client(opt.name=fusionsolar) 
         // il fv ctl chiede di init il fv ctl x fusionsolar
         // poi gli user fanno get alla pagina dopo un login (name got !) cosi si sa che impianto connettere
         // returns the controller 
+        
+	
 
- // logica : la app chima il client ctl e gli chiede di settarlo     	
+ // logica : la app chima il client ctl e gli chiede di settarlo 
+ 
+      	
       	
 app=ap;// ctl mng
 let eMClass=app.getEventMng();// the fv ctl build as a eventemitter subclass singleton instance 
@@ -1085,12 +976,16 @@ let buttoncaused=false;
 // from opt ?
 let hin=10,hout=16;
 
+
+
 if(opt.name=='fusionsolar'){// this is the fusionsolar client, the only accepted/compatible !
 return startweb();// 1; ok
 
 }
 }// ends old 
 */
+
+
 
  function startweb (options) {// start fv web server, every time a user do  get will start . ?????????????????????
 
@@ -1101,6 +996,7 @@ return startweb();// 1; ok
   // console.log('started listen web request, http: ',http);
 
   // other client init stall 
+
 
   return conf();// before first user web conn ( that will start the plant fv ctl) , must return 1
 
@@ -1126,7 +1022,10 @@ let body=
 
   }
 
+
 }// ends run()
+
+
 
 
 function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   // will set real relays from program and anticipate virtual devices set!!
@@ -1160,10 +1059,6 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
   // register into the last read probes
   state.program.triggers2.lastT = [date.toLocaleString(), probes];//JSON.stringify(probes)]; anomalus array with different types
   // find zone to activate
-  let toactivate ,// [actiongiorno,actionnotte]
-  activation ,// true if at least one is in toactivate
-  activationantic; 
-
   if (probes && inp) {// inp=sched={giorno:{'16:10':-3,,,,},notte:{},probMapping:[],mapping:[],ei} 
 
     toactivate = [],// [actiongiorno,actionnotte]
@@ -1257,6 +1152,9 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
       */
 
 
+
+
+
       //,curBattSavings:0,curEnSavings:0
       // al last reset battSav aumenta ogni check di dT*inverter e cosi enSavings che pero viene diminuto del lastbatreset
 
@@ -1266,6 +1164,8 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
 
       optimRet = ret;
       //console.log('\n at last got: : ',optimRet);
+
+
 
     } else {//  no one of programs has temperature out of  target on current time slot 
 
@@ -1294,8 +1194,6 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
       // if(state.lastAnticAlgo)console.log(' \n so next consolidation/optimizing with last anticipating action : ', state.lastAnticAlgo.pumps);
       //console.log('\n at last got: : ',optimRet);
     }
-    // todo set para to split depending on zones to do in consolidate
-
 
           ret[7] = !toactivate[3][0];// ! becauseis a noacs  , no  acs !!
       antret[7] = !toactivate[3][1];
@@ -1423,6 +1321,7 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
   }
 
 
+
   function ch(ret, oldret) {// check for different values
     if (ret.join() == oldret.join()) return false;// ret == oldret so pumps are the same 
     return true;
@@ -1547,7 +1446,7 @@ function anticipate(state,algo){// the algo :  store algo result on state.lastAn
   let a=2,//// basic model save battery
   ret,model_;
 if(triggers){
-if(triggers.PdCTrig1){a=2; console.log(' anticipate algo find required policy : PdCTrig1inverter: ',inverter,' consumo: ',consumo);
+if(triggers.PdCTrig1){a=2; console.log(' anticipate algo find required policy : PdCTrig1');
      model_="PdCTrig1";// add .policy=.....
      }
 
@@ -1555,13 +1454,11 @@ if(triggers.PdCTrig1){a=2; console.log(' anticipate algo find required policy : 
     ret = [false, false, false, false,false,false];// [heat,pdc,g,n,s,split] 
   else if (a == 2) {// basic model save battery
     if (triggers)
-    {let plant=state.app.plantname,
-      plantconfig=model.getconfig(plant),
+    {let plant=state.app.plant,plantconfig=model.getconfig(plant),
       fVP=parseInt(triggers.FVPower),// if positive the % of battery charging power, if negative the !cloudly  required condition
       doAntic;
       if(fVP!=NaN&&plantconfig.invNomPow!=null&&plantconfig.invNomPow!=NaN){
       let pococloudly;//=cloudly <= (100 + fVP);// es 100 +  -80 = 20
-      console.log(' anticipate algo evaluating anticipate for plant: ',plant,', values : fVP ',fVP,'cloudly: ',cloudly,' inverter: ',inverter,' consumo: ',consumo,' inv nominal power: ',plantconfig.invNomPow);
       if (fVP<0&& (pococloudly=cloudly) <= (100 + fVP+1)// negative value means confront - cloudly  , ok per  100<=100-1+1
         ||(fVP>=0&&(100*(inverter-consumo)/plantconfig.invNomPow >= fVP))// positive means confront with inverter power , potenze in %
       
@@ -2870,7 +2767,7 @@ function checkFactory(fn){// fn=ctl, sostituisce repdayly()
               cicles = minOut - dateN;// cicles of period minutes to run execute
               if(cicles<1)cicles=1;// min 
 
-            console.log(' repeatcheckxSun : setinterval  handler (start repetition job) called x procName: ', execParm.procName, ',  at hour: ', dh, '(dOraLegale:',dOraLegale,') and minutes: ', dm, '. present time norm: ', dateN, 'must be in: ', minIn, '-', minOut);
+            console.log(' repeatcheckxSun : setinterval  handler called x procName: ', execParm.procName, ',  at hour: ', dh, '(dOraLegale:',dOraLegale,') and minutes: ', dm, '. present time norm: ', dateN, 'must be in: ', minIn, '-', minOut);
             console.log(' normalization in minutes is: period: ', period, ' hourin: ', hourin, ' hourout: ', hourout);
 
             // if(onceaday&&dh >= hourin && dm == min){ // Check the time to start repetitive task, start from 1:00 to 23:00
@@ -2883,7 +2780,7 @@ function checkFactory(fn){// fn=ctl, sostituisce repdayly()
               gfg_Run_(cicles, period, execParm);// ex  from 9 to 10, hourinterval=10-9=1 , cicles= 1 hour; so start 1 at 9:00 the other 1 after a hour 
               // if h_m=true  the span
               // no , next will goon ! :   clearInterval(interv);
-            } else console.log(' repeatcheckxSun ************** procedure ', execParm.procName, 'setinterval handler (start repetion job x procName: ', execParm.procName, ') didnt match the firing condition, it is still to fire: ', onceaday);
+            } else console.log(' repeatcheckxSun ************** procedure ', execParm.procName, 'setinterval hndler didnt match the firing condition, it is still to fire: ', onceaday);
 
           }, 60000); // Repeat every 60000 milliseconds (1 minute)
         }
@@ -2974,7 +2871,7 @@ let i,mmax=aTT.length,mapmax=map.length;
   for (i = 0; i < mmax; i++) {// scan virtual rele i-esimo  and apply changes to real rele if index map[i] named  relaisEv[map[i]],  with current state relays[relaisEv[map[i]]]
     let realind;
     if (i < mapmax) realind = map[i];// apply map only if are >=0
-    else realind = i;// now we must use identity 
+    else realind = i;// identity 
 
     // error on managing mapping virtual> real , so waiting debug :
     realind=i;//anyway till we resolve the bag
@@ -3124,7 +3021,7 @@ function setPump(pumpnumber,on,fn){// 0,1,2,3    on : changing value (true/1 or 
   // fn.state.discFromBrow=true;//old to delete.  better : set true only if the sockeck connection is connected !
   // better >>>  warn in contxt that we launch  a server request that is followed by a double req from browser if the client is connected  :
   //            a expiration time out will mantain .discFromBrow=true; for 2 s. 
-  fn.getcontext.discFromBrow=true;// so in fn.getcontext.processBrow return false if fn.state.discFromBrow=true. so the browser request wont be processed 
+  fn.getcontext.discFromBrow=true;// so in fn.getcontext.processBrow return false if fn.state.discFromBrow=true
 
   if(fn.getcontext.blocking)clearTimeout(fn.getcontext.blocking);// fn.state.discFromBrow : the server req  (onRelais ) is followed by a browswer req : 
   //    so if a previous browser timeout was set , reset it and  reset the interval of browser  blocking 
@@ -3143,7 +3040,7 @@ function setPump(pumpnumber,on,fn){// 0,1,2,3    on : changing value (true/1 or 
   onRelais(relaisEv[pumpnumber],on_,Serv_,fn);// dont wait, WARNING usually called before the duplicate call coming from browser as feedback of previous  pumpsHandler[pumpnumber] call !
   
  if(!clientDiscon)// when client disconnect it useless run function that will emit browser .emit , because no connection is available
-  fn.pumpsHandler[pumpnumber](0,on_,fn);// 
+  fn.pumpsHandler[pumpnumber](0,on_);// 
                                 // its a copy of gpio button relays handler (so we are simulating a gpio button press) that launch socket events
                                  // after set the browser pump flag will return with a socket handler that will call
                                  // onRelais(pumpnumber,on,'browser...',) : the gpio phisicalrelay
@@ -3153,56 +3050,6 @@ function setPump(pumpnumber,on,fn){// 0,1,2,3    on : changing value (true/1 or 
   
   return Promise.resolve(true);// why return promises ?
 }
-
-function watchparam(pumpName){// the handler emit the socket.emit('pump' to browser. handler for all pump gpio button >>> using a closure is a bit forcing , probably one more param is enougth
-  // >> pumpName in relaisEv
-
-// ERROR in referencing session and socket , infact should be in fn.getcontext.
-// here socket is the socket where plant was launched  with its fn , but the socket we want to send is the current socket got in setPump !!
-// garbage collection : watchparam should be on fn , so when first socket will disconnect we can garbage collect it 
-
-
-
-return function watch (err, value,fn) { // :YUIO   the handler . // added fn because the socket connecting the browser can change and is tracked by fn.getcontext.socket
-// - Watch for io hardware interrupts ( manual pumps Button ), 
-// we watch also (these handlers are put in the bank pumpsHandler[ind]  called by setPump(pumpnumber,on) ): 
-// - Anticipating algo that also can trigger pumps updates 
-// >>> emit/fires socket events pumpName
-// remember that those events  are handler  in browser .on()
-//          -.on() updates gui button then return/pass  pumpName event back to server
-//              pumpName event will call    onRelais(pump,data=true/false) to command the relays gpio
-//                                                      using relais_ gpio
-//                      see : socket.on(pump,onRelais);  pump==pumpName
-//            >> anticipating algo in setPump(pumpnumber,on) anyway will also launch onRelais(pump,data=true/false) in case the bwowser page in not (socket) connected
-//                so if the browser is connected the set gpio relay function will be called two times  with same value !!
-//      >>>> server handler commands pump relais 
-const socket=fn.getcontext.socket;// current socket
-if (err) { //if an error
-console.error('on activating pump: ',pumpName,' There was an error', err); //output error message to console
-return;
-}
-if(PRTLEV>4)console.log(' watchparam ( server button handler, called also by algo activated setPump() ) : it is firing a socket event pump for pump: ',pumpName,' so in browser well set pump flag : ', value,' now  try to send ws (ws.id=',socket.id,') pump emit '); //output error message to console
-lightvalue = value;
-if(socket){socket.emit('pump',pumpName, lightvalue); //send button status to browser client, if available  
-          // >> pumpName in relaisEv
-           // accoppiato con onrelais  
-           // **********************************
-           // >>>>   .on('pump)  can be not set , till browser ask to connct to this plant !!!!!!!!!!!!!!!
-
-           if(PRTLEV>7)console.log(' watchparam, pump emit was sent on wsid: ',socket.id);}
-////   >>>>>>>>>>>>>>>>>>  todo : nb like light is better impleent a callback to server to set state.relais=[0,0,0,0]
-//instead of:
-//if (lightvalue == 1) {
-//  // anyway send server info about new event to process
-//  eM.emit('button', lightvalue);// utton pressed event, or a new status var value to set
-//  // todo  implement button handler !
-// //buttoncaused = true;
-//}
-
-
-
-}}
-
 
 function setManual (pump_, val, coming,checked,eM,hour)  {// this will be like the final part of a manual algo: propose a single pump value to be evaluater with all other active algo by optimize
                                                     // the proposal evaluated in consolidate() is put in state.lastUserAlgo.pumps
@@ -3782,7 +3629,7 @@ let eM,//  >>> e' settato da socket.on('startuserplant',...  ed e' legata/propie
 repeat,// active rep func x anticipate
 repeat1,// active rep func x temperature programmer
 clientDiscon=false;
-console.log('on connection got from a browser set in login, user: ',user,`new  session: ${session.id}  , socket connection id ${socket.id}`,
+console.log('on connection got from a browser set in login, user: ',user,`new  session: ${session.id}  , connection ${socket.id}`,
             '\n   so clientDiscon is set false ');
 
 console.log(`saving user and socketid ${socket.id} in session ${session.id} used by future fn ( will be associated to user plant). in case algo procedure wants to do something with session and socket if they are active`);
@@ -3791,16 +3638,7 @@ session.socketId = socket.id;
 session.user = user;// session.user is already used ?, probably only req.user or socket.user are used !
 session.save();// save socketid
 
-socket.on('createUsrPlant',// to do emit in browser.  create the plant config in models , with yaml file in plant.yaml={dashboard,package}
-                                            // after the user got and insert the yaml file  we can now start the plant with :  socket.on('startuserplant'
-  function(cfgdata,plantUser,browserUser){
 
-    addPlantHandler(cfgdata,plantUser,plantUser+'_API',
-    browserUser,true,// recover/build(if reset) plant cfg, send to webhook , returns plant cfg staff. 
-      function(code,plantmodel){// do some returns on some emit
-        // plantmodel=code.data;
-      }
-  );});
 
   // define the listener :
   socket.on('startuserplant', function (plant_,feat) { // user press button to connect to some plant, so this event is fired , feat url enc
@@ -3823,7 +3661,7 @@ socket.on('createUsrPlant',// to do emit in browser.  create the plant config in
     // user login or just the plant name in some html field + button start that will fire event startuserplant
     let user_ = user,// the user is the passport user set in session/req.user when (in closure) the client ask a ws connection to server
    plantcnt=model.ejscontext(plant_),// ejs context=plantcnt={pumps:[{id,title},,,,]}
-    plantconfig=model.getconfig(plant_),// a restricted modified version of plantcfg !!!!!!!!!!!!!!! WARNING 
+    plantconfig=model.getconfig(plant_),// 
     plantcfg=model.getcfg(plant_);// get plant cfg from available pool. : return plants[plant].cfg;
     // todo if(plantcfg&&...)
 
@@ -3833,21 +3671,22 @@ socket.on('createUsrPlant',// to do emit in browser.  create the plant config in
     eM = recInsts.inst;
     repeat=recInsts.repeat;
     repeat1=recInsts.repeat1;
-    let prevSess;// prev session id
+    let prevSess;
 
     // reset the context = this closure (socket.on('startuserplant',closure)) 
     // must be nullified when socket disconnect so closure can be garbagecollected 
     if(eM.getcontext){
-    console.log(' startuserplant , user ',user,', plant: ',plant_,' recovered a plant ctl(eM/fn) running ,changing ctl session/socket browser context data. old/new session id are: ',eM.getcontext.getSession().id,'/',session.id);
+    console.log(' startuserplant , user ',user,', plant: ',plant_,' changing session/socket context data. old/new session are: ',eM.getcontext.getSession().id,'/',session.id);
     prevSess=eM.getcontext.getSession().id;
-    } else console.log(' startuserplant , user ',user,', plant: ',plant_,' no running plant ctl found . setting session/socket context data. no em.getcontext, so new session id are: ',session.id);
+    } else console.log(' startuserplant , user ',user,', plant: ',plant_,' setting session/socket context data. new session are: ',session.id);
     // **************    ma quando recupero eM in un nuovo socket getcontext mi da la sessione e il clientDisconnect del nuovo socket visto che lo riassegno !!!!
-                  // reset update or new ?  todo
+                  // reset
     eM.getcontext={// to make available this current closure vars relating to current state of browser connection via socket  to setPump,.....
                     // sono in sostanza le variabili della closure , cioe l'handler del connection , cioe il socket, session,,,
                     // che servono al ctl fn per diallogare con uno degli i/o : il current browser socket , se c'e'
                   // probably must nulllified when socket disconnect clientDiscon=null, instead to pass clientDiscon !
                   // nb il socket è in fn.socket !!!!
+
 
                  /*  >>>>>>>>>ok :   summary :
                   all'inizio in SSWW  si setta la variabile closure  clientDiscon che poi viene true solo  quando il socket esce SSEE
@@ -3878,39 +3717,15 @@ socket.on('createUsrPlant',// to do emit in browser.  create the plant config in
            nb getcontext.processBrow() ritorna !getcontext.discFromBrow
            inoltre  when clientdiscon it useless run function that will emit browser .emit , because no connection is available
         */
-      getSession:function(){return session;},// get cur session 
+      getSession:function(){return session;},
       getCliDiscon:function(){return clientDiscon;},// staus of socket on current closure (onconnection socket handler)
       processBrow:function(){
         if(this.discFromBrow)return false;// discard processing the browser req
         else return true;},
       discFromBrow:false ,// if true : dont process things related to browser/socket presence : connection is lost , ex:  dont process double time setPumps event in onRelais()
       // trace
-      curSess:session.id,// init session id TODO  todo : chiarire se .id esiste , sembra essere nel prototype di session !
-      prevSess:prevSess,
-
-      socket:socket,// todo migrate here socket ref. socket is valid (!=null) if session.id!=null
-      ha_ws:null  /* ha ws will receive/send mqtt staff comingfrom/goingto the ha connected with mqtt:
-                  // - browser style event emit ( like socket.emit('event', ....) from ha mqtt service triggered by some automation on topic @plant@interface_mqtt_websock/0/NReadUser/cmd
-                  //     ex  mqtt subevents coming from @Casina_API@interface_mqtt_websock_0/command cmdtopic managed in 
-                            quindi se in cfg specifico int=ws instead of  programmare il sub in numbSubscr/probSubscr e quindi in goonP() :
-                            
-
-
-                  // - browser style event on   sent to ha in topic on topic @plant@ctl_var_state_0
-                  // - device state coming triggered mqtt publish service  shellies/Casina_API-xxx/relay/0
-                  // - device command sent to topic @Casina_API@ctl_var_state_0
-                  //  no more , old way to delete !
-                  */
-
-                  // ha_ws se not null verrà usato :
-                  //  - in writesync, es type1 , per settare il entity corrispondente di tipo switch es rssi  
-                  //                  cosi per type 2,4
-                  // - in readsync si leggerà dal queue , riempito dai ws.omessage quando attivo 
-                  //    nb se la coda è vuota do null o valore default o l'ultimo ....
-
-                  // dopo abilita2 faccio partire il wsha e se trova connessione  setto ha_ws
-                   // quando vedo che non arriva piu niente in .onmessage pongo ha_ws=null e setto interval per ritentare la connessione ogni 5 minuti
-      // ha_tocken ??
+      curSess:session.id,
+      prevSess:prevSess
     }
 
 
@@ -3935,7 +3750,6 @@ socket.on('createUsrPlant',// to do emit in browser.  create the plant config in
     if(eM)console.error('startuserplant , eM is built/recovered from pool ');
     if(eM)console.log('startuserplant , eM is built/recovered from pool ');
     eM.socket=socket;// update/embed the socket to connect the last browser client: todo check only 1 browser pointing to  a eM
-                    // todo : migrate to eM.getcontex.socket the old put into eM.socket
 
     // UUYY add here (or in instance constructor ???)
 
@@ -3946,16 +3760,11 @@ socket.on('createUsrPlant',// to do emit in browser.  create the plant config in
      recoverstatus.call(eM,plantcfg,plantcnt,plantconfig,feature).then((em_) => {
      
      if (!em_.iodev){
-     console.log(' startfv_ called because device are not defined jet in fn ctl !');
+     console.log(' startfv_ called because device not defined in fn ctl !');
      startfv_(em_,oncomplete_);
     
-     }else {oncomplete_();// new risparmia di settare i dev che ho gia !   ma non devo aver cambiato il models.js !
-
-      // TODO allineate the ralais/ pump. in other alternative startfv_  do that with :
-      //            startfv(eM);})// ** call setPump to allineate pump state to state.relays  JJUU 
-
+     }else oncomplete_();// new risparmia di settare i dev che ho gia !   ma non devo aver cambiato il models.js !
      }
-    }
      ); // >>>>   recoverstatus() returns a promise resolved. we finished to write status back with promise .writeScriptsToFile
                                                                     // ctl event status: in eM.state 
                                                                     // socket in eM.socket
@@ -4035,18 +3844,18 @@ let pythonprobs=   [...plantconfig.pythonprob];
 if(PRTLEV>5) console.log('startfv_(), got pythonprob cfg .',pythonprobs);
 
 const keepDeviceDef=true;// is true, try false
- if(keepDeviceDef&&!eM.init){// eM is not initiated (new, non recovered from started[name] )
+ if(keepDeviceDef&&!eM.init){// eM is not initiated (non recovered from started[name] )
  //  abilita(eM.state);//// abilita sezione gestione eventi ( relais_)  plant nella pagina
  abilita(eM.state).then((devices)=>{ 
 
-  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><   todo   devices > {relais_:[],probes_:[]}  // probs are input devices with only syncread() , can be mqtt or modbus
+  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><   todo   devices > {relais_:[],probes_:[]}// probs are input devices with only syncread() , can be mqtt or modbus
 
   abilita2(devices); eM.init=true;
   if(nRWaiting[plant])nRWaiting[plant]();// call the nr listener to add plant eM to node-red socket closure
   nRWaiting[plant]=null// reset
 
   //startfv(eM,session);})// ** call setPump to allineate pump state to state.relays
-  startfv(eM);})// ** call setPump to allineate pump state to state.relays  JJUU 
+  startfv(eM);})// ** call setPump to allineate pump state to state.relays
 // .catch();
  }else{
  // startfv(eM,session);// ** call setPump to allineate pump state to state.relays
@@ -4082,7 +3891,7 @@ async function buildPlantDev(){// build here the plant ctl devices (ctl/eM/fn).i
 // start mqtt connection :
 let mqttInst;//
 // register gpio 11 as mqtt device and try connecting
-if(!(mqttInst=mqtt.init(plantconfig,PRTLEV))){// 02052023: now work with instance not the class , must be passed to getio.js , and  something else ? ....
+if(!(mqttInst=mqtt.init(plantconfig))){// 02052023: now work with instance not the class , must be passed to getio.js , and  something else ? ....
                                             // devid_shellyname={11:'shelly1-34945475FE06',,}
                                             // AAFF :temporaneamente use shelly 1 std, so after start mqtt connection  wait connection and subsribe all gpio , 
                                             // so  as soon cb is called we have status[gp]=[] (the subscription is ok )
@@ -4150,9 +3959,8 @@ function abilita2(devices_){// {myctls,myprobs,pythonprob} // DDQQAA
 //eM=socket.eM,
 
       probes=devices_.myprobs;// 
-
-if(PRTLEV>2)console.log(' abilita2(),got dev ctls x models.js lists: gpionumb,mqttnumb. relais map is: ',devices.devmap);
-if(PRTLEV>2)console.log(' abilita2(),got dev ctls x models.js lists:,mqttprob. probs map is: ',probes.devmap);// devices.devmap);
+console.log(' abilita2(),got dev ctls x models.js lists: gpionumb,mqttnumb. relais map is: ',devices.devmap);
+console.log(' abilita2(),got dev ctls x models.js lists:,mqttprob. probs map is: ',devices.devmap);
 eM.iodev.relais_=Array(devices.ctls.length).fill(null);// fill relays/pump  list in browser , inorout='out' cioe out capable
 eM.iodev.probs_=Array(probes.ctls.length).fill(null);//  inorout='in-var'
                                                       // in algo triggers frame we assign the probs to use for each input used by algo ,  
@@ -4191,7 +3999,7 @@ builddev(probes,eM.iodev.probs_,state.probMap,1); //                            
                                                 //                                                                        - to store/write or get/read intermediate var status connectable to node red
 
 function builddev(devices,ct,map,type){// fill obj map with dev id/port (see models.js) + fill ctl  in ct[index of devices], ct can be  iodev.relais_ or iodev.probs_  
-                                        // copy dev ctl of devices (devices.ctls[i]) e probs (probs.ctls[i]) into  ct=iodev.relais_[i]  e iodev.probs_[i]
+                                        // copy dev ctl of devices e probs into  ct=iodev.relais_  e iodev.probs_
                                         // fill map with the dev portid
 devices.ctls.forEach((mdev,index)=>{
   if(mdev){ct[index]=mdev;
@@ -4235,9 +4043,9 @@ if(relais&&relais[ind])relais[ind].watch(pumpsHandler[ind]);// attach same handl
 
 if(eM.iodev.relais_[ind]&&eM.iodev.relais_[ind].cl&&(eM.iodev.relais_[ind].cl==2||eM.iodev.relais_[ind].cl==1)){// the dev is a mqtt var , see VVCC in howto
 
-  // define interrupt handler for hadling cmd topic topicNodeRed in cl 1 e 2 , cioe mappa il url nel msg di topicNodeRed in handler via .int0
+  // define interrupt handler for hadling cmd topic topicNodeRed in cl 1 e 2 
   eM.iodev.relais_[ind].int0=Inter0;// handler point to setPump()
-  eM.iodev.relais_[ind].int1=Inter1;// handler point to setManual(). the registered handlr x cmdtopic that asks url ='setMan'
+  eM.iodev.relais_[ind].int1=Inter1;// handler point to setManual()
     
     function Inter0 (val='0',queue,lastwrite){// the int func . 25052023 val is '0' or '1' > error !!!  .  call setPump !
 
@@ -4299,12 +4107,12 @@ if(eM.iodev.relais_[ind]&&eM.iodev.relais_[ind].cl&&(eM.iodev.relais_[ind].cl==2
 
 // now find and process the 'int' dummy dev (gpio=0) to set a interrupt handler that map the topicNodeRed to websocket handler
 
-let mqtt2webS;//  dev dummy ctl, with gpio=portid=0,
-for(let ii=relaisEv.length;ii<eM.iodev.relais_.length||!mqtt2webS;ii++){// relais_ contain the int dummy dev with index>=relaisEv.length (usually =relaisEv.length)
+let mqtt2webS;
+for(let ii=relaisEv.length;ii<eM.iodev.relais_.length||!mqtt2webS;ii++){// relais_ contain the int dummy dev with index>=relaisEv.length (usually =)
   if(eM.iodev.relais_[ii]!=null&&eM.iodev.relais_[ii].gpio==0)mqtt2webS=eM.iodev.relais_[ii];// the ctl , dev dummy with gpio=portid=0, that read from mqtt node-red like cmd 
 }
 if(mqtt2webS){
-  mqtt2webS.intWebSoc=intWebSock;// set ctl interrupt handler x cmd topic  . dev handler point to ,,,,
+  mqtt2webS.intWebSoc=intWebSock;// handler point to ,,,,
  
   
 }else{ console.error(' abilita2() could not find intwebsoc device in iodev.relais_ list')
@@ -4314,13 +4122,12 @@ console.log(' abilita2() could not find intwebsoc device in iodev.relais_ list')
 
 function intWebSock(val=0, devqueue, message){// val=0/1, the int handler of a formatted request serving url mqttxwebsock
   // old : message='{"payload":1,"sender":{"plant":"Casina_API","user":xx,"token":yyy},"url":"mqttxwebsock","event":"repeatcheckxSun","data":{theeventhandlerparams=starthour,stophour,dminutes,triggers)}}' 
-  //message is json obj got from  : message={"payload":1,"sender":{"plant":"Casina_API","user":77},"url":"mqttxwebsock","event":"repeatcheckxSun","data1":[1,23,2,{"FVPower":30}]} 
+  // message={"payload":1,"sender":{"plant":"Casina_API","user":77},"url":"mqttxwebsock","event":"repeatcheckxSun","data1":[1,23,2,{"FVPower":30}]} 
   let mevent=message.event,param=message.param,startAnt=false,startPgm=false;
   state=state;// TODO :  recover state for this active user plant that registered the mqtt dev topic , 
   //                    better validate the token to avoid a different user having the mqtt broker access send a mqtt pub to a different user topic dev 
   // the user auth staff is in ..........................
-  let xstart,xstop,xmin,
-  data=message.data;// a array sent by ha entity
+  let xstart,xstop,xmin,data=message.data;
   if((mevent)){
 
   if(mevent=="stopcheckxSun"){
@@ -4403,7 +4210,7 @@ if(triggers2&&triggers2.PGMgiorno){ // complete with std data
   if(triggers2.PGMacs)triggers2.Tacs=true; 
   console.log('intWebSock() starting program  Algos');                                              
 // setTimeout(()=>{ repeatHandler1(xstart,xstop,xmin,triggers2);},1500);
-repeatHandler1(xstart,xstop,xmin,triggers2); // the handler: socket.on('startprogrammer',repeatHandler1)
+repeatHandler1(xstart,xstop,xmin,triggers2); 
 }}
       }
 
@@ -4452,14 +4259,8 @@ repeatHandler1(xstart,xstop,xmin,triggers2); // the handler: socket.on('startpro
     }
   });
 
-  /* put in main fv3
   function watchparam(pumpName){// the handler emit the socket.emit('pump' to browser. handler for all pump gpio button >>> using a closure is a bit forcing , probably one more param is enougth
                                         // >> pumpName in relaisEv
-
-                                // ERROR in referencing session and socket , infact should be in fn.getcontext.
-                                // here socket is the socket where plant was launched  with its fn , but the socket we want to send is the current socket got in setPump !!
-                                // garbage collection : watchparam should be on fn , so when first socket will disconnect we can garbage collect it 
-
   return function watch (err, value) { // :YUIO   the handler 
                                       // - Watch for io hardware interrupts ( manual pumps Button ), 
                                       // we watch also (these handlers are put in the bank pumpsHandler[ind]  called by setPump(pumpnumber,on) ): 
@@ -4477,28 +4278,28 @@ repeatHandler1(xstart,xstop,xmin,triggers2); // the handler: socket.on('startpro
       console.error('on activating pump: ',pumpName,' There was an error', err); //output error message to console
       return;
     }
-    console.log(' watchparam ( server button handler, called also by algo activated setPump() ) : it is firing a socket event pump for pump: ',pumpName,' so in browser well set pump flag : ', value,' now  try to send ws (ws.id=',socket.id,') pump emit '); //output error message to console
+    console.log(' watchparam ( server button handler, called also by algo activated setPump() ) : it is firing a socket event pump for pump: ',pumpName,' so in browser well set pump flag : ', value); //output error message to console
     lightvalue = value;
-    if(socket){socket.emit('pump',pumpName, lightvalue); //send button status to browser client, if available  
+    if(socket)socket.emit('pump',pumpName, lightvalue); //send button status to browser client, if available  
                                                 // >> pumpName in relaisEv
                                                  // accoppiato con onrelais  
                                                  // **********************************
                                                  // >>>>   .on('pump)  can be not set , till browser ask to connct to this plant !!!!!!!!!!!!!!!
 
-                console.log(' watchparam, pump emit was sent on wsid: ',socket.id);}
-    ////   >>>>>>>>>>>>>>>>>>  todo : nb like light is better impleent a callback to server to set state.relais=[0,0,0,0]
-    //instead of:
-    //if (lightvalue == 1) {
-    //  // anyway send server info about new event to process
-    //  eM.emit('button', lightvalue);// utton pressed event, or a new status var value to set
-    //  // todo  implement button handler !
-     // //buttoncaused = true;
-    //}
-    
+
+    /*   >>>>>>>>>>>>>>>>>>  todo : nb like light is better impleent a callback to server to set state.relais=[0,0,0,0]
+    instead of:
+    if (lightvalue == 1) {
+      // anyway send server info about new event to process
+      eM.emit('button', lightvalue);// utton pressed event, or a new status var value to set
+      // todo  implement button handler !
+      //buttoncaused = true;
+    }
+    */
   
 
   }}
-*/
+
 
 
   socket.on('light', function (data) { //handler of  'light' event fired on browser ,get light switch status from client web page .   data=0/1 ?
@@ -4524,7 +4325,7 @@ repeatHandler1(xstart,xstop,xmin,triggers2); // the handler: socket.on('startpro
  function onRelais_  (pump,data) { // dead code //pumps unique handlerget pumps switch status from client web page.  data =0/1
   lightvalue = data;
   if (relais_[pump]&&lightvalue != relais_[pump].readSync()) { //gpio comanding relays is called, only change LED if status has changed
-    if(relais_[pump])relais_[pump].writeSync_(lightvalue,{}); //turn LED on or off
+    if(relais_[pump])relais_[pump].writeSync_(lightvalue); //turn LED on or off
     /*
     if (buttoncaused) {// means that the relay is requested by user raspberry button press (or algo anticipating), not corresponding seb button press
       buttoncaused = false;
@@ -4651,22 +4452,9 @@ function stopRepeat()  {
 
 // now the same x programming temperature x many zones
 socket.on('startprogrammer',repeatHandler1);// start anticipating algo with setting and run an execute()
-function repeatHandler1(starthour,stophour,dminutes,triggers2,custFs_param={scaldabagno:
-                                                              {event:'scaldabagno',attName:'hours',attVal:3,event0:'resetScaldaB'}// {entity:'switch.scaldab',hours:3}
-                                                              }) {// triggers2 keys sono gli items di :extract2 =  ["Tgiorno","PGMgiorno","Tnotte","PGMnotte","lastT","mapping","probMapping","ei","TgiornoTollerance",,,,],
-                                                                // 27012024 : params are of 2 types:
-                                                                //  - sched param set into sched passed to prog_parmFact
-                                                                //  - custFs_param: param for custom dev (future use)
-                                                                //      - will be put  in state.customParam , that is  passed to customdev custom handler func set in custDev 
+function repeatHandler1(starthour,stophour,dminutes,triggers2) {// triggers2 keys sono gli items di :extract2 =  ["Tgiorno","PGMgiorno","Tnotte","PGMnotte","lastT","mapping","probMapping","ei","TgiornoTollerance",,,,],
+                                                                
 
-          if(PRTLEV>4)console.log(' startprogrammer socket event handler repeatHandler1() called with triggers2: ',triggers2 ,' controller fn is null: ',eM==null)   ;       
-          if(eM){ eM.state.customParam=eM.state.customParam||{};
-                  eM.state.customParam.scaldabagno=custFs_param.scaldabagno;// add in cust param a entry x scaldabagno , used by some dev as conig in custF(). or function of . GGSS
-                                                                            // can also merge all custFs_param properties !
-                                                                            // todo add in start program form the name of scaldabagno and the number of hour to power it 
-                                                                            //  in dev gas/pdf we add a custF that start ha event :
-                                                                            //    - ha event start a timer x 3 hour but checking that battery is more then pmax/4
-                }
                                                                 /*  
                                                                           Tgiorno: true,
                                                                           PGMgiorno: {
@@ -4707,8 +4495,7 @@ function repeatHandler1(starthour,stophour,dminutes,triggers2,custFs_param={scal
 
                                                                       }
                                                                 */
-                                                           
-
+  if(PRTLEV>4)console.log(' startprogrammer socket event handler repeatHandler1() called with triggers2: ',triggers2 ,' controller fn is null: ',eM==null)   ;                                                            // sched={'giorno':['8:30':t1,"17:00":t2]} see initProg event x keys definitions
   let sched={programs:{}};// sched={programs:{giorno:{sched:{'16:10':-3,,,,},toll:{'16:10':1.5,,}},notte:{},,},  HHDD
                           //  probMapping:[],
                           // mapping:[],
@@ -4799,7 +4586,7 @@ if(triggers2.Tacs)fillpgm( triggers2,sched.programs.acs={},triggers2.PGMacs,trig
 
 // fillpgm( triggers2,sched.programs.giorno={},triggers2.PGMgiorno,triggers2.TgiornoTollerance,triggers2.TgiornoToll);
 function fillpgm(triggers2,prog,PMG,TTollerance,TToll){// triggers2,sched.programs.giorno={},triggers2.PGMgiorno,triggers2.TgiornoTollerance,triggers2.TgiornoToll
-  let val_;                                                // >> fills prog !
+  let val_;                                                // fills prog
 if ( PMG) {
 prog.sched=PMG ;
 if (TTollerance&&TTollerance !='' && (!Number.isNaN(val_=Number(TTollerance)) ))   prog.TTollerance =val_;// ok
@@ -4847,7 +4634,7 @@ function stopprogrammer() {
     // eM will run also if the client dead . when a new connection come and it refears to same plant of the running eM , attact it to the closure and goon  
    if(eM&&eM.getcontext){ console.log(' socket connection lost, plant: ',eM.state.app.plantname,', session ',eM.getcontext.getSession().id,
                                      '\n  socket.on disconnect,  so clientDiscon is set false ');
-                                     session.id=null;//session=null;
+                                     session=null;
                                      if(eM)eM.socket=null;
   }
     clientDiscon=true;
@@ -4944,7 +4731,7 @@ async function onRelais(pump,data,coming,fn) { //pumps unique handlerget pumps s
   
     //fn.state.discFromBrow=fn.state.discFromBrow||[false,false,false,false,false,false,false];
     if (coming && coming == Serv_) {// set a expiring flag if coming from server. when comes browser duplicated command il the flag is set and valid we dont care 
-      if(PRTLEV>3)console.log('OnRelais started x mqttnumb dev , pump/devName: ', pump, ', plantname ', fn.state.app.plantname, ' , session id ', sessionid, ', socket id ', socketid, ', to set ', data, ',  coming from ', coming, 
+      console.log('OnRelais started x mqttnumb dev , pump/devName: ', pump, ', plantname ', fn.state.app.plantname, ' , session id ', sessionid, ', socket id ', socketid, ', to set ', data, ',  coming from ', coming, 
       ' the socket connection with browser is active : ', !clientDiscon ,' and, if true , set process browser request: ',fn.getcontext.processBrow());
       // put in  fn.state.discFromBrow[pump_]=true;// better : pdate().getTime(); the expiration data
       //  discFromBrow was init with false in loadScriptsFromFile 
@@ -4965,7 +4752,7 @@ async function onRelais(pump,data,coming,fn) { //pumps unique handlerget pumps s
 
           //  this way can happend (rarely) that also concomitant browser req from user activity , that's a pity !!!
           // so every browser req tha comes in timeout validity will be discard 
-          if(PRTLEV>3)console.log('OnRelais started x mqttnumb dev , pump/devName: ', pump, ', plantname ', fn.state.app.plantname, ' , session id ', sessionid, ', socket id ', socketid, ', to set ', data, ',  coming from ', coming, ' but it comes on a not expired time out on which the duplicated req is expected  ');
+          console.log('OnRelais started x mqttnumb dev , pump/devName: ', pump, ', plantname ', fn.state.app.plantname, ' , session id ', sessionid, ', socket id ', socketid, ', to set ', data, ',  coming from ', coming, ' but it comes on a not expired time out on which the duplicated req is expected  ');
           // error : fn.state.discFromBrow=false;// optional , is anyway done by timeout
           // the previous was the server cmd , so dscard the browser duplicated 
 
@@ -4981,7 +4768,7 @@ async function onRelais(pump,data,coming,fn) { //pumps unique handlerget pumps s
       } else {// new code :  coming from browser
               // the server already sent this request so ask to not run this browser duplicated request. better let browser not to send duplicated request received from browser !
         if (fn.getcontext && fn.getcontext.processBrow){
-          if(PRTLEV>3)console.log('OnRelais started x mqttnumb dev , pump/devName: ', pump, ', plantname ', fn.state.app.plantname, ' , session id ', sessionid, ', socket id ', socketid, ', to set ', data, ',  coming from ', coming,
+          console.log('OnRelais started x mqttnumb dev , pump/devName: ', pump, ', plantname ', fn.state.app.plantname, ' , session id ', sessionid, ', socket id ', socketid, ', to set ', data, ',  coming from ', coming,
           ' the socket connection with browser is active : ', !clientDiscon , ', so the server asks dont process this browser req (because is duplicated) : ', fn.getcontext.processBrow(),
            '\n  so reset disconFromBrow=false and return');
    
@@ -5013,7 +4800,7 @@ async function onRelais(pump,data,coming,fn) { //pumps unique handlerget pumps s
     }
     else // if the device is not available read a dummy 0
       curval = null;// 0;
-      if(PRTLEV>7)console.log(' onRelais, coming from: ',coming,', current rele position x dev name ',pump,', is ',curval,' asking to set : ',data); 
+  console.log(' onRelais, coming from: ',coming,', current rele position x dev name ',pump,', is ',curval,' asking to set : ',data); 
   // console.log('              onRelais, state: ',state); 
     let lchange=false; //  >>>>>>>  TODO : gestire le incongruenze tra state.relays  e current relay value : curval
   if(curval==null||value&&curval==0||((!value&&curval!=0))){// state != cur value . a problem if not just starting!
@@ -5027,16 +4814,9 @@ async function onRelais(pump,data,coming,fn) { //pumps unique handlerget pumps s
  // now ever write  if (!curval||data != curval) 
  
   { // 0/1 != 0/1 gpio comanding relays is called,>>>>> only change gpio if current position/value is different from present hw relay value !!
-    if(PRTLEV>4)console.log(' onRelais,  changing/confirm current rele hw position/value x ',pump,' , index ',pump_,' ,  to new value (nb inverted val 0 <> 1): ',data); 
-    /*
-   let custParm=state;// Nb state.customParam sono i pram x il custF ! . 27012024 can be [paramxdevN0={},,,,,,] load when start program . ex set param x slit custom dev or attribute for ext_entity to set defined in cfg customDevParam (like state) 
-
-   if(pump_=='split'){// insert cust dev param only x split  dev 
-    custParm=state.splitParam;// can use a array of custParm , 1 each state.relays. todo : better use  array for devces : state.custDevParam[] or state.custDevParam{} 
-   }*/
-
-    if(fn.iodev.relais_[pump_])fn.iodev.relais_[pump_].writeSync_(valCorrection(data),state); // state={customParam, ,,,}, customParam sono i pram x il custF   XXTT
-    if(PRTLEV>7)console.log(' onRelais,  todo : verifying current rele  position/value changing  x ',pump,' now is: ',data); 
+    console.log(' onRelais,  changing/confirm current rele hw position/value x ',pump,' , index ',pump_,' ,  to new value: ',data); 
+    if(fn.iodev.relais_[pump_])fn.iodev.relais_[pump_].writeSync_(valCorrection(data)); //turn LED on or off
+    console.log(' onRelais,  todo : verifying current rele  position/value changing  x ',pump,' now is: ',data); 
     //console.log(' ****\n browser/algo ask ',pump,' relay to change value into : ',data); // ex 0
     /*
     if (buttoncaused) {// means that the relay is requested by user raspberry button press (or algo anticipating), not corresponding seb button press
@@ -5056,7 +4836,7 @@ async function onRelais(pump,data,coming,fn) { //pumps unique handlerget pumps s
       procedura='unknown';// to do .....
     // update status file , dont need to wait so not async func  otherwise see doc on async in .on handler
     // 
-    if(PRTLEV>7)console.log(' onRelais(), to update, now call writeScriptsToFile: ',plantname,' scripts/state: ',state);
+    if(PRTLEV>5)console.log(' onRelais(), to update, now call writeScriptsToFile: ',plantname,' scripts/state: ',state);
     // return // not mandatory
     //return api.writeScriptsToFile(state,plantname,procedura)
     return api.writeScriptsToFile(fn)// upddate persistance and send status to browser
@@ -5118,6 +4898,7 @@ function gfg_Run() {
   clearInterval(timer);
   
   }
+
 
 */
 
@@ -5262,7 +5043,6 @@ return {procName, a,b,ev2run, asyncPoint, processAsync, dataArr:dataArr_,algo:'p
 
 
   const { exec } = require('child_process');
-const { ReadableStreamBYOBRequest } = require('stream/web');
 
   async function shellcmd(sh,param){// param={addr:'notte',val:18}
     console.log(' executing shellcmd() param: ',param);
@@ -5277,14 +5057,14 @@ const { ReadableStreamBYOBRequest } = require('stream/web');
 
         exec(myexec,
         (error, stdout, stderr) => {
-          console.log(' executing shell: ',stdout,` cioe ${stdout}`);
+          console.log(' executing shell: ',stdout,' cioe ${stdout}');
           console.log(' std error is ',stderr);
           if (error !== null) {
             console.log(`exec error: ${error}`);
               reject(error);
         }
           else {resolve(stderr);// pass std error results
-            console.log(' shellcmd returned : ',stderr,` cioe ${stderr}`);
+            console.log(' shellcmd returned : ',stderr,' cioe ${stderr}');
           }
         });
       });
@@ -5314,7 +5094,7 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
   // fill result with def value. that will be the value if all antic,program,and user suggested null value
   let res =[...state.app.plantconfig.relaisDef];// clone array
   let curpumps = state.relays,// cur gpionumb/mqttnumb state with name keys
-   antic, anticGap, program // proposals, anticGap : what relay true if antic[6] true
+   antic, anticGap, program // proposals
     , user;// the user manual set proposal , valid (no timeout)
   // see what set are active (lastxxxAlgo not false)
    if (state.lastAnticAlgo
@@ -5328,7 +5108,7 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
     // ||lastalgo=='program'
   ) {program = state.lastProgramAlgo.pumps;
     anticGap=state.lastProgramAlgo.anticGap;// the anticipate proposal flag (activate item x item the anticipate proposal , item gaspdcPref  of anticInterm2VirtMap:{gaspdcPref:[true,true,true,null,null,true,null,false]})
-                                            
+
   // check scadenza
 
   }if (state.lastUserAlgo)// is alredy stored in state.user
@@ -5400,7 +5180,7 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
         //  anzi, indeed we add in program virtual to real map the activation of some real on gaspdcPref : lh + pdc + g 
         //  and we can move that map from browser to model.js , see LLGGYY
 
-        antic.forEach((val, ind) => { // copy program meno del unico valore non null di anticipate che si riferisce appunto alla var intermediate (gas/pdc)
+        antic.forEach((val, ind) => { // copt programa meno del unico valore non null di anticipate che si riferisce appunto alla var intermediate
           if (val == null) {if(program[ind]!=null)res[ind] = program[ind];} else res[ind] = val });// prog e antic active, settings result:
                                                                                                       // take antic values (val) if not null, otherwise take not null program values !
       }
@@ -5435,26 +5215,6 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
     */
   });
   if (sol == 1) apply = applyIntermed(res,anticGap);
-
-
-  // *** now add detailed info x choose actions of customDev on true relays (and probes?)
-  state.relays_Attr=  state.relays_Attr||[];// just x sure
-
-
-    // set attributes x split custF,  depending on zones to activate ?
-    // temporaneamente lasciamo split come sono ma attiviamo il cust split coerantemente con i zones tenendo conto che meglio attivarne piu di uno 
-    let split=state.app.plantcfg.relaisEv[5];// the name of 5+1 th relay is split
-    state.relays_Attr[5]={};//{split}// copy present directiveparam x user of relays. ex : custF
-    if(state.relays[split]){// directive wants to start split
-      if(res[2]||res[3])// activate all splits if giorno o notte 
-      state.relays_Attr[5].custDev={custSet:0,// 0 <> 1 , invertet values !, 0 means turn on .  custSet=inverted val !
-        quiet:false,
-        section:false};// means all split
-    }else{
-      state.relays_Attr[5].custDev={custSet:1,// 0 <> 1 , invertet values !, 0 means turn on 
-      quiet:false,section:false};
-    }
-
 
   console.log(' consolidate() , at hour ', date.getHours(), ', merging anticipate (', antic, '), program (', program, ') and usermanual (', user, ') applyed intermedite (', apply, ') , relays merge into: ', res);
 
@@ -5518,7 +5278,7 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
 
 
 function toeval(state,evstr){// preferred use :  '>>&&state.devmapping=[0,1,3,2,4];'   will fill the state.devmapping var !
-  let templP,fc;
+  let templP;
   if(evstr)templP=evstr.split('&&');
 
       if(templP){
@@ -5546,12 +5306,12 @@ return null;
 function checkval(lastUserAlgo){return true;}// todo  return true if updatedate + defTo is < curdate, the pumps request is valid 
 
 function  valCorrection(value){// change 0 <> 1 user only in raspberry because the gpio had inverted on/off in connecting the port to rele
-  if(PRTLEV>7)console.log('valCorrection() value: ',value);
+  console.log('valCorrection() value: ',value);
   if(value==null||isNaN(value))return value ;
   if(INVERTONOFF_RELAY)if(value==0)return 1; else return 0;
+  
   }
-
-  function genYaml(model,cfgdata,plant){// edit models.js template with user devices : , generate json yaml cofigured yaml and return it in yaml format 
+  function genYaml(model,cfgdata,plant){// edit models.js template with user devices , generate yalm
     // nothing   mystring    >     "mystring"
     //    "mystring"          >    "£mystring£"   
     // &  is  : '
@@ -5566,16 +5326,16 @@ function  valCorrection(value){// change 0 <> 1 user only in raspberry because t
   const FV3='fv3_optimize_'
   let version,virtual,addr,
   yaml_automation=[],
-      yaml_mqtt={mqtt:[],automation:yaml_automation};// JSON YAML FILE HAS ONLY MQTT AND AUTOMATION ITEMS
+      yaml_mqtt={mqtt:[],automation:yaml_automation};
 
 
             
-  if(cfgdata)// {version:'stdFV',virtualdev: [{addr:'shelly1-34945475FE06',devType:'shelly1',},,,,,,{subtopic:'var_gas-pdc_',varx:4,devType:'mqttstate'},]}
+  if(cfgdata)
   if(version=cfgdata.version){
     if(version=='stdFV'&&(!model.version||model.version=='stdFV')){
       virtual=cfgdata.virtualdev;// [{addr:'shelly1-34945475FE06',devType:'shelly1',},,,,,,{subtopic:'var_gas-pdc_',varx:4,devType:'mqttstate'},] , a std FV optimizator process with its  std virtual devices indexing 0,,7 
       // relaisEv:['heat','pdc','g','n','s','split','gaspdcPref','block acs']
-      if(virtual&&virtual.length&&virtual.length>=7&&virtual[0]&&virtual[6]){// consider only shelly id and mqttnumb[6] dev specification 
+      if(virtual&&virtual.length&&virtual.length>=7&&virtual[0]&&virtual[6]){
 
         let mqttnumb=model.cfg.mqttnumb;
 
@@ -5593,11 +5353,10 @@ function  valCorrection(value){// change 0 <> 1 user only in raspberry because t
 
 
         // mandatory : index 6 : preferred gas/fv var dev 
-        // virtual[6]={subtopic:'var_gas-pdc_',varx:4,devType:'mqttstate'}
         if(addr=virtual[6].subtopic)// virtual=[{devType:'shelly1',addr:'shelly1-34945475FE06'},,,,,,{subtopic:'var_gas-pdc_',varx:4,devType:'mqttstate'},]
         //  {portid:55,subtopic:'var_gas-pdc_',varx:4,isprobe:false,clas:'var',protocol:'mqttstate'}
         if (virtual[6].devType='mqttstate'){// mandatory virtual[0]={devType:'shelly1',addr:'shelly1-34945475FE06'}
-          mqttnumb[6].subtopic=addr;// update dev 6  numbmqtt subtopic property
+          mqttnumb[6].subtopic=addr;// update dev 1 model on numbmqtt
           mqttnumb[6].varx=virtual[6].varx;
           let varTopic='@'+plant+'@'+addr+virtual[6].varx,// '@Casina_API@ctl_var_gas-pdc_4'
           name_="sunshine_optimizing";
@@ -5614,7 +5373,7 @@ function  valCorrection(value){// change 0 <> 1 user only in raspberry because t
 
     }
   }
-  function yaml_dev_shelly_automation_def(name,topic,plant,user){// generate automation yaml item in json format 
+  function yaml_dev_shelly_automation_def(name,topic,plant,user){
     const topic2snd=topic+'/NReadUser/cmd';
     return{alias: FV3+name,
                       id:FV3+name,
@@ -5640,8 +5399,7 @@ function  valCorrection(value){// change 0 <> 1 user only in raspberry because t
            */
 
     }
-    function yaml_dev_shelly_rele_def(name,name_){// a mqtt switch  name= shelly1-34945475FE06
-                                                  // // generate a yaml mqtt switch entity item in json format 
+    function yaml_dev_shelly_rele_def(name,name_){// a switch  name= shelly1-34945475FE06
     
       return{ 
                         // id:FV3+"_"+name,
@@ -5675,12 +5433,12 @@ function  valCorrection(value){// change 0 <> 1 user only in raspberry because t
                       */
  }
 
- function yaml_dev_mqtt_var_def(name,attTopic){// a mqtt select  attTopic=  '@Casina_API@ctl_var_gas-pdc_4', to add  with starting and ending &
+ function yaml_dev_mqtt_var_def(name,attTopic){// a select  attTopic=  '@Casina_API@ctl_var_gas-pdc_4', to add  with starting and ending &
   return{ 
                     // id:FV3+"_"+name,
   name:name,
 
-command_topic: "Node-Red-Register",// just x log , switch the wsitch dont cause anything, only buttom will trigger manual cmdtopic !
+command_topic: "Node-Red-Register",
 json_attributes_topic:attTopic,
 json_attributes_template: ' { "algoSuggested": "{{value_json.payload}}"}',
 options:['"0"','"1"']
@@ -5710,82 +5468,3 @@ function stringIsInt(str){
   return false;
 }
   }
-
-  function addPlantHandler(cfgdata,user,plantN,browserUser,reset,cb){// add plantmodel to plants, so can be start by browser
-    // this  handler can be called by a user web call app.post("/registerPlant/", ..) o by a installer browser  call 
-    // return the plantmodel, or if reset 
-    // - rebuild the plant model if there is the user cfg : model.cfgData[user]
-    // - fills haYalms/user
-    // - try webhook the user ha
-
-{// returns plantModel
-
-
-if(cfgdata){//
-
-plantModel=  model.addUserPlant(cfgdata,user,browserUser,true);// config the fv3 std service in a ha connected with ws client  
-                                                                // cfgdata must be in model.cfgData[user] (coming from app.post("/registerPlant/" or browser request),
-                                                                // return plant def (if already present in plants) or 
-                                                                // adds plants def (using cfgData) item in ./nat/haPlants.json and return it , the plant obj with (plantModel.package and plantModel.dashboard ...) yaml config files
-                                                                // if adding use cfgdata to build the custom part of plant cfg and the std ha template cfg files (in /haCfg/defFVMng/.... see: LLUUJJ )
-
-if(plantModel){// store the yaml cfg in a ./haYaml subdir
-// store user conf for :
-// - package and dashboard yaml in reserved cfg for helper entities and dashboard of fv3 service( in energyEngineService sub dir)
-// -  
-try{
- // plantModel.yaml.dashboard.replaceAll('£', user);plantModel.yaml.package.replaceAll('£', user);// customize entity name and conf items  to be unique
-  // put configured yaml into dirs to download to user ha 
-fs.writeFileSync('./haYaml/'+plantN+'/packages/energyEngineService/package.yaml', plantModel.yaml.package);// file to be download in user ha cfg , dir maincfg/packages/energyEngineService
-fs.writeFileSync('./haYaml/'+plantN+'/dashboards/energyEngineService/'+user+'_dashboard.yaml', plantModel.yaml.dashboard);//XC   // file to be download in user ha cfg , dir maincfg/dashboards/energyEngineService
-fs.writeFileSync('./haYaml/'+plantN+'/packages/energyEngineService/configurationadd.yaml', plantModel.yaml.configurationAdd);// that must be add / referencied  in main configuration.yaml to detect the fv3 config in energyEngineService sub dir
-                                                                                                                            // will point to XC
-fs.writeFileSync('./haYaml/'+plantN+'/packages/energyEngineService/configurationuser.yaml', plantModel.yaml.configurationUser);// add also user real enities if not alredy provided by user 
-                                                                                                                                // file to be download in user ha cfg ,dir maincfg/packages/energyEngineService
-} catch(err) {
-console.error('Cannot write new ha registering plant  yamls to file in dir /haYaml , err: ' + err);
-
-throw err;
-
-}     
-
-// prepare file to be download with webhook: 
-// - add yaml encoding , put them in plantModel.yaml 
-
-// check there is not £ in present yaml !
-const repDQuote='£',repQuote=' ££ ',repLF=' £££ ';// replace quote, double quote. lf
-plantModel.yaml.packageEncr=plantModel.yaml.package.replace(/'/g, repQuote);
-plantModel.yaml.packageEncr.replaceAll('\n', repLF);plantModel.yaml.package.replaceAll('*', repDQuote);
-plantModel.yaml.dashboardEncr=plantModel.yaml.dashboard.replace(/'/g, repQuote);
-plantModel.yaml.dashboardEncr.replaceAll('\n', repLF);plantModel.yaml.dashboard.replaceAll('*', repDQuote);
-}  }
-}  
-
-
-
-if(!plantModel){
-cb(null);
-return;
-} else{// send to webhook ha the yaml files plantModel.yaml
-
-let body={// webhook post content
-data:plantModel.yaml.packageEncr//??,filename:'pippo.txt'
-,shell:'/bin/sh\necho povero > generated.txt'//'#!/bin/sh\n cd /config \n git add .'
-,shellname:'fvshell.sh',
-data1:plantModel.yaml.dashboardEncr//,??filename:'pippo.txt'
-};
-
-// user ha must define a webhook to insert the files into correct dir to add the fv3 service 
-// 
-// now send ha cfg to ha webhook:
-let   url='http://192.168.1.212:8123/api/webhook/genyaml',
-head={"Content-Type": "application/json"};
-
-let ret=aiax(url,'POST',body,head);// a promise
-ret.then((code)=>{
-console.log('returning a promise from yaml resolving as : ',cb({result:'yaml transferred to ha client',data:plantModel},// cb the registration post with config and the result of webhook
-plantModel.yaml.package))}// ok yaml transferred to ha, return also the package yaml just to debug
-,()=> {
-console.log('returning a promise from yaml resolving as : ',cb({result:'yaml not transferred to ha client',data:plantModel}))}// return yamls={package:packageyaml,dashboard:dashboardyaml}
-);
-}}

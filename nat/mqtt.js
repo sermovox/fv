@@ -917,7 +917,7 @@ fc.prototype.readSync =//  return the promise DDEERR resolving 0/1 or null if re
                     // **********************  TODO TODO 
                     // manca il catch al re= await stList() di sopra : stabiliscono che il processo che sta aspettando il dato non puo piu continuare e dovra abortire il algo in corso !!!!
                     //  in particolare si potra abortire il processo al sopraggiungere di un nuovo readsync o dopo un certo tempo a da un algo che per continuare vuole abortire i processi in attesa su i listener del device
-                    // waiting to implement the reject we can resolve anyway returning null in XXTT !
+                    // >>>> waiting to implement the reject we can resolve anyway returning null in XXTT !
 
 
                     // converti il valore letto re ( o perchè presente in queue o perche risolto dal listener dopo un periodo secondo tipo (rele/var/probe) e protocollo 

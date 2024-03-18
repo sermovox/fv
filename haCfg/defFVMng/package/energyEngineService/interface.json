@@ -1,19 +1,19 @@
 {
-	"automation interface": [
+	"automation £interface": [
 		{
-			"alias": "startoptimizing_service",
-			"id": "strantserv",
+			"alias": "£startoptimizing_service",
+			"id": "£strantserv",
 			"initial_state": true,
 			"trigger": [
 				{
 					"platform": "state",
-					"entity_id": "input_button.start_savingservice"
+					"entity_id": "input_button.£start_savingservice"
 				}
 			],
-			"condition": "{{ states.sensor.opirun.state == 'OFF'}}",
+			"condition": "{{ states.input_text.£opirun.state == 'OFF'}}",
 			"action": [
 					 {
-					   "event": "ws_startoptimizing_service",
+					   "event": "£ws_startoptimizing_service",
 					   "event_data": {
 					     "state": "fired"
 					   }
@@ -21,19 +21,19 @@
 			]
 		},
 		{
-			"alias": "stopoptimizing_service",
-			"id": "stopantserv",
+			"alias": "£stopoptimizing_service",
+			"id": "£stopantserv",
 			"initial_state": true,
 			"trigger": [
 				{
 					"platform": "state",
-					"entity_id": "input_button.stop_savingservice"
+					"entity_id": "input_button.£stop_savingservice"
 				}
 			],
-			"condition": "{{ states.sensor.opirun.state == 'ON'}}",
+			"condition": "{{ states.input_text.£opirun.state == 'ON'}}",
 			"action": [
 					 {
-					   "event": "ws_stopoptimizing_service",
+					   "event": "£ws_stopoptimizing_service",
 					   "event_data": {
 					     "state": "fired"
 					   }
@@ -41,19 +41,19 @@
 			]
 		},
 		{
-			"alias": "startprogramming_service",
-			"id": "strpgmserv",
+			"alias": "£startprogramming_service",
+			"id": "£strpgmserv",
 			"initial_state": true,
 			"trigger": [
 				{
 					"platform": "state",
-					"entity_id": "input_button.start_progservice"
+					"entity_id": "input_button.£start_progservice"
 				}
 			],
-			"condition": "{{ states.sensor.pgmrun.state == 'OFF'}}",
+			"condition": "{{ states.input_text.£pgmrun.state == 'OFF'}}",
 			"action": [
 					 {
-					   "event": "ws_startprogramming_service",
+					   "event": "£ws_startprogramming_service",
 					   "event_data": {
 					     "state": "fired"
 					   }
@@ -61,19 +61,19 @@
 			]
 		},
 		{
-			"alias": "stopprogramming_service",
-			"id": "stoppgmserv",
+			"alias": "£stopprogramming_service",
+			"id": "£stoppgmserv",
 			"initial_state": true,
 			"trigger": [
 				{
 					"platform": "state",
-					"entity_id": "input_button.stop_progservice"
+					"entity_id": "input_button.£stop_progservice"
 				}
 			],
-			"condition": "{{ states.sensor.pgmrun.state == 'ON'}}",
+			"condition": "{{ states.input_text.£pgmrun.state == 'ON'}}",
 			"action": [
 					 {
-					   "event": "ws_stopprogramming_service",
+					   "event": "£ws_stopprogramming_service",
 					   "event_data": {
 					     "state": "fired"
 					   }
@@ -82,31 +82,31 @@
 		}
 	],
     "input_text": {
-	"opirun":{
-      "name":  "opirun_",
+	"£opirun":{
+      "name":  "£opirun_",
       "initial": "0"
       },
-	"prgrun":{
-      "name":  "pgmrun_",
+	"£pgmrun":{
+      "name":  "£pgmrun_",
       "initial": "0"
       }
       },
 
 	"input_button": {
-		"start_savingservice": {
-			"name": "start_optimazing_service",
+		"£start_savingservice": {
+			"name": "£start_optimazing_service",
 			"icon": "mdi:bell"
 		},
-		"stop_savingservice": {
-			"name": "stop_optimazing_service",
+		"£stop_savingservice": {
+			"name": "£stop_optimazing_service",
 			"icon": "mdi:bell"
 		},
-		"start_progservice": {
-			"name": "start_programming_service",
+		"£start_progservice": {
+			"name": "£start_programming_service",
 			"icon": "mdi:bell"
 		},
-		"stop_progservice": {
-			"name": "stop_programming_service",
+		"£stop_progservice": {
+			"name": "£stop_programming_service",
 			"icon": "mdi:bell"
 		}
 	}

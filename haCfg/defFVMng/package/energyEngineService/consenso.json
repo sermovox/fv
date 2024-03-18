@@ -1,8 +1,8 @@
 ﻿{ 
-  "automation rssi": [
+  "automation £rssi": [
     {
-      "alias": "ws",
-      "id": "ws_",
+      "alias": "£ws",
+      "id": "£ws_",
       "trigger": [
         {
           "platform": "event",
@@ -17,25 +17,113 @@
         {
           "service": "switch.turn_off",
           "data": {
-            "entity_id": "switch.rssi"
+            "entity_id": "switch.£rssi"
           }
         }
       ]
     },
-    {
-      "alias": "setmanual_rssi_on",
-      "id": "setmanual_rssi_on",
-      "initial_state": true,
+        {
+      "alias": "£scaldabagnoev",
+      "id": "£scaldabagnoev_",
       "trigger": [
         {
-          "platform": "state",
-          "entity_id": "input_button.setmanual_rssi_on_but"
+          "platform": "event",
+          "event_type": "£scaldabagno_event",
+          "event_data": {
+            "data": "1"
+          }
         }
       ],
       "condition": null,
       "action": [
         {
-          "event": "ws_setmanual_rssi_on",
+          "service": "switch.turn_on",
+          "data": {
+            "entity_id": "switch.£scaldabagno"
+          }
+        }
+      ]
+    },
+     {
+      "alias": "£scaldabagnoevoff",
+      "id": "£scaldabagnoev_off",
+      "trigger": [
+        {
+          "platform": "event",
+          "event_type": "scaldabagno_event_off",
+          "event_data": {
+            "data": "na"
+          }
+        }
+      ],
+      "condition": null,
+      "action": [
+        {
+          "service": "switch.turn_off",
+          "data": {
+            "entity_id": "switch.£scaldabagno"
+          }
+        }
+      ]
+    }
+    ,
+        {
+      "alias": "£prgm_state_mainev",
+      "id": "£prgm_state_mainev_",
+      "trigger": [
+        {
+          "platform": "event",
+          "event_type": "£prgm_state_main",
+          "event_data": {
+            "val":true
+          }
+        }
+      ],
+      "condition": null,
+      "action": [
+        {
+          "service": "switch.turn_on",
+          "data": {
+            "entity_id": "switch.£acs"
+          }
+        }
+      ]
+    },        {
+      "alias": "£prgm_state_mainevoff",
+      "id": "£prgm_state_mainevoff_",
+      "trigger": [
+        {
+          "platform": "event",
+          "event_type": "£prgm_state_main",
+          "event_data": {
+            "val":false
+          }
+        }
+      ],
+      "condition": null,
+      "action": [
+        {
+          "service": "switch.turn_off",
+          "data": {
+            "entity_id": "switch.£acs"
+          }
+        }
+      ]
+    },
+    {
+      "alias": "£setmanual_rssi_on",
+      "id": "£setmanual_rssi_on",
+      "initial_state": true,
+      "trigger": [
+        {
+          "platform": "state",
+          "entity_id": "input_button.£setmanual_rssi_on_but"
+        }
+      ],
+      "condition": null,
+      "action": [
+        {
+          "event": "£ws_setmanual_rssi_on",
           "event_data": {
             "state": "fired"
           }
@@ -43,19 +131,19 @@
       ]
     },
     {
-      "alias": "setmanual_rssi_off",
-      "id": "setmanual_rssi_off",
+      "alias": "£setmanual_rssi_off",
+      "id": "£setmanual_rssi_off",
       "initial_state": true,
       "trigger": [
         {
           "platform": "state",
-          "entity_id": "input_button.setmanual_rssi_off_but"
+          "entity_id": "input_button.£setmanual_rssi_off_but"
         }
       ],
       "condition": null,
       "action": [
         {
-          "event": "ws_setmanual_rssi_off",
+          "event": "£ws_setmanual_rssi_off",
           "event_data": {
             "state": "fired"
           }
@@ -64,21 +152,21 @@
     }
   ],
   "input_button": {
-    "setmanual_rssi_on_but": {
-      "name": "setmanual_rssi_on_but",
+    "£setmanual_rssi_on_but": {
+      "name": "£setmanual_rssi_on_but",
       "icon": "mdi:bell"
     },
-    "setmanual_rssi_off_but": {
-      "name": "setmanual_rssi_off_but",
+    "£setmanual_rssi_off_but": {
+      "name": "£setmanual_rssi_off_but",
       "icon": "mdi:bell"
     }
   },
   "climate": [
     {
       "platform": "generic_thermostat",
-      "name": "termostato_locale",
-      "heater": "switch.rssi",
-      "target_sensor": "sensor.shelly_ht_temp",
+      "name": "£termostato_locale",
+      "heater": "switch.£rssi",
+      "target_sensor": "sensor.£shelly_ht_temp",
       "min_temp": 10,
       "max_temp": 21,
       "ac_mode": false,
@@ -88,7 +176,7 @@
       "min_cycle_duration": {
         "seconds": 30
       },
-      "initial_hvac_mode": "off",
+      "initial_hvac_mode": "$off$",
       "away_temp": 16
     }
   ]

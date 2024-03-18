@@ -4,10 +4,10 @@ lovelace:
   dashboards:
     lovelace-yaml:
       mode: yaml
-      title: £
+      title: casinauser1_
       icon: mdi:script
       show_in_sidebar: true
-      filename:  ./dashboards/energyEngineService/£dashboard.yaml
+      filename:  ./dashboards/energyEngineService/casinauser1_dashboard.yaml
 # rssi switch is user defined and is not in package ! 
 #following must be added to configuration.yaml
 #homeassistant:

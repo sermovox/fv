@@ -131,8 +131,8 @@ const api={// see https://javascript.info/promise-chaining
   
           }
 
-
-          if(DEBUG){// anyway update last model update in state : 
+          let news1=true;//DEBUG
+          if(news1){// anyway update last model update in state : 
           ctl.state.app.plantcfg=plantcfg;// add to new std state the plant cfg
           ctl.state.app.plantname=plantcfg.name;// rindondante , giusto per compatibilita vecchia versione !!!!
           ctl.state.app.plantcnt=plantcnt;// ex ejs context to generate pump list in browser
@@ -171,7 +171,7 @@ const api={// see https://javascript.info/promise-chaining
     if(fn.socket)fn.socket.emit('status',fn.state,prettyjson);// send the status to the browser too, also if the related plant section is not jet visible !
     if(fn.socketNR)fn.socketNR.emit('state',fn.state);// in case a node-red is listening with websocket
 
-    // x send  home assistant state :
+    // x send  home assistant state QQIIJJ :
     let statedev=null,stind;
     // old : if(inp&&inp.probMapping) old map=inp.probMapping;// [2,4]
     if(fn.iodev&&fn.iodev.probs_&&new_scripts.app.plantconfig.virt2realProbMap&&(stind=new_scripts.app.plantconfig.virt2realProbMap[0])>=0){// the dev to send to home assistant 
@@ -187,8 +187,8 @@ const api={// see https://javascript.info/promise-chaining
             battery:new_scripts.aiax.battery,
             inverter:new_scripts.aiax.inverter,
             desTemp,// desidered temp , giorno only !
-            relays:new_scripts.relays// the pump browser state
-        }});
+            relays:new_scripts.relays// the pump browser state 
+        }},new_scripts);
     }}
 
     return new Promise(function(resolve, reject) {
