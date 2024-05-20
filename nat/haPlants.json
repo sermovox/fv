@@ -8,6 +8,7 @@
       },
       "Ent_Prefix": "casinauser1_",
       "name": "casinauser1_API",
+      "usingMqtt": false,
       "apiPass": "xxxx",
       "gpionumb": [
         null,
@@ -69,14 +70,7 @@
         null,
         null,
         null,
-        {
-          "portid": 66,
-          "clas": "var",
-          "varx": 4,
-          "isprobe": false,
-          "protocol": "mqttstate",
-          "subtopic": "var_split_"
-        },
+        null,
         {
           "portid": 55,
           "subtopic": "var_gas-pdc_",
@@ -127,22 +121,8 @@
           "haEntity": "sensor.shelly_ht_temp",
           "client": "haWebSoc"
         },
-        {
-          "portid": 111,
-          "subtopic": "_shellyht-1E6C54",
-          "varx": null,
-          "isprobe": true,
-          "clas": "probe",
-          "protocol": "shellyht_h"
-        },
-        {
-          "portid": 54,
-          "subtopic": "var_gas-pdc_",
-          "varx": 3,
-          "isprobe": false,
-          "clas": "var",
-          "protocol": "mqttstate"
-        },
+        null,
+        null,
         {
           "portid": 777,
           "subtopic": "var_state_",

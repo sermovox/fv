@@ -459,9 +459,9 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
 
       if(stepNum>1000){
         if(stepNum==1001){
-          console.error(' fv3 exiting some execute() because cant get a token from server');
+          console.error(' fv3 exiting some execute() because cant get a token or valid data from server');
           // to do : fire a socket event to browser !
-        }
+        }else console.error(' fv3 exiting some execute() because cant get  any data from server');
       }
       cb();// execute ends: return null flow to cb (see OuterFunction)
       }

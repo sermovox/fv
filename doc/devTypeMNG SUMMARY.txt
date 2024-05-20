@@ -167,7 +167,8 @@ fc.prototype.readSync  =//  return the promise DDEERR resolving 0/1 or null if r
                                                                     {theListener =  // the XXTT listener promise resolving function ( will call res() : resRetList !)
                                                                         (function (id_) {   // closure , the listener resolving function factory
  
-                                                                                        return function (lastmsg, test = 0) {// the listener  promise resolving function ( will call res()!). is sync function , so return to the caller (IIOOPP) after eventually added a new listener 
+                                                                                        return function (lastmsg, test = 0) {// the listener  promise resolving function ( will call res()!). is sync function , so return to the caller (IIOOPP) 
+                                                                                        after eventually added a new listener 
 
 
                                                                                                 if (!fired) {

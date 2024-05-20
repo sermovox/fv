@@ -901,7 +901,7 @@ updatePBT();
 
 
 function getcfg(plant){// // general obj to customize the  app :functions, generator (ejs) ,,,,, 
-            return plants[plant].cfg;
+            return plants[plant].cfg; // NBNB leggermente diverso da getconfig(plant)  see AASSU
         }
 function getplant(plant){
         /*
@@ -911,7 +911,7 @@ function getplant(plant){
                 */
                return plants[plant];
         }
-function getconfig(plant='MarsonLuigi_API'){// =plantconfig, general obj to customize the  app functions 
+function getconfig(plant='MarsonLuigi_API'){// =plantconfig, general obj to customize the  app functions  // AASSU
                                 // or let{gpionumb,mqttnumb,relaisEv,devid_shellyname}=models.getconfig(plant)=.state.plantconfig;
                                 //     after set state.app we can :  let{gpionumb,mqttnumb,mttprob,relaisEv,plantName}=plantconfig (=.state.app.plantconfig=
                 return {gpionumb:plants[plant].cfg.gpionumb,
@@ -926,10 +926,12 @@ function getconfig(plant='MarsonLuigi_API'){// =plantconfig, general obj to cust
                         virt2realProbMap:plants[plant].cfg.virt2realProbMap,
                         huawei:plants[plant].cfg.huawei,
                         invNomPow:plants[plant].cfg.invNomPow,
-                        plantName:plant,//  >>>>>> WARNING  little difference !!!!
+                        plantName:plant,//  >>>>>> WARNING  little difference with (plants[plant]=model).name=plant,  here .plantName=plant .  (plants[plant]=model).plantName dont exist
                         custDev:plants[plant].cfg.custDev,
                         Ent_Prefix:plants[plant].cfg.Ent_Prefix,
-                        connCfg:plants[plant].cfg.connCfg
+                        connCfg:plants[plant].cfg.connCfg,
+                        usingMqtt:plants[plant].cfg.usingMqtt,
+                        isHaWebSoc:plants[plant].cfg.isHaWebSoc // some dev have a corresponding ha entities .... 
                         // devid_shellyname:plants[plant].cfg.devid_shellyname,
                        // error :  relaisEv:plants[plant].cfg.mqttprob
                 }
@@ -966,6 +968,9 @@ function defFVMng(user,plant,localEntity)//,replE)// default=casina class plant 
                                           // localEntity will set local user specific hw entity, ex :numbmqtt and probmqtt : haEntity,haManButton 
                                           //  haEntity will set ,haManButton 
 {       // plant=user+'_API',
+
+
+    this.usingMqtt=false;// this plant wont use mqtt client at all so i wont be loaded mqtt client to connect to a rowser but only haWs client  
     this.connCfg=localEntity.connCfg;// get conn param x haws
 
       const Ent_Prefix=localEntity.Ent_Prefix;// =replE;//=plant+'_';// the entity prefix to add to ha template config in : ./haCfg/defFVMng/package/energyEngineService. '' to add nothing
@@ -1026,7 +1031,7 @@ function defFVMng(user,plant,localEntity)//,replE)// default=casina class plant 
          
         },
        null,null,null,null,
-       {portid:66,clas:'var',varx:4,isprobe:false,protocol:'mqttstate',subtopic:'var_split_'}, // ex of a shelly like dev . agganciato al customdevice shell per accendere gli split 
+       null,// was:{portid:66,clas:'var',varx:4,isprobe:false,protocol:'mqttstate',subtopic:'var_split_'}, // ex of a shelly like dev . agganciato al customdevice shell per accendere gli split 
                         // question what is difference among type 1 and 2 ? : 
                         //              -       different topic formatting type 1 
                         //              -       obbligatoriamente ha pubtopic diverso da topic e avendo un device fisico che ricopia poi il pubtopic in topic 
@@ -1035,7 +1040,7 @@ function defFVMng(user,plant,localEntity)//,replE)// default=casina class plant 
                         // TODO : add also a topicPub property ?????
       // {portid:10,clas:'var',topic:'gas-pdc',varx:3,protocol:'mqttstate'} ex of 'out' var
 
-
+        
       {portid:55,subtopic:'var_gas-pdc_',varx:4,isprobe:false,clas:'var',protocol:'mqttstate',
       // this non depend on cust def entity so just put in the constructor :
       haEntity:'input_text.'+Ent_Prefix+'optimizing_fv',// var gas/pdc, anticipate . ha un entity text e un cmd topic setMan on e off 
@@ -1071,7 +1076,7 @@ function defFVMng(user,plant,localEntity)//,replE)// default=casina class plant 
 
        }
 
-    },// a var
+    },
       {portid:12,clas:'out',protocol:'shelly',subtopic:'_shelly1-34945475FE06',// acs
       haManButton:[['input_button.'+Ent_Prefix+'setmanual_acs_on_but','on'],//    this non depend on cust def entity so just put here in the constructor
       ['input_button.'+Ent_Prefix+'setmanual_acs_off_but','off']
@@ -1086,8 +1091,8 @@ function defFVMng(user,plant,localEntity)//,replE)// default=casina class plant 
     },//a probe,  the shelly ht probes to register (read only) 
                                                                                 // nbnb clas e isprobe sono correlati !! > semplificare !
                                                                                 // clas='var'/'probe'or 'in'
-        {portid:111,subtopic:'_shellyht-1E6C54',varx:null,isprobe:true,clas:'probe',protocol:'shellyht_h'},
-      {portid:54,subtopic:'var_gas-pdc_',varx:3,isprobe:false,clas:'var',protocol:'mqttstate'},
+        null,//{portid:111,subtopic:'_shellyht-1E6C54',varx:null,isprobe:true,clas:'probe',protocol:'shellyht_h'},
+      null,//{portid:54,subtopic:'var_gas-pdc_',varx:3,isprobe:false,clas:'var',protocol:'mqttstate'},
         // {portid:77,clas:'var',protocol:'mqttstate',subtopic:'shelly1-666666666666'}
         {portid:777,subtopic:'var_state_',varx:0,isprobe:false,clas:'var',protocol:'mqttstate',
         state:[  // GGUUNN
@@ -1143,7 +1148,8 @@ function defFVMng(user,plant,localEntity)//,replE)// default=casina class plant 
 
         // merge/update  local real entities into plant dev configuration  (mqttnumb,mqttprobe,,,)
         //  infact those real entity can be assigned without a prefix in case we use it to clone a plant for a new user on same ha instance
-        let atleast1=false;// at least 1 require ws client (client='haWebSoc')
+        let atleast2=false,// at least 1 require mqtt client
+          atleast1=false;// at least 1 require ws client (client='haWebSoc')
   this.mqttnumb.forEach((val, ind) => {
     if (localEntity.mqttnumb[ind]) {// a local ha dev cfg is specified x this dev index
       if (localEntity.mqttnumb[ind].haManButton) if (val) val.haManButton = localEntity.mqttnumb[ind].haManButton;
@@ -1201,14 +1207,10 @@ function defFVMng(user,plant,localEntity)//,replE)// default=casina class plant 
 
                                 // virtualindex 0 is reservet to state pub var dev
 
-
-
         this.relaisDef=[false,false,false,false,false,false,false,true];// dafault value (if none algo propose true/false)
         this.invNomPow=localEntity.invNomPow;
         if(localEntity.huawei)this.huawei=localEntity.huawei// devid casina
-
         this.custDev={ 66: custDev_2};// custDev_1
-
         };
 function defFVMng_(user,plant)// default=casina class plant factory. copyed from casina, factory of a std plant tempalte of FV app . now called by addUserPlant
         {  
@@ -1381,8 +1383,8 @@ function haCfgData_ (cfgRawData_){// user plant data  to configure a new plant .
 module.exports = {
   init:function(){// add to plants, the registered plants
    haPlants= require('./haPlants.json');// GGUUII
-    Object.assign(plants,haPlants);// merge into plants
-    return this;
+    Object.assign(plants,haPlants);// merge haPlants ( updated every haws plant registration) into plants (base/fixed plant cfg)
+    return this;// to chain funtion calls
   },
         //   cfgData:new haCfgData_(this.cfgRawData),// init for debug, just to store, during user/plant registration, the user specific data localEntity to use in addUserPlant()
         
@@ -1421,7 +1423,7 @@ module.exports = {
                 plantItem,
                 dashboard,package// {filepath:yamlfile}
                 cfg=cfgs[ucfg]=new defFVMng(user,plant,localEntity);// the built plant devcfg , the std plant base template of FV app with user ha locals entity applied ,praticamente i suoi dev description 
-                                              //   cfgs={cfguser:devcfg,,,,,}      plants={user_API:{cfg:devcfg,name,password,users,token,email}
+                                              //   cfgs={cfguser:devcfg,,,,,}      plants={user_API:{cfg:devcfg,name,password,users,token,email,apiPass,localEntity:{switch_consenso:'switch.rssi',sensor_t_giorno:"sensor.shelly_ht_temp"}}
                                               //                                                      ,,,,,,
                                               //                                                     }
                                               // >>>> replE is the  variation on cfg names to apply to plant ha entities , excluding the localEntity ha entities

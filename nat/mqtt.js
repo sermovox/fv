@@ -462,7 +462,8 @@ let futurecb={};// cb of subcribe can resolve a request to get a new fc dev ctl 
 
 if(OR_Present){
 roClient.on("error", function (error) {
-    console.log(" ro brocker Can't connect" + error);
+    console.log("  STOP RUNNING , ro brocker Can't connect" + error);
+    console.error("  STOP RUNNING , ro brocker Can't connect" + error);
     process.exit(1);// cant retry
 });
 
@@ -479,7 +480,8 @@ roClient.on("offline", function () {
 }
 
 client.on("error", function (error) {
-    console.log(" mosquitto brocker Can't connect" + error);
+    console.log(" STOP RUNNING , mosquitto brocker Can't connect" + error);
+    console.error(" STOP RUNNING , mosquitto brocker Can't connect" + error);
     process.exit(1);// cant retry
 });
 

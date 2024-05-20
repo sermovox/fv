@@ -3,7 +3,7 @@
 // const hass = hassImp.default;
 let connCfg
   ={  // def cfg ..... LLHH resolve with clientobj=clientObject(client)
-  token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A', 
+  token: process.env.HaToken, 
   host: '192.168.1.212',
   port: 8123,
   };

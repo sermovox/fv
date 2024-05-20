@@ -6,6 +6,98 @@
 // 
 //  quando ho una connessione web istanzio/recupero un fsm singlethon che gestisce l'impianto user/plant luigi : > INSTANZ
 
+// tracing :  nb run:  node --trace-events-enabled  fv3.js  ,   
+// see https://stackoverflow.com/questions/46455982/node-v8-5-with-trace-events-enabled-not-producing-trace-log-file  ,  https://www.quora.com/What-are-some-common-reasons-for-a-Node-js-server-to-crash-or-hang
+// https://blog.heroku.com/best-practices-nodejs-errors  , https://www.geeksforgeeks.org/node-js-exit-codes/
+// https://frontendmasters.com/courses/digging-into-node/exit-codes/   https://mguida.com/blog/exiting-a-node-process/
+// not very usefull : https://linuxhint.com/exit-nodejs-process/  https://codeforgeek.com/exit-in-nodejs/ https://codeforgeek.com/nodejs-process-object-methods/
+// https://stackoverflow.com/questions/72749441/get-stack-trace-for-all-execution-frames-in-node-js
+// https://stackoverflow.com/questions/2923858/how-to-print-a-stack-trace-in-node-js  console.trace("Here I am!") 
+// apm vs pm2 : https://www.forbes.com/sites/riverbed/2018/11/06/7-facts-that-will-make-you-rethink-application-performance-monitoring/#2b8f5cb86e84
+/*
+
+https://stackoverflow.com/questions/2923858/how-to-print-a-stack-trace-in-node-js :
+As already answered, you can simply use the trace command:
+
+console.trace("I am here");
+
+However, if you came to this question searching about how to log the stack trace of an exception, you can simply log the Exception object.
+
+try {  
+  // if something unexpected
+  throw new Error("Something unexpected has occurred.");     
+
+} catch (e) {
+  console.error(e);
+
+*/
+// NodeJS : How to get the full Node.js stack trace when using async/await?
+// https://nodejs.org/en/learn/getting-started/debugging
+// https://kostasbariotis.com/why-you-should-not-use-process-exit/
+// https://www.geeksforgeeks.org/what-is-stacktrace-and-how-to-print-in-node-js/
+// https://umaar.com/dev-tips/142-better-node-stack-trace/
+// >> https://www.digitalocean.com/community/tutorials/js-stack-trace
+// >> https://stackify.com/node-js-error-handling/
+// https://codereview.stackexchange.com/questions/275071/javascript-proxy-for-better-stack-traces-from-external-libraries  
+// https://nodesource.com/blog/diagnostics-in-NodeJS-1/
+// https://medium.com/dailyjs/how-to-prevent-your-node-js-process-from-crashing-5d40247b8ab2
+// https://www.netguru.com/blog/node-js-memory-leaks
+// https://andrejsabrickis.medium.com/monitor-node-application-garbage-collection-8e92980bb855   https://nodejs.org/en/learn/diagnostics/memory
+// https://nodejs.org/api/tracing.html
+//  https://stackify.com/javascript-tracing-how-to-find-slow-code/  se high level tracing
+
+// uncought exception let ddd;ddd[3]=8;
+
+// tracking vars
+const started ={};
+let  loopStartRepetitive=0,// now every plant algo loop write this running state on these global var, so at time of stop these values are written by last plant algo loop  !
+                          // todo : move 1 x plant in plan.inst.getcontext.
+loopRepetitive=0,// can say if last running algo (a repetition every 5 minutes )  is working at crash
+ loopExecute=0,
+ interv;
+
+function tracing (){
+interv = setInterval(// start tracing log loop
+  ()=>{
+    console.log("app still Runnning on", new Date().toISOString(),' all plant algo stack (if some not 0 a algo was working at crash): ',
+    '\n  repetitive loop is in execution step: ',loopStartRepetitive,',   repetitive starting loop in execution step: ',loopRepetitive,',  some execute loop is in execution step: ',loopExecute);
+   for(plan in started){
+    console.log('    started plant: ',plan,' repetitive timer: ',started[plan].inst.getcontext.timer, ' algo timer: ',started[plan].inst.getcontext.timer,' curSession: ',started[plan].inst.getcontext.curSess,' stack: ',loopStartRepetitive,loopRepetitive,loopExecute);
+
+   } 
+
+  }, 10000);
+
+// on quitting on ctrl-c when running docker in terminal log
+process.on('SIGINT', function onSigint() {
+    console.info('Got SIGINT (aka ctrl-c). Graceful shutdown ', new Date().toISOString());
+    clearInterval(interv);// stops tracing log loop
+    // process.exit(130);
+});
+process.on('SIGTERM', function onSigint() {
+  console.info('Got SIGTERM . Graceful shutdown ', new Date().toISOString());
+  clearInterval(interv);
+});
+process.on('SIGBREAK', function onSigint() {
+  console.info('Got SIGBREAK. Graceful shutdown ', new Date().toISOString());
+  clearInterval(interv);
+});
+
+
+process.on('beforeExit', function (exitCode) {  // or  process.on('exit',    ???
+  console.log("Before exit nodejs thats the exitcode: "+ exitCode);
+});
+// /*
+process.on('uncaughtException', err => {
+  console.log(`*** STOPPING fv3 as got Uncaught Exception: ${err.message}`)// overwrite the std stack log 
+  console.trace(err);
+  process.exit(1)// process.abort();
+}) // */
+
+}
+
+tracing();
+
 // load page cfg 
 require('dotenv').config();// load .env
 const INVERTONOFF_RELAY=process.env.INVERTONOFF_RELAY||(process.env.INVERTONOFF_RELAY=='true');
@@ -13,6 +105,9 @@ const INVERTONOFF_RELAY=process.env.INVERTONOFF_RELAY||(process.env.INVERTONOFF_
 const model=require("./nat/models.js").init();// todo : add a .init() to recover added registered plants
 const dOraLegale=parseInt(process.env.dOraLegale)||0;
 const  pdate=function (){let d=new Date();d.setHours(d.getHours()+dOraLegale);return d;}
+
+
+
 
 // debug staff normally is false
 const DEBUG_probe=true;// assign a std 20 degrees if no read on device  
@@ -178,7 +273,7 @@ app.get("/", (req, res) => {
 
 });
 
-app.post("/registerPlant_/", (req, res) => {// testing 11092023, this is called when ha register for a plant configuration passing json cfgdata or a sintesis of it
+app.post("/registerPlant_/", (req, res) => {// old. testing 11092023, this is called when ha register for a plant configuration passing json cfgdata or a sintesis of it
 
                             // new :
                             // user after registration pay and get a token in response to auth aiax request, then he can register the plant sending info about his shelly relays :
@@ -936,7 +1031,7 @@ const api=require('./nat/io/ioreadwritestatus');
 
 
 let ccbbRef;// the app2 instantiator. it is in closure run() !  xxxxx
-const started ={};nRWaiting={}// {luigimarson:{  inst,,,}};// inst bank , available also to node-red connections !
+const nRWaiting={};// {luigimarson:{  inst,,,}};// inst bank , available also to node-red connections !
 run();// start server
 
 function run(){// build the app2 ctl. pay attention 
@@ -1001,14 +1096,15 @@ if (Proto) eMClass.prototype.cfg = function (plantname) {// add a cfg static fun
 // ccbb : the instanziator INSTANZ
 
 // moved to server glogal context : let started ={};// {luigimarson:{  inst,,,}};// inst bank
-ccbbRef=function ccbb(plantname) {// when client/plant got a request (a button) for a plant on a webpage , we fire : socket.on('startuserplant' ,that to operate/ register the fv ctl inst
+ccbbRef=function ccbb(plantname) {
+                                  // when client/plant got a request (a button) for a plant on a webpage , we fire : socket.on('startuserplant' ,that to operate/ register the fv ctl inst
   // so we instatiate or recover  the fsm: that is a eventmanager or connect to the server with a socket that has the same event managed (so the socket is the session/instance of the event manager for the plant)!
   let inst,repeat,repeat1;
   if (plantname) {
     let name = plantname;
     console.log('ccbb  name:',plantname,' instance alredy started? : ',started[name]);
-    //console.log('ccbb  factory:',eMCustomClass.toString());
-
+    //console.log('ccbb  factory:',eMCustomClass.toString());started.some.get
+    
     if (started[name]&&started[name].inst)// its alredy requested and a instance is alredy set, so continue on a fv instance 
     {console.log('ccbb   find an alredy running plant with name ',name,' with cur state: ',started[name].inst.state);
     started[name].inst.reBuildFromState=false;
@@ -1034,10 +1130,85 @@ ccbbRef=function ccbb(plantname) {// when client/plant got a request (a button) 
         // OR:
         console.log('ccbb  , newing eMclass');
        // let inst=started[name].inst = new eMCustomClass();// create the fv ctl
-      inst=started[name].inst = (new eMClass()).cfg(name);// create the fv ctl, customize its .on . nb function cfg() is created in this module !
+      inst=started[name].inst = (new eMClass()).cfg(name);// create the fv ctl with cfg data and the instance ctl, customize its .on . nb function cfg() is created in this module !
 
       inst.reBuildFromState=true;// that wll be overwritten by loadstate !!!
                                   //  reBuildFromState=true; means we couldnt recover instance previously build in a previous socket connection , so first time managing a plant  or server crashed
+
+
+                                  // set the plant execution context: stacks, coding flags, current sessions.   timer interv sono  code timers
+        inst.getcontext = {// to make available this current closure vars relating to current state of browser connection via socket  to setPump,.....
+        // sono in sostanza le variabili della closure , cioe l'handler del connection , cioe il socket, session,,,
+        // che servono al ctl fn per diallogare con uno degli i/o : il current browser socket , se c'e'
+        // probably must nulllified when socket disconnect clientDiscon=null, instead to pass clientDiscon !
+        // nb il socket è in fn.socket !!!!
+  
+        /*  >>>>>>>>>ok :   summary :
+         all'inizio in SSWW  si setta la variabile closure  clientDiscon che poi viene true solo  quando il socket esce SSEE
+           clientDiscon è disponibile anche in fn.getContext.getCliDiscon
+           
+         in setPump se c'è connessione socket con un browser (clientDiscon=false, :
+           - si setta getcontext.discFromBrow=true che è  flag di non doppo processamento 
+              e si rilancia un timeout con funzione che resetta il flag dopo 2 s 
+                il timeout ref viene storato in .getcontext.blocking)
+           - poi si invia l'evento di update dei pumps ( fn.pumpsHandler[pumpnumber](0,on_)): al browser via socket event
+   
+           
+         in OnRelais() 
+           - recupero clientDiscon con clientDiscon=fn.getcontext.getCliDiscon()
+           
+           se vedo arrvare un evento dal browser , (see: if (fn.getcontext && fn.getcontext.processBrow))
+           - checko il flag discFromBrow(via fn.getcontext.processBrow)
+             se  discFromBrow==true  
+               - resetto timeout (getcontext.blocking)
+                 e resetto il flag fn.getcontext.discFromBrow=false
+                 ed esco senza processare due volte l'evento nascente da setPump
+         */
+  
+        /* **************
+         getCliDiscon() banalmente ritorna questo onconnection handler clientDiscon (significa il browser non connesso, session expired !)!! 
+          in base a clientDiscon si  settera getcontext.discFromBrow true se clientDiscon=false cioe non processo il doppio comando in onRelais
+                    a expiration time out will mantain .discFromBrow=true; for 2 s. 
+           nb getcontext.processBrow() ritorna !getcontext.discFromBrow
+           inoltre  when clientdiscon it useless run function that will emit browser .emit , because no connection is available
+        */
+        interv:null,timer:null,
+        getSession: function () { return this.session; },// get cur session 
+        getCliDiscon: function () { return this.clientDiscon; },// staus of socket on current closure (onconnection socket handler)
+        clientDiscon:null,
+        processBrow: function () {
+          if (this.discFromBrow) return false;// discard processing the browser req
+          else return true;
+        },
+        discFromBrow: false,// if true : dont process things related to browser/socket presence : connection is lost , ex:  dont process double time setPumps event in onRelais()
+        // trace
+        curSess:null,// init session id TODO  todo : chiarire se .id esiste , sembra essere nel prototype di session !
+        prevSess: null,
+  
+        socket: null,// todo migrate here socket ref. socket is valid (!=null) if session.id!=null
+        ha_ws: null  /* ha ws will receive/send mqtt staff comingfrom/goingto the ha connected with mqtt:
+                    // - browser style event emit ( like socket.emit('event', ....) from ha mqtt service triggered by some automation on topic @plant@interface_mqtt_websock/0/NReadUser/cmd
+                    //     ex  mqtt subevents coming from @Casina_API@interface_mqtt_websock_0/command cmdtopic managed in 
+                              quindi se in cfg specifico int=ws instead of  programmare il sub in numbSubscr/probSubscr e quindi in goonP() :
+                              
+  
+  
+                    // - browser style event on   sent to ha in topic on topic @plant@ctl_var_state_0
+                    // - device state coming triggered mqtt publish service  shellies/Casina_API-xxx/relay/0
+                    // - device command sent to topic @Casina_API@ctl_var_state_0
+                    //  no more , old way to delete !
+                    */
+  
+        // ha_ws se not null verrà usato :
+        //  - in writesync, es type1 , per settare il entity corrispondente di tipo switch es rssi  
+        //                  cosi per type 2,4
+        // - in readsync si leggerà dal queue , riempito dai ws.omessage quando attivo 
+        //    nb se la coda è vuota do null o valore default o l'ultimo ....
+  
+        // dopo abilita2 faccio partire il wsha e se trova connessione  setto ha_ws
+        // quando vedo che non arriva piu niente in .onmessage pongo ha_ws=null e setto interval per ritentare la connessione ogni 5 minuti
+        // ha_tocken ??
+      }
 
       inst.init=false;// not redy to be used without recover state and connectto to device
         // inst.state.app.plantname=name;// todo in .cfg()
@@ -1045,8 +1216,8 @@ ccbbRef=function ccbb(plantname) {// when client/plant got a request (a button) 
         //??
         // started.name.inst.start();// start the new instance
 
-        repeat=started[name].repeat=checkFactory(inst); // here instead of in DDHH
-        repeat1=started[name].repeat1=checkFactory(inst); // here instead of in DDHH
+        repeat=started[name].repeat=checkFactory(inst); // nb presently inst.state must still to be recovered , also inst.config is still undefined!  return {repeatcheckxSun,stopRepeat} here instead of in DDHH
+        repeat1=started[name].repeat1=checkFactory(inst); //  {repeatcheckxSun,stopRepeat} here instead of in DDHH
 
       }
       
@@ -1779,7 +1950,7 @@ console.log(' login() started x sername: ',opAPIUser);
       })
   })
   */
-  if(PRTLEV>5)console.log(' getstat called with state: ',JSON.stringify(state,null,2));
+  if(PRTLEV>8)console.log(' getstat called with state: ',JSON.stringify(state,null,2));
   let bodies=// {body,devTypeId,extract}. extract: extrat usefull info (put in state.aiax,xxx) from resu.data, result=resu={data,token} 
   { inverter:  {body: {devIds:state.app.plantconfig.huawei.inv,// body: the post request 
                 devTypeId:"38"},
@@ -1872,7 +2043,7 @@ resu;
   console.log(' getstat recover from device: ',key,', the value : ',res); 
 
     // in case aiax fire error and be rejected , res=undefined
-  if (res === null) {// token expired or 
+  if (res === null) {// token expired or some internet connection fault
     console.log(' getstat recover from device: ',key,' a null value, can be an expirered token');
     i=100;results=null;
   } else if (res === undefined) { // true
@@ -2746,10 +2917,10 @@ function gfg_Run() {
 }
 
 function checkFactory(fn){// fn=ctl, sostituisce repdayly()
-                          // closure (private data) and its returning object functions  
+                          // closure (private data) and its returning object functions  :  {repeatcheckxSun,stopRepeat}
                                        
-
-  let timer;
+  
+  //let {timer,interv}=fn.getcontext;// timer 
   let execParm;
    
   //const d = new Date();
@@ -2769,7 +2940,7 @@ function checkFactory(fn){// fn=ctl, sostituisce repdayly()
   
   
     function callFn_(execParm) {// n-- , se positivo lancia fn.execute e dopo ulteriore ora itera callFn
-
+      loopExecute=1;// execute will run shortly
       // {procName, null              , null,  ev2run, asyncPoint, processAsync, dataArr}=execParm
         let{procName, a,b,ev2run, asyncPoint, processAsync, dataArr}=execParm;
        // let  pdate=new Date();pdate.setHours(pdate.getHours()+dOraLegale);
@@ -2784,13 +2955,17 @@ function checkFactory(fn){// fn=ctl, sostituisce repdayly()
         fn.execute(procName,a,b,  ev2run, asyncPoint, processAsync, dataArr,
           () =>{
         console.log(' after execute we updates state running writeScriptsToFile()')
+        loopExecute=20;// algo ended  write todo
         //api.writeScriptsToFile(fn.state,fn.state.app.plantname)
-        api.writeScriptsToFile(fn)
+        api.writeScriptsToFile(fn).then(()=>loopExecute=0)// ago ended and write ended 
         .catch(function(err) {// pdate the state file
-          console.error(err);
+          loopExecute=-10;
+          console.error(' STOPPING app error: ',err);
+          console.log(' STOPPING app error: ',err);
           process.exit(1);
          });
         });
+        loopExecute=5;// wait execute to finish
     }
     
     // state of repetition inclosure that is called at
@@ -2812,10 +2987,11 @@ function checkFactory(fn){// fn=ctl, sostituisce repdayly()
       let delta=60*1000*period;// convert ms
       if(DEBUG1){delta=delta;n=n}// periodo in  minuti non ore  ??   to correct
       else {delta=delta*60;n=n/60}//if(dminutes&&dminutes>0&&dminutes<24)delta=dminutes*3600000;
-      timer = setInterval(callF, delta);//36000000 . run n times every delta millisecond
+      fn.getcontext.timer = setInterval(callF, delta);//36000000 . run n times every delta millisecond
       }
-      function callF(){
-        if(n--<0) {clearInterval(timer);// condition before lowering n 
+      function callF(){// the procedure runned ripetutamente
+        loopRepetitive=1;
+        if(n--<0) {clearInterval(fn.getcontext.timer);// condition before lowering n 
                   // clear algo last res state
                   if(execParm.algo=='program')fn.state.lastProgramAlgo=false;
                   if(execParm.algo=='anticipate')fn.state.lastAnticAlgo=false;
@@ -2826,21 +3002,23 @@ function checkFactory(fn){// fn=ctl, sostituisce repdayly()
             console.log(' repeatcheckxSun :callF repetition job (n: ',n,') will lauch execute with execParm : {procName, a,b,ev2run, asyncPoint, processAsync, dataArr}, ',execParm,'. procName: ',procName,' dataArr: ',dataArr); 
           }
           callFn_(execParm);
+          loopExecute=5;
           
         }
+        loopRepetitive=0;
       }
     }
          
 
   
       function gfg_Stop() {// call from .......
-      clearInterval(timer);
+      clearInterval(fn.getcontext.timer);
       }
-    let interv;
-    return {// object functions 
-      repeatcheckxSun: function (hourin, hourout, period, execParm, cb2) {// register the procedure to repeat, period in minutes
+    
+    return {// object  {repeatcheckxSun,stopRepeat}working on  closured config attributes(interv,timer,,,,)
+      repeatcheckxSun: function (hourin, hourout, period, execParm, cb2) {// register the procedure setinterval to repeat, period in minutes
         if (interv) clearInterval(interv);
-        if (timer) clearInterval(timer);
+        if (fn.getcontext.timer) clearInterval(fn.getcontext.timer);
         //const pdate = new Date();  pdate.setHours(pdate.getHours()+dOraLegale);  //closure with inner callF, the closure state n will be updated till hourout is got !
        
         // console.log(' repeatcheckxSun : start hour ',hourin,' stop hour: ',hourout);                                                 
@@ -2860,6 +3038,7 @@ function checkFactory(fn){// fn=ctl, sostituisce repdayly()
             minN = min / period;// additional condition iniziale todo
 
           interv = setInterval(function () { // Set interval for checking, never stop till the repetion ends 
+            loopStartRepetitive=1;
             let date =pdate() // new Date(); // Create a Date object to find out what time it is   gtm ?
             //date.setHours(date.getHours()+dOraLegale);//dOraLegale);
             let dm = date.getMinutes(), dh = date.getHours();
@@ -2875,7 +3054,7 @@ function checkFactory(fn){// fn=ctl, sostituisce repdayly()
 
             // if(onceaday&&dh >= hourin && dm == min){ // Check the time to start repetitive task, start from 1:00 to 23:00
             if (onceaday && dateN > minIn && dateN < minOut) { // Check the time to start repetitive task, start from 1:00 to 23:00
-              console.log(' repeatcheckxSun : interval match so fire gfg_Run_ repetion job for cicles: ',cicles);
+              console.log(' repeatcheckxSun : interval match so now fire gfg_Run_ repetion job for cicles: ',cicles);
               onceaday = false;
               // run the repetitive procedure
               // hourinterval=hourout-dh;// better then hourinterval=hourout-hourin
@@ -2884,7 +3063,7 @@ function checkFactory(fn){// fn=ctl, sostituisce repdayly()
               // if h_m=true  the span
               // no , next will goon ! :   clearInterval(interv);
             } else console.log(' repeatcheckxSun ************** procedure ', execParm.procName, 'setinterval handler (start repetion job x procName: ', execParm.procName, ') didnt match the firing condition, it is still to fire: ', onceaday);
-
+            loopStartRepetitive=0;
           }, 60000); // Repeat every 60000 milliseconds (1 minute)
         }
         return 0;//ok, ??
@@ -2892,7 +3071,7 @@ function checkFactory(fn){// fn=ctl, sostituisce repdayly()
         stopRepeat:function (){// stop requiredd by client browser
               console.log(' stopRepeat() called . we must reset the runing intervals' );              
               if(interv) clearInterval(interv); 
-              if(timer) clearInterval(timer);
+              if(fn.getcontext.timer) clearInterval(fn.getcontext.timer);
               if(execParm){
               //.......correct ???  
               if(execParm.algo=='program')fn.state.lastProgramAlgo=false;
@@ -3779,15 +3958,15 @@ let session = socket.request.session;// session used in other tcp request ??, if
 let eM,//  >>> e' settato da socket.on('startuserplant',...  ed e' legata/propieta del connection handler dove sono def gli socket events es socket.on()
 // poi inserito in socket.eM  , quindi deve essere non usato piu !!!!!!!!!!!!
 
-repeat,// active rep func x anticipate
-repeat1,// active rep func x temperature programmer
+repeat,// active rep func x anticipate repetitive algo // onconnection var to start/stop repetitive algo
+repeat1,// active rep func x program repetitive algo// onconnection var to start/stop repetitive algo
 clientDiscon=false;
 console.log('on connection got from a browser set in login, user: ',user,`new  session: ${session.id}  , socket connection id ${socket.id}`,
             '\n   so clientDiscon is set false ');
 
 console.log(`saving user and socketid ${socket.id} in session ${session.id} used by future fn ( will be associated to user plant). in case algo procedure wants to do something with session and socket if they are active`);
 console.log('session will be duplicated on fn.getcontext and the socket is still active if fn.getcontext.discFromBrow=false ! '); 
-session.socketId = socket.id;
+session.socketId = socket.id;// hope one ws for session !
 session.user = user;// session.user is already used ?, probably only req.user or socket.user are used !
 session.save();// save socketid
 
@@ -3803,93 +3982,108 @@ socket.on('createUsrPlant',// to do emit in browser.  create the plant config in
   );});
 
   // define the listener :
-  socket.on('startuserplant', function (plant_,feat) { // user press button to connect to some plant, so this event is fired , feat url enc
-                                                      // inst/fn/ctl/eM :  here we create the ctl of the plant that will be passed to all the service functions 
-                                                      // todo : emit login screen x user=data
+  socket.on('startuserplant', function (plant_, feat) { // user press button to connect to some plant, so this event is fired , feat url enc
+    // inst/fn/ctl/eM :  here we create the ctl of the plant that will be passed to all the service functions 
+    // todo : emit login screen x user=data
     const feature = feat.split(",");// ex:'feature1,feature2'
-    console.log('event startuserplant listening handler for plant ',plant_,' feature: ',feat,', user ',user,', socket id ',socket.id);
+    feature.push('persState');// anyway reset tate tto what is n persistance (not mandatory just if we want to change state in persistant x debug)
+    console.log('event startuserplant listening handler for plant ', plant_, ', feature: ', feat, ', try getstate from persistance: ',feature.indexOf("persState")>=0,', reset state: ',feature.indexOf("resetstate")>=0,', user ', user, ', socket id ', socket.id);
 
-    if(plant_){
+    if (plant_) {
       // accept plant x user 
-      let plantD=model.getplant(plant_);// better then using state that could not still defined 
-      if(plantD&&plantD.users.indexOf(user)>=0)
-      console.log(' startuserplant , plant ',plant_,' authorized user ',user,', socket id ',socket.id);
-      else{ console.log(' startuserplant , user ',user,', not authorized x plant ',plant_ ); 
+      let plantD = model.getplant(plant_);// better then using state that could not still defined 
+      if (plantD && plantD.users.indexOf(user) >= 0)
+        console.log(' startuserplant , plant ', plant_, ' authorized user ', user, ', socket id ', socket.id);
+      else {
+        console.log(' startuserplant , user ', user, ', not authorized x plant ', plant_);
         return
       }
-    }else return;
+    } else return;
 
 
     // user login or just the plant name in some html field + button start that will fire event startuserplant
     let user_ = user,// the user is the passport user set in session/req.user when (in closure) the client ask a ws connection to server
-   plantcnt=model.ejscontext(plant_),// ejs context=plantcnt={pumps:[{id,title},,,,]}
-    plantconfig=model.getconfig(plant_),// a restricted modified version of plantcfg !!!!!!!!!!!!!!! WARNING 
-    plantcfg=model.getcfg(plant_);// get plant cfg from available pool. : return plants[plant].cfg;
+
+      // get updated plant config:
+      plantcnt = model.ejscontext(plant_),// ejs context=plantcnt={pumps:[{id,title},,,,]}
+      plantconfig = model.getconfig(plant_),// a restricted modified version of plantcfg !!!!!!!!!!!!!!! WARNING 
+      plantcfg = model.getcfg(plant_);// get plant cfg from available pool. : return plants[plant].cfg;
     // todo if(plantcfg&&...)
 
     // changed on 03062023 eM = ccbbRef(plantcfg.name);
-   //  socket.eM = ccbbRef(plantcfg.name);// ** il fsm recupera/crea un siglethon x plant , state to be updated with recoverstatus()
-    let recInsts = ccbbRef(plantcfg.name);// recover/create instance
+    //  socket.eM = ccbbRef(plantcfg.name);// ** il fsm recupera/crea un siglethon x plant , state to be updated with recoverstatus()
+    let recInsts = ccbbRef(plantcfg.name);// recoverfromruntime/create instance,  return {inst,repeat,repeat1}. before call repeat the state must be updated ifinst was just created now and not recovered see reBuildFromState
+    
+    if (recInsts&&recInsts.inst){ console.log('startuserplant , eM is built/recovered from pool ');
+       console.error('startuserplant , ok: eM is built/recovered from pool on session: ',session.id);}
+       else{console.log('startuserplant , eM is not built/recovered from pool ');
+       console.error('startuserplant , eM is not built/recovered from pool  on session: ',session.id);
+        return }
+    
+    
     eM = recInsts.inst;
-    repeat=recInsts.repeat;
-    repeat1=recInsts.repeat1;
+    repeat = recInsts.repeat;//  // nb presently inst.state must still to be recovered , also inst.config is still undefined!  repeat= {repeatcheckxSun,stopRepeat} 
+    repeat1 = recInsts.repeat1;// onconnection var to start/stop repetitive algo
     let prevSess;// prev session id
+    // prevWs;// prev ws
 
     // reset the context = this closure (socket.on('startuserplant',closure)) 
     // must be nullified when socket disconnect so closure can be garbagecollected 
-    if(eM.getcontext){
-    console.log(' startuserplant , user ',user,', plant: ',plant_,' recovered a plant ctl(eM/fn) running ,changing ctl session/socket browser context data. old/new session id are: ',eM.getcontext.getSession().id,'/',session.id);
-    prevSess=eM.getcontext.getSession().id;
-    } else console.log(' startuserplant , user ',user,', plant: ',plant_,' no running plant ctl found . setting session/socket context data. no em.getcontext, so new session id are: ',session.id);
+    if (!eM.reBuildFromState) {let prevSes;if(eM.getcontext.getSession)prevSess=eM.getcontext.getSession().id;
+      console.log(' startuserplant , user ', user, ', plant: ', plant_, ' recovered a plant ctl(eM/fn) running ,changing ctl session/socket browser context data. old/new session id are: ', prevSess, '/', session.id);
+    
+
+    } else console.log(' startuserplant , user ', user, ', plant: ', plant_, ' no running plant ctl found . setting session/socket context data. no em.getcontext, so new session id are: ', session.id);
     // **************    ma quando recupero eM in un nuovo socket getcontext mi da la sessione e il clientDisconnect del nuovo socket visto che lo riassegno !!!!
-                  // reset update or new ?  todo
-    eM.getcontext={// to make available this current closure vars relating to current state of browser connection via socket  to setPump,.....
-                    // sono in sostanza le variabili della closure , cioe l'handler del connection , cioe il socket, session,,,
-                    // che servono al ctl fn per diallogare con uno degli i/o : il current browser socket , se c'e'
-                  // probably must nulllified when socket disconnect clientDiscon=null, instead to pass clientDiscon !
-                  // nb il socket è in fn.socket !!!!
+    // reset update or new ?  todo
+    { // use a class to new!
+      // to make available this current closure vars relating to current state of browser connection via socket  to setPump,.....
+      // sono in sostanza le variabili della closure , cioe l'handler del connection , cioe il socket, session,,,
+      // che servono al ctl fn per diallogare con uno degli i/o : il current browser socket , se c'e'
+      // probably must nulllified when socket disconnect clientDiscon=null, instead to pass clientDiscon !
+      // nb il socket è in fn.socket !!!!
 
-                 /*  >>>>>>>>>ok :   summary :
-                  all'inizio in SSWW  si setta la variabile closure  clientDiscon che poi viene true solo  quando il socket esce SSEE
-                    clientDiscon è disponibile anche in fn.getContext.getCliDiscon
-                    
-                  in setPump se c'è connessione socket con un browser (clientDiscon=false, :
-                    - si setta getcontext.discFromBrow=true che è  flag di non doppo processamento 
-                       e si rilancia un timeout con funzione che resetta il flag dopo 2 s 
-                         il timeout ref viene storato in .getcontext.blocking)
-                    - poi si invia l'evento di update dei pumps ( fn.pumpsHandler[pumpnumber](0,on_)): al browser via socket event
-   
-                    
-                  in OnRelais() 
-                    - recupero clientDiscon con clientDiscon=fn.getcontext.getCliDiscon()
-                    
-                    se vedo arrvare un evento dal browser , (see: if (fn.getcontext && fn.getcontext.processBrow))
-                    - checko il flag discFromBrow(via fn.getcontext.processBrow)
-                      se  discFromBrow==true  
-                        - resetto timeout (getcontext.blocking)
-                          e resetto il flag fn.getcontext.discFromBrow=false
-                          ed esco senza processare due volte l'evento nascente da setPump
-                  */
+      /*  >>>>>>>>>ok :   summary :
+       all'inizio in SSWW  si setta la variabile closure  clientDiscon che poi viene true solo  quando il socket esce SSEE
+         clientDiscon è disponibile anche in fn.getContext.getCliDiscon
+         
+       in setPump se c'è connessione socket con un browser (clientDiscon=false, :
+         - si setta getcontext.discFromBrow=true che è  flag di non doppo processamento 
+            e si rilancia un timeout con funzione che resetta il flag dopo 2 s 
+              il timeout ref viene storato in .getcontext.blocking)
+         - poi si invia l'evento di update dei pumps ( fn.pumpsHandler[pumpnumber](0,on_)): al browser via socket event
+ 
+         
+       in OnRelais() 
+         - recupero clientDiscon con clientDiscon=fn.getcontext.getCliDiscon()
+         
+         se vedo arrvare un evento dal browser , (see: if (fn.getcontext && fn.getcontext.processBrow))
+         - checko il flag discFromBrow(via fn.getcontext.processBrow)
+           se  discFromBrow==true  
+             - resetto timeout (getcontext.blocking)
+               e resetto il flag fn.getcontext.discFromBrow=false
+               ed esco senza processare due volte l'evento nascente da setPump
+       */
 
-        /* **************
-         getCliDiscon() banalmente ritorna questo onconnection handler clientDiscon (significa il browser non connesso, session expired !)!! 
-          in base a clientDiscon si  settera getcontext.discFromBrow true se clientDiscon=false cioe non processo il doppio comando in onRelais
-                    a expiration time out will mantain .discFromBrow=true; for 2 s. 
-           nb getcontext.processBrow() ritorna !getcontext.discFromBrow
-           inoltre  when clientdiscon it useless run function that will emit browser .emit , because no connection is available
-        */
-      getSession:function(){return session;},// get cur session 
-      getCliDiscon:function(){return clientDiscon;},// staus of socket on current closure (onconnection socket handler)
-      processBrow:function(){
-        if(this.discFromBrow)return false;// discard processing the browser req
-        else return true;},
-      discFromBrow:false ,// if true : dont process things related to browser/socket presence : connection is lost , ex:  dont process double time setPumps event in onRelais()
+      /* **************
+       getCliDiscon() banalmente ritorna questo onconnection handler clientDiscon (significa il browser non connesso, session expired !)!! 
+        in base a clientDiscon si  settera getcontext.discFromBrow true se clientDiscon=false cioe non processo il doppio comando in onRelais
+                  a expiration time out will mantain .discFromBrow=true; for 2 s. 
+         nb getcontext.processBrow() ritorna !getcontext.discFromBrow
+         inoltre  when clientdiscon it useless run function that will emit browser .emit , because no connection is available
+      */
+
+
+         eM.getcontext.clientDiscon=clientDiscon;// staus of socket on current closure (onconnection socket handler)
+
+         eM.getcontext.discFromBrow= false;// if true : dont process things related to browser/socket presence : connection is lost , ex:  dont process double time setPumps event in onRelais()
       // trace
-      curSess:session.id,// init session id TODO  todo : chiarire se .id esiste , sembra essere nel prototype di session !
-      prevSess:prevSess,
+      eM.getcontext.session =session;
+      eM.getcontext.curSess =session.id;// duplicated  init session id TODO  todo : chiarire se .id esiste , sembra essere nel prototype di session !
+      eM.getcontext.prevSess= prevSess;
 
-      socket:socket,// todo migrate here socket ref. socket is valid (!=null) if session.id!=null
-      ha_ws:null  /* ha ws will receive/send mqtt staff comingfrom/goingto the ha connected with mqtt:
+      eM.getcontext.socket= socket;// todo migrate here socket ref. socket is valid (!=null) if session.id!=null
+      eM.getcontext.ha_ws= null;  /* ha ws will receive/send mqtt staff comingfrom/goingto the ha connected with mqtt:
                   // - browser style event emit ( like socket.emit('event', ....) from ha mqtt service triggered by some automation on topic @plant@interface_mqtt_websock/0/NReadUser/cmd
                   //     ex  mqtt subevents coming from @Casina_API@interface_mqtt_websock_0/command cmdtopic managed in 
                             quindi se in cfg specifico int=ws instead of  programmare il sub in numbSubscr/probSubscr e quindi in goonP() :
@@ -3902,14 +4096,14 @@ socket.on('createUsrPlant',// to do emit in browser.  create the plant config in
                   //  no more , old way to delete !
                   */
 
-                  // ha_ws se not null verrà usato :
-                  //  - in writesync, es type1 , per settare il entity corrispondente di tipo switch es rssi  
-                  //                  cosi per type 2,4
-                  // - in readsync si leggerà dal queue , riempito dai ws.omessage quando attivo 
-                  //    nb se la coda è vuota do null o valore default o l'ultimo ....
+      // ha_ws se not null verrà usato :
+      //  - in writesync, es type1 , per settare il entity corrispondente di tipo switch es rssi  
+      //                  cosi per type 2,4
+      // - in readsync si leggerà dal queue , riempito dai ws.omessage quando attivo 
+      //    nb se la coda è vuota do null o valore default o l'ultimo ....
 
-                  // dopo abilita2 faccio partire il wsha e se trova connessione  setto ha_ws
-                   // quando vedo che non arriva piu niente in .onmessage pongo ha_ws=null e setto interval per ritentare la connessione ogni 5 minuti
+      // dopo abilita2 faccio partire il wsha e se trova connessione  setto ha_ws
+      // quando vedo che non arriva piu niente in .onmessage pongo ha_ws=null e setto interval per ritentare la connessione ogni 5 minuti
       // ha_tocken ??
     }
 
@@ -3931,79 +4125,103 @@ socket.on('createUsrPlant',// to do emit in browser.  create the plant config in
     //        >>>> usare flag 'plant alredy managing by a auth user', in un field started.alredymanaging=true ma così il  problema diventa ......  
     //                quindi per ora immaginare un solo user abiliato a maneggiare un plant !! e se mi logono su 2 diversi socket allora il secondo trova il started.alredymanaging=true
     //                e quindi rejecta il secondo socket !!! o direttamente al login vedo che e' gia logonato !
-    
-    if(eM)console.error('startuserplant , eM is built/recovered from pool ');
-    if(eM)console.log('startuserplant , eM is built/recovered from pool ');
-    eM.socket=socket;// update/embed the socket to connect the last browser client: todo check only 1 browser pointing to  a eM
-                    // todo : migrate to eM.getcontex.socket the old put into eM.socket
+
+
+    eM.socket = socket;// update/embed the socket to connect the last browser client: todo check only 1 browser pointing to  a eM
+    // todo : migrate to eM.getcontex.socket the old put into eM.socket
 
     // UUYY add here (or in instance constructor ???)
 
+
+    if (!eM.reBuildFromState&&!em_.iodev) {// only not eM.reBuildFromState (recovered from runtime plants) has already the devices !)
+    console.error('startfv_:  a runtime instance has not the io dev settled  !');
+    return
+    }
+    if (eM.reBuildFromState&&em_.iodev){ // only not eM.reBuildFromState (recovered from runtime plants) has already the devices !)
+    console.error('startfv_:  a recovered  instance has the io dev settled  !');
+    return}
+
+    if (feature.indexOf("persState") >= 0) {// take state from persistance (only x debug really)
+      // startfv_(eM,user);// ** start/update singlethon 
+
+      recoverstatus.call(eM, plantcfg, plantcnt, plantconfig, feature).then((em_) => {// em_=eM
+        buildDev();
+
+      }
+      ); // >>>>   recoverstatus() returns a promise resolved. we finished to write status back with promise .writeScriptsToFile
+    }else buildDev();
+
+
+
+
+    buildDev()
+       {// em_=eM
+
+        if (!eM.iodev) {// only not eM.reBuildFromState (recovered from runtime plants) has already the devices !)
+
+          console.log(' startfv_ called because device are not defined jet in fn ctl !');
+          startfv_(eM, ()=>{// lascia traccia di quando e stato bildato i dev 
+            eM.iodev.session=session.id;eM.iodev.socket=socket.id;
+            oncomplete_});
+
+        } else {
+          oncomplete_();// new risparmia di settare i dev che ho gia !   ma non devo aver cambiato il models.js !
+
+          // TODO allineate the ralais/ pump. in other alternative startfv_  do that with :
+          //            startfv(eM);})// ** call setPump to allineate pump state to state.relays  JJUU 
+
+        }
+      }
     
 
-    if (eM) {
-     // startfv_(eM,user);// ** start/update singlethon 
-     recoverstatus.call(eM,plantcfg,plantcnt,plantconfig,feature).then((em_) => {
-     
-     if (!em_.iodev){
-     console.log(' startfv_ called because device are not defined jet in fn ctl !');
-     startfv_(em_,oncomplete_);
-    
-     }else {oncomplete_();// new risparmia di settare i dev che ho gia !   ma non devo aver cambiato il models.js !
 
-      // TODO allineate the ralais/ pump. in other alternative startfv_  do that with :
-      //            startfv(eM);})// ** call setPump to allineate pump state to state.relays  JJUU 
-
-     }
-    }
-     ); // >>>>   recoverstatus() returns a promise resolved. we finished to write status back with promise .writeScriptsToFile
-                                                                    // ctl event status: in eM.state 
-                                                                    // socket in eM.socket
-                                                                    // plant cfg in eM.status.plantcfg, 
-                                                                    // dev i/o still to build 
-                                                                    // will cb startfv_   // TTGG  // why do not use eM invece di passarlo come em_ ?
-                                                                    //recoverstatus_.call(eM,user.name).then((em_) => startfv_(em_));// will cb startfv_
-// load also ejs context x future use :
+      // ctl event status: in eM.state 
+      // socket in eM.socket
+      // plant cfg in eM.status.plantcfg, 
+      // dev i/o still to build 
+      // will cb startfv_   // TTGG  // why do not use eM invece di passarlo come em_ ?
+      //recoverstatus_.call(eM,user.name).then((em_) => startfv_(em_));// will cb startfv_
+      // load also ejs context x future use :
 
 
-     const oncomplete_= function oncomplete(){
+      const oncomplete_ = function oncomplete() {
 
-     // DANGER  :::   here state could not jet be recovered by previous promise !!!!
-     //     so , it is really dangerous ? we just add properties to state 
-     let state=eM.state;
+        // DANGER  :::   here state could not jet be recovered by previous promise !!!!
+        //     so , it is really dangerous ? we just add properties to state 
+        let state = eM.state;
+        console.log(' oncomplete() starting.... , state is not null: ',state!=null);
+
+        displayView(eM.state.app.plantconfig.relaisEv, state);// return emitting event 'view'  to browser
+        // was in abilita2() 
 
 
-     displayView(eM.state.app.plantconfig.relaisEv,state);// return emitting event 'view'  to browser
-                                  // was in abilita2() 
+        if (eM.reBuildFromState) {// we got status in persistance, so start the active algo that was running 
+
+          // restart the active algo as state.anticipate  tells
+          // same handler that : on('repeatcheckxSun',(starthour,stophour,hourinterval) );
 
 
-     if(eM.reBuildFromState){// we got status in persistance, so start the active algo that was running 
-     
-      // restart the active algo as state.anticipate  tells
-     // same handler that : on('repeatcheckxSun',(starthour,stophour,hourinterval) );
-     
-     
-     if(state.anticipate){
-      let {dminutes,starthour,stophour,triggers}=state.anticipate;
-      console.log('event startuserplant loading the repeating procedure from state.anticipate:  ',state.anticipate);
+          if (state.anticipate) {
+            let { dminutes, starthour, stophour, triggers } = state.anticipate;
+            console.log('event startuserplant loading the repeating procedure from state.anticipate:  ', state.anticipate);
 
-      // same handler that : socket.on('repeatcheckxSun', );
-     repeatHandler(starthour,stophour,dminutes,triggers);// restart anticipate algo according to last launch data, and rewite the state alredy wrote by TTGG  
+            // same handler that : socket.on('repeatcheckxSun', );
+            repeatHandler(starthour, stophour, dminutes, triggers);// restart anticipate algo according to last launch data, and rewite the state alredy wrote by TTGG  
 
-     }
-     // 
-     if(state.program){
-      let {dminutes,starthour,stophour,triggers2}=state.program;
-      console.log('event startuserplant loading the repeating procedure from state.program:  ',state.program);
+          }
+          // 
+          if (state.program) {
+            let { dminutes, starthour, stophour, triggers2 } = state.program;
+            console.log('event startuserplant loading the repeating procedure from state.program:  ', state.program);
 
-      // same handler that : socket.on('repeatcheckxSun', );
-     repeatHandler1(starthour,stophour,dminutes,triggers2);// restart program algo according to last launch data, and rewite the state alredy wrote by TTGG  
+            // same handler that : socket.on('repeatcheckxSun', );
+            repeatHandler1(starthour, stophour, dminutes, triggers2);// restart program algo according to last launch data, and rewite the state alredy wrote by TTGG  
 
-     }
-     eM.reBuildFromState=false;// reset now the ctl has the procurure loaded on closure checkFactory()
-     }
-    }
-    }
+          }
+          eM.reBuildFromState = false;// reset now the ctl has the procurure loaded on closure checkFactory()
+        }
+      }
+
     return;// thread ends
   });// ends on('startuserplant'
 // });
@@ -4014,7 +4232,7 @@ socket.on('createUsrPlant',// to do emit in browser.  create the plant config in
     let plant=eM.state.app.plantname;// or app.plantcfg.name
 
     // user=plant;todo recuperare da status ?? no gia sistemato col event 'whoami' see DDWW
-    let plantconfig=eM.state.app.plantconfig;
+    let plantconfig=eM.state.app.plantconfig;// leggermente diverso da ...app.
     // todo
         // inserire qui la config del plant model che riguarde i pumps/devices in questa app, che nella precedente implementazione veniva fatta a priori nella app al init.
         // infatti ora tale build (la config dei devices/pumps viene fatta dopo che e' individuato il plant)
@@ -4037,21 +4255,27 @@ if(PRTLEV>5) console.log('startfv_(), got pythonprob cfg .',pythonprobs);
 const keepDeviceDef=true;// is true, try false
  if(keepDeviceDef&&!eM.init){// eM is not initiated (new, non recovered from started[name] )
  //  abilita(eM.state);//// abilita sezione gestione eventi ( relais_)  plant nella pagina
- abilita(eM.state).then((devices)=>{ 
+ abilita(eM.state).then((devices)=>{ // build devices 
 
   // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><   todo   devices > {relais_:[],probes_:[]}  // probs are input devices with only syncread() , can be mqtt or modbus
 
-  abilita2(devices); eM.init=true;
+  abilita2(devices); eM.init=true;// complete devices set up (eM.iodev.relais_,eM.iodev.probs_) , set interrupt handler .............
   if(nRWaiting[plant])nRWaiting[plant]();// call the nr listener to add plant eM to node-red socket closure
   nRWaiting[plant]=null// reset
 
   //startfv(eM,session);})// ** call setPump to allineate pump state to state.relays
-  startfv(eM);})// ** call setPump to allineate pump state to state.relays  JJUU 
+  startfv(eM);
+  cb();
+})// ** call setPump to allineate pump state to state.relays  JJUU 
 // .catch();
  }else{
  // startfv(eM,session);// ** call setPump to allineate pump state to state.relays
   startfv(eM);// ** call setPump to allineate pump state to state.relays
+  cb();
  }
+//  cb();
+// return
+
 
   // put here code that can be done waiting the devices resolution !
   // ................
@@ -4124,9 +4348,17 @@ myctls_.then(
           console.log('abilita() buildplantDev() getctls() resolved devices in cfg x lists: gpionumb,mqttnumb. the resolved devs map is : ',ctl1.devmap);
           myprobs_.then((ctl2)=>{// all resolved
                                 resolve({myctls:ctl1,myprobs:ctl2,pythonprobs});// DDQQAA
-  });
+  });//add  .catch();
 }
 )
+
+.catch(function(err) {
+  console.log(' buildPlantDev(), cant build all dev , error : ',err);
+    console.error(err);
+
+    // process.exit(1);
+  });
+
 });
 
 }// ends buildPlantDev
@@ -4202,6 +4434,7 @@ devices.ctls.forEach((mdev,index)=>{
 });}
 
 
+
 console.log('abilita2() got dev ctl index list for models.js mqttnumb and gpionumb dev (#dev= length + 1 (index=lenght is the HA interface with portid=0)): ',state.devMap);
 console.log(' abilita2(),got dev ctl index list for models.js mqttprob dev: ',state.probMap);
 
@@ -4214,7 +4447,7 @@ if(relaisEv.length>eM.iodev.relais_.length)console.error('buildPlantDev() : mana
 
   // GGTTFF
 let pumpsHandler=eM.pumpsHandler; 
-
+console.log(' abilita2() setting socket event to sync raspberry buttons and web button and interrups');
   relaisEv.forEach((pump,ind) => {// ex: pump='pdc', ind=2
                                 // will for each numbSubscr dev :
                                 // - add  socket event to sync raspberry buttons and web button
@@ -4231,8 +4464,9 @@ if(relais&&relais[ind])relais[ind].watch(pumpsHandler[ind]);// attach same handl
                           // that handler works also x algo handler called in attuators/setpump   ex pumpsHandler[0](err,value) 0 means pdc pump
 */
 
-// set interrups : now do the same for mqtt interrupts for var dev updating  and rele dev , cl = 1 e 2 , no cl 4
 
+// set interrups : now do the same for mqtt interrupts for var dev updating  and rele dev , cl = 1 e 2 , no cl 4
+console.log(' abilita2() setting interrups');
 if(eM.iodev.relais_[ind]&&eM.iodev.relais_[ind].cl&&(eM.iodev.relais_[ind].cl==2||eM.iodev.relais_[ind].cl==1)){// the dev is a mqtt var , see VVCC in howto
 
   // define interrupt handler for hadling cmd topic topicNodeRed in cl 1 e 2 , cioe mappa il url nel msg di topicNodeRed in handler via .int0
@@ -4298,9 +4532,9 @@ if(eM.iodev.relais_[ind]&&eM.iodev.relais_[ind].cl&&(eM.iodev.relais_[ind].cl==2
 });
 
 // now find and process the 'int' dummy dev (gpio=0) to set a interrupt handler that map the topicNodeRed to websocket handler
-
+console.log(' abilita2() trying find intwebsoc device in iodev.relais_ list');
 let mqtt2webS;//  dev dummy ctl, with gpio=portid=0,
-for(let ii=relaisEv.length;ii<eM.iodev.relais_.length||!mqtt2webS;ii++){// relais_ contain the int dummy dev with index>=relaisEv.length (usually =relaisEv.length)
+for(let ii=relaisEv.length;ii<eM.iodev.relais_.length&&!mqtt2webS;ii++){// relais_ contain the int dummy dev with index>=relaisEv.length (usually =relaisEv.length)
   if(eM.iodev.relais_[ii]!=null&&eM.iodev.relais_[ii].gpio==0)mqtt2webS=eM.iodev.relais_[ii];// the ctl , dev dummy with gpio=portid=0, that read from mqtt node-red like cmd 
 }
 if(mqtt2webS){
@@ -4409,25 +4643,25 @@ repeatHandler1(xstart,xstop,xmin,triggers2); // the handler: socket.on('startpro
 
 }else console.log(' intWebSock() cant find a handler for mevent ',mevent);
 
-}
+}// ends intWebSock
 
 // moved : displayView(relaisEv,state);
 
     // socket.emit('status',,,) .on('status',)
   }// ends abilita2()
-  cb();
+ 
   }// ends startfv_
 
-  function displayView(plantconfig,state){
-    relaisEv=plantconfig.relaisEv;
-    scope={relaisEv}// pass the part of plantcfg che interessa lo spa nel browser , to config pumps in html js  after  emit('view',,)
+  function displayView(relaisEv,state){//function displayView(plantconfig,state){
+    // relaisEv=plantconfig.relaisEv;
+    let scope={relaisEv},// pass the part of plantcfg che interessa lo spa nel browser , to config pumps in html js  after  emit('view',,)
     //was : ejscont=model.ejscontext('luigi')// to generate pumps list in html after  emit('view',,)
     
-    let ejscont=state.app.plantcnt;// ejs context=ejscontext(plant).pumps=[{id,title},,,,]
+    ejscont=state.app.plantcnt;// ejs context=ejscontext(plant).pumps=[{id,title},,,,]
         // view the relays input on browser , see there the def of context ={ejscont,scope}
         let context={ejscont,scope};
         socket.emit('view', context); // nb .on('pump',,) can be not jet assigned 
-        console.log('event startuserplant : abilita(). it is  emitting socket event view, user plant is: ',plantconfig);
+        console.log('event startuserplant : abilita(). it is  emitting socket event view, user plant is: ',state.app.plantconfig.plantName);
     }
 
   var lightvalue = 0; //static variable for current status
@@ -4620,9 +4854,10 @@ function repeatHandler(starthour,stophour,dminutes,triggers) {// called also by 
                                                                                       "Bsav" : ""
                                                                                   }
                                                                 */
-  if(!eM)console.error(' repeatHandler(), eM is null ');
-  if(!eM)console.log(' repeatHandler(), eM is null ');else console.log(' repeatHandler(), eM is found '); 
-
+  if(!eM){console.error(' repeatHandler(), eM is null on session ',session.id,', socket: ',socket.id);
+  console.log(' repeatHandler(), eM is null on session ',session.id,', socket: ',socket.id);
+  return
+    }
 
   // non va perche allo start anticipate is recovered from state is not null but the algo must to start !
   //if(eM.state.anticipate != false&&eM.state.anticipate != null){
@@ -4658,6 +4893,9 @@ function repeatHandler1(starthour,stophour,dminutes,triggers2,custFs_param={scal
                                                                 //  - sched param set into sched passed to prog_parmFact
                                                                 //  - custFs_param: param for custom dev (future use)
                                                                 //      - will be put  in state.customParam , that is  passed to customdev custom handler func set in custDev 
+          if(!eM){console.error(' repeatHandler(), eM is null on session ',session.id,', socket: ',socket.id);
+          console.log(' repeatHandler(), eM is null on session ',session.id,', socket: ',socket.id);
+          return }
 
           if(PRTLEV>4)console.log(' startprogrammer socket event handler repeatHandler1() called with triggers2: ',triggers2 ,' controller fn is null: ',eM==null)   ;       
           if(eM){ eM.state.customParam=eM.state.customParam||{};
@@ -4754,7 +4992,7 @@ function repeatHandler1(starthour,stophour,dminutes,triggers2,custFs_param={scal
   }
 */
 // fills sched
-if(triggers2.Tgiorno)fillpgm( triggers2,sched.programs.giorno={},triggers2.PGMgiorno,triggers2.TgiornoTollerance,triggers2.TgiornoToll);// fills sched.programs.giorno
+if(triggers2.Tgiorno)fillpgm( triggers2,sched.programs.giorno={},triggers2.PGMgiorno,triggers2.TgiornoTollerance,triggers2.TgiornoToll);// fills 2nd param: sched.programs.giorno
 if(triggers2.Tnotte)fillpgm( triggers2,sched.programs.notte={},triggers2.PGMnotte,triggers2.TnotteTollerance,triggers2.TnotteToll);
 // sotterraneo scantinato: todo
 if(triggers2.Tacs)fillpgm( triggers2,sched.programs.acs={},triggers2.PGMacs,triggers2.TacsTollerance,triggers2.TacsToll);// 
@@ -4772,8 +5010,8 @@ if(triggers2.Tacs)fillpgm( triggers2,sched.programs.acs={},triggers2.PGMacs,trig
   sched.mapping=toeval(eM.state,triggers2.mapping);// mapping algo vars to plant devices !, input used when call last event genZoneRele of related exec created with prog_parmFact(sched)
   if(triggers2.ei&&triggers2.ei=='S')sched.ei='S';else sched.ei='W';
 
-  if(!eM)console.error(' repeatHandler1(), eM is null ');
-  if(!eM)console.log(' repeatHandler1(), eM is null ');else console.log(' repeatHandler(), eM is found '); 
+//  if(!eM)console.error(' repeatHandler1(), eM is null ');
+//  if(!eM)console.log(' repeatHandler1(), eM is null ');else console.log(' repeatHandler(), eM is found '); 
 
     // already recovered !!    repeat1=repeat1||checkFactory(eM);// could be find null ???  DDHH
     if(PRTLEV>6) console.log('startprogrammer,repeatHandler1 run , sched is : \n',JSON.stringify(sched,null,2));
@@ -4845,7 +5083,8 @@ function stopprogrammer() {
   socket.on('disconnect',() => {// to do 
     // set a flag to avoid browser .emit call from any function that can do that
     // eM will run also if the client dead . when a new connection come and it refears to same plant of the running eM , attact it to the closure and goon  
-   if(eM&&eM.getcontext){ console.log(' socket connection lost, plant: ',eM.state.app.plantname,', session ',eM.getcontext.getSession().id,
+    console.log(' socket connection lost');
+   if(eM&&eM.getcontext){ console.log(' .......conn lost on  plant: ',eM.state.app.plantname,', session ',eM.getcontext.getSession().id,
                                      '\n  socket.on disconnect,  so clientDiscon is set false ');
                                      session.id=null;//session=null;
                                      if(eM)eM.socket=null;
@@ -5124,7 +5363,7 @@ function gfg_Run() {
 
 
 function recoverstatus(plantcfg,plantcnt,plantconfig,feature){// this ctl is the ctl whose state must be updated from file if exist (persistnce)
-  // this.state is asic state x new ctl. if we have stored , get it 
+  // this.state is basic state x new ctl. if we have stored , get it 
 
   // old : >>>>   returns a promise resolved we  finish to write status back with promise .writeScriptsToFile
 let that=this,// the ctl/fn/eM=context is the app event manager
@@ -5166,7 +5405,7 @@ state=that.state,reBuildFromState=that.reBuildFromState;
   
   // this.state.app.plantname=plantname;
  // startfv_(this);//statusrecovered(this.state);
- console.log(' recoverstatus,  resolving 2  state : ',that.state);
+ if(PRTLEV>8)console.log(' recoverstatus,  resolving 2  state : ',that.state);
  resolve(that);
 })
 .catch(function(err) {

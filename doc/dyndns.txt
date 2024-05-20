@@ -1,0 +1,14 @@
+??  from : ......
+	curl "https://cloudflare-dns.com/dns-query?name=sermovox.duckdns.org&type=A"   -H "accept: application/dns-json"
+dig sermovox.duckdns.org   to see dns resolving results
+??  nohup
+
+idea : usare il reverse proxy in do to have a https domain connection , then point to serving server using a dyndns resolution : 
+	add register.it cname pointing to sermovox.duckdns.org to resolve the tcpip where we have the http server serving the dev sub domain 
+		cosi si puo usare il reverse proxy serving  del domain sermovox.com instead  of sermovox.duckdns.org 
+
+to update duckdns :
+	cd home/luigi/localdev/raspexampl/fv
+	echo url="https://www.duckdns.org/update?domains=sermovox&token=64f934f1-093e-42e7-84df-ac9e0187cf35&ip=" | curl -k -o duck.log -K -
+
+

@@ -1,3 +1,58 @@
+let TEST=null,
+outprompt='>>>>>>>>>>>> please input :  lights,turn_on,light.my_light to change entity related to dev in ha associated to plant: ';
+
+let readline=null;// not used in production 
+// const readline=readline_;// only debug 
+const DoTestonHa=true;//debug only
+if(DoTestonHa){TEST=test_;
+  readline= require('readline').createInterface({// see https://stackoverflow.com/questions/65260118/how-to-use-async-await-to-get-input-from-user-but-wait-till-entire-condition-sta
+    input: process.stdin,
+    output: process.stdout,
+  });
+}
+
+// move to the end
+function test_ (docmd_,plant){// a plant that want to run test must call this, if is the first register docmd_ (really the anewcon obj) in docmd
+                              // it returns doinp that fills anewcon.test
+  if(docmd==null){
+   outprompt+=plant;
+    docmd=docmd_;
+    return doinp// so if the plant is the first to set test we return the entry point to repeat the request x another test on the plant
+  }else return undefined;
+
+  function requestInput(shown) {// use :
+    // in async  await requestInput
+    // otherwise use a cn :  requestInput.then(goon);
+
+    return new Promise((resolve, reject) => {
+      console.error(shown);
+      readline.question(shown, async (url) => {
+        console.error('readline got line', url);
+        //readline.close();
+        resolve(url);
+
+      });
+    });
+  }
+
+  function doinp(){ 
+    console.error(' ****** trying to get input to run test on ws ha commands, so prompt with:',outprompt); 
+    requestInput('>>>>>>>>>>>>  ',outprompt).then(readin);// old,  debug, if we were in a async we could : await  requestInput()
+  }
+  function readin(read_) {// old not to call , cant see the instance
+    let reads = read_.split(" ");
+    console.error(' >>>>>> user send data to fire a ha cmd , was: ',reads); 
+    docmd.docmd('null','testing',...reads);// reason testing so after a succeeded feedback restart a new reading x testing
+  }
+  }
+
+
+
+
+
+
+
+
 // import hass from "homeassistant-ws";
 //import * as hassImp from 'homeassistant-ws';
 // const hass = hassImp.default;
@@ -12,13 +67,8 @@ let connCfg
     host: '192.168.1.212',
     port: 8123,
     }*/
-let PRTLEV=5;// a context set by fv3. to pass to hawsclient !
-const readline_ = require('readline').createInterface({// see https://stackoverflow.com/questions/65260118/how-to-use-async-await-to-get-input-from-user-but-wait-till-entire-condition-sta
-    input: process.stdin,
-    output: process.stdout,
-  });
-  const readline=null;// not used in production 
-  // const readline=readline_;// only debug 
+let PRTLEV=3;// a context set by fv3. to pass to hawsclient !
+
 
   const ON='turn_on',OFF='turn_off';
 
@@ -108,16 +158,13 @@ async function main(client) {// call in a connected client to init/restart the i
   });
 
 let ex=false;
-
-
     let outprompt='>>>>>>>>>>>> please input :  lights,turn_on,light.my_light ';
     console.error('now start requesting iterately: ',outprompt);
 
     // just x debug doinp();
 
-  function doinp(){  requestInput(outprompt).then(readin);//old,  debug, if we were in a async we could : await  requestInput()
+  function doinp(){  requestInput(outprompt).then(readin);// old,  debug, if we were in a async we could : await  requestInput()
   }
-
   function readin(read_) {// old not to call , cant see the instance
     let reads = read_.split(",");
     docmd('null','null',...reads);
@@ -140,8 +187,6 @@ let ex=false;
       let data = {}; data[reads[2]] = reads[3];
       client.fireEvent(reads[1], data).then(doinp);
     }
-
-
   }*/
 
   function requestInput(shown) {// use :
@@ -236,7 +281,7 @@ async function trackEnt(ent) {// check that the entity is registered x tracking 
   }// else;   if the entity is alredy registered for updates ,  do nothing !
 }
 
-function updateState(entity=null){// will call the ctl cb to fill fv3 queue
+function updateState(entity=null){// will call the ctl cb to fill fv3 queue   old delete
   if(ctlcb==null) return;
 if(entity==null){
  for(ent in Actstates){
@@ -246,9 +291,10 @@ if(entity==null){
   }
 }
 
-let Fact=function(ctlcb_,cfg_,PRTLEV_){// return {cfg,client,ws,setSwitch,Actstates,inState,ctlcb,kepAlive,onReset
-                                        //        docmd,docmd_            // todo: da utilizzare al posto di un this.oncmd added as func in BBHH : bastta scambiare i nomi   docmd_  <>   docmd 
-                                        //        } // TTHH
+let Fact=function(ctlcb_,cfg_,PRTLEV_){// return the anewcon=connector obj (to be completed):
+                                        //  {cfg,client,ws,setSwitch,Actstates,inState,ctlcb,kepAlive,onReset
+                                        //        docmd,docmd_            // funzioni alternative, todo: docmd_da utilizzare al posto di un this.docmd added as func in BBHH : bastta scambiare i nomi   docmd_  <>   docmd 
+                                        //  } // TTHH
 this.cfg=cfg_;// plantconfig
 this.client=null;
 this.ws=null;
@@ -262,7 +308,7 @@ this.Actstates=[];//  list of tracked entities in inState ex: ['switch.rssi',,,]
 
 
 
-this.inState=null;// the updated state of Actstates: if null means there is no connection active, 
+this.inState=null;// the updated state of Actstates: if null means there is no connection active, . nb when recennecting inState could not receiving some update from ha !!!!!!!!!!!!!!!!!!!!!!
             // if entity isnot in Actstates is not updated !
             // it will be init with state at connection time , then when we add a dev queue  add Actstate and 
             // add state-change handler that 
@@ -275,9 +321,16 @@ this.ctlcb=ctlcb_; // calls msgList(topic,msg) , the fv3 income process handler 
             //                                      topic ovvero queue per type=3
             //    so x topic and cmdtopic
 this.onReset=function(){console.error('hawsclientFact: onReset, error in haws connection , is resetted')};// the cb to warn haWs that this instance reset the client and ws properties. todo some recovery
+// try to set test on ths plant ha
+this.test=null;
+
 }
 
-Fact.prototype.docmd_=function (topic,reason,...reads){// cmd,...arguments call ex: docmd(topic,reason,'ser','switch','turn_on','switch.rssi') docmd(topic,reason,'ser','python_script','set_state','switch.rssi','on')
+Fact.prototype.docmd_=function (topic,reason,...reads){
+  
+                                                      // alternativa a this.docmd che  alla data 01052024 rimane quella  di rif . qusta alternativa non è aggiornata 
+                                                      // alternative to use the func added without prototype. if use this , portare a livello delle correzioni nell'altra funzione
+                                                      // cmd,...arguments call ex: docmd(topic,reason,'ser','switch','turn_on','switch.rssi') docmd(topic,reason,'ser','python_script','set_state','switch.rssi','on')
   if(PRTLEV>5) console.log('docmd(), preparing ha ws callService: ha ws command called on topic: ',topic,' reason: ',reason,' action: ',reads);
    if (reads[0] == 'exit') console.error('Call a cmd, ends');
    else if (reads[0] == 'ser') {// ha ws api: command call , can be : call_service command or 
@@ -295,10 +348,12 @@ Fact.prototype.docmd_=function (topic,reason,...reads){// cmd,...arguments call 
                                  if(reads[5]){// read[5]={attrib1,attrib2,,,}
                                    for (item in reads[5])data[item]=reads[5][item];
                                  }
-                                                                                 }// service_data={entity_id,state}
-        else target=data;   // if the request reads[2] is turn_on/turn_off
+                               }// service_data={entity_id,state}
+        else {target=data;  // or target=reads[3]; ?  // if the request reads[2] is turn_on/turn_off
+        // data=undefined;
+          }
        // target={entity_id:'light.kitchen'=entity_id=reads[3]}; here or in service_data??? check api: seems in target
-       if(reads[3]=='switch.rssi')service='turn_on';// debug
+       // if(reads[3]=='switch.rssi')service='turn_on';// debug
        if(PRTLEV>7) console.log('docmd(), calling callService, params:  ',reads[1],service,data,target);
      this.client.callService(reads[1], service, data,target)//  question is client still connected ? , data=service_data
       .then((response)=>{
@@ -320,12 +375,13 @@ Fact.prototype.docmd_=function (topic,reason,...reads){// cmd,...arguments call 
  }
 
 
-Fact.prototype.setSwitch=function(ctlpack,topic, topicNodeRed,pubtopic){
+Fact.prototype.setSwitch=function(ctlpack,topic, topicNodeRed,pubtopic){// called in numbsubscr/probsubscr  registerIncomeInfo()
 // if(this.client)this.client.setSwitch(ctlpack,topic, topicNodeRed,pubtopic);// client set with kepAlive()
 
 // setSwitch:function (ctlpack,topic, topicNodeRed,pubtopic){// moved to Fact()
-const client=this.client,
-docmd=this.docmd;// or this.docmd_     see BBHH
+const client=this.client;
+// this.ocmd=this.docmd.bind(this);// so use docmd() , easier then call this.docmd()in all reference below docmd()    see BBHH,    BBHH1
+                                // or docmd=this.docmd_.bind(this);
 
   // *** use fv3 device topics(topic,pubtopic,cmd topic) that interfaces fv3 with real device to interface related ha entity and its triggers,changes
   //      returns the ha topic/pubtopic trigger handler 
@@ -586,8 +642,6 @@ this.inState[ent]=stateChangedEvent.data.new_state.state;// updates value, track
 if(PRTLEV>7)console.log(' hawsclient setswitch .state_changed  (button) reports an entity',entity,' update/pressed, so according to dev haManButton[], fire an cmdtopic event: ',event,' on url: ',url ,
 ',\n new value: ',this.inState[ent]);
 
-
-
 // msgtopics=ctl.cmdtopicMsg(url,event,param=null,1,Actstates,trackEnt,user='extctlId');
 msgtopics=ctl.cmdtopicMsg(url,event,param=null,ent,this.inState,user='extctlId',this.Actstates,plantconfig.Ent_Prefix);// >>>>>> according to url, event 'repeatcheckxSun' is fired by ha entity ('input_button.'+Ent_Prefix+'start_savingservice') 
                               // build the standard msg to send on dev cmdtopic    (>>>>>> see msgFormat.cmdtopicMsg())
@@ -608,7 +662,6 @@ this.ctlcb(topicNodeRed,msgtopics);// press of cmdent button will pub  new val o
 // this.queue.push(stateChangedEvent.data.new_state.state);// A)
 // in mqtt int  we did : ......................
 
-
 } else if(ent && stateChangedEvent.data.entity_id==ent){//ha entity send  dev topic msg: called only x probs (type 3). if ha entity want change a dev (! type 3 ) val will send a cmdtopic !
 if(PRTLEV>7) console.log('hawsclient setswitch . ha entity ',ent,',transmit msg value to topic, only x sensor ....todo)  ',stateChangedEvent,',\n new value: ',stateChangedEvent.data.new_state.state,
 ' so process in fv3 goonP listener');
@@ -624,8 +677,6 @@ this.ctlcb(topic,msgtopics);// // changes of ent will pub new val on dev topic ,
 }
 else  if(PRTLEV>7)console.log('hawsclient setswitch . listener for cmdtopic/topic for entity: ',ent,' found no matches');
 })};
-
-
 
 
 
@@ -645,11 +696,15 @@ else  if(PRTLEV>7)console.log('hawsclient setswitch . listener for cmdtopic/topi
 //   fv3  >>>> ha entities, sending device info to ha entities
 // ** b) ha receiving  topics (topics=topic or pubtopic if type 1) from dev.writeSync(): depending on dev do action ( no : depending on topic or pubtopic ),
 //       usually ha will fire event or switch service to change the entity state
+
+let that=this;// set a ref for the obj's this 
+
 if(type==1){// a relay/pump dev , a topics=pubtopic msg
 
 // todo implement  on dev type or index .....
 
 if(PRTLEV>6)console.log('hawsclient setswitch ,  setting the writeSync pubtopic handler to send  dev portid: ',portid,' msg on pubtopic to ha entity: ',ent,' (type 1) using ws docmd to send a change state service ');
+
 return function myf(val,topic,state) {  // val is 0/1 (on/off) , topics= pubtopic
 //              state is the eM.state just to get full state here
 // this is the handler for coming msg (from fv3) of ha subscribed dev topics ( YYKK ), ( topics is topic if type 2,4 anf pubtopic if type1)
@@ -664,7 +719,7 @@ return function myf(val,topic,state) {  // val is 0/1 (on/off) , topics= pubtopi
 
 let act;
 if (val=='on')act=ON;else act=OFF;
-docmd(myf.topic,'new value on pubtopic','ser','switch',act,ent);// 
+that.docmd(myf.topic,'new value on pubtopic','ser','switch',act,ent);// 
 };// call f('switch','turn_on','switch.rssi'
 
 }else if(type==2||4){/* topics=topic
@@ -691,10 +746,6 @@ when the flag becomes active we know that the service is unavailable so we shoul
 - activate a local temp ctl : in program algo non active interval off all rele, in active interval start a spare termostat
 the spare termostat will check a condition on flag before trigger the action ! 
 */
-
-
-
-
 
 
 /*
@@ -752,12 +803,13 @@ if (el[0] == 'sender.user') {
 let attr=el[0].substring(13) // attr='acs', val.payload.state= : see GGUUNN
 //if(typeof state.relays[el[0]]=='boolean')
 { val.payload.state.relays[attr] ? nval = 'ON' : nval = 'OFF'; }
-docmd(myf.topic,'state.relays. :'+attr,'ser', 'python_script', 'set_state', el[1], nval);// el[1]='input_text.'+Ent_Prefix+'acs'
+that.docmd(myf.topic,'state.relays. :'+attr,'ser', 'python_script', 'set_state', el[1], nval);// el[1]='input_text.'+Ent_Prefix+'acs'
+// or  that.docmd(), above : that=this
 }// entity like input_text !
 else if (el[0].substring(0,6) == 'state.') {
 let attr=el[0].substring(6) // attr='program'/'desTemp' , see GGUUNN
 if (typeof val.payload.state[attr] == 'boolean') { val.payload.state[attr] ? nval = 'ON' : nval = 'OFF'; } else nval = val.payload.state[attr];// true/false > ON/OFF  
-docmd(myf.topic,'state. :'+attr,'ser', 'python_script', 'set_state', el[1], nval);// el[1]='input_text.'+Ent_Prefix+'pgmrun'
+that.docmd(myf.topic,'state. :'+attr,'ser', 'python_script', 'set_state', el[1], nval);// el[1]='input_text.'+Ent_Prefix+'pgmrun'
 }
 
 });
@@ -775,16 +827,14 @@ if(actions)
 if(actions.ent)actions.ent.forEach((entr)=>{// can also se attributes: entity.attribute=entr[2], see python in BBVV
 let newattr=null;
 if(entr[2])newattr=entr[2];// the attributes to set 
-docmd(myf.topic,'set ent :'+entr[0],'ser', 'python_script', 'set_state', entr[0], entr[1],newattr);
+that.docmd(myf.topic,'set ent :'+entr[0],'ser', 'python_script', 'set_state', entr[0], entr[1],newattr);
 });
 else  if(actions.events)actions.events.forEach((entr)=>{
 console.log(pippolo,actions);
-docmd(myf.topic,'fire :'+entr[0],'event', entr[0],entr[1],entr[2]);
+that.docmd(myf.topic,'fire :'+entr[0],'event', entr[0],entr[1],entr[2]);
 });
 
 }
-
-
 
 
 }else{// normal type 2,4  , topics=topic , update ent entity using msg.payload (msg in var dev has  std format )
@@ -793,7 +843,7 @@ let value=val.payload;// 0/1
 let act;
 if (value==1)act='1';else act='0';
 
-docmd(myf.topic,' new value on topic ','ser','python_script','set_state',ent,act) ;// text,set_text
+that.docmd(myf.topic,' new value on topic ','ser','python_script','set_state',ent,act) ;// text,set_text
 }
 }
 }
@@ -808,39 +858,41 @@ if(cmdent[i][0]==entity)return i;
 return -1;
 }return -1;
 }
-
 }
 
-Fact.prototype.kepAlive=async function (reset=false){// if client==null: start tracking a new connecting client, use reset to force. 
-                                                    //  the connection start a heartbeat that will set 
-                                      // returns false if client is not (re)started
-    let connCfg=this.cfg.connCfg;
+Fact.prototype.kepAlive=async function (reset=false){// if client==null: the promise will start a new ws connection client to ha, tracking state in main(), use reset to force. this=mqttInst
+                                                    //  the connection start a heartbeat that will set a restart recalling kepAlive()
+                                                   // resolve in  false if client is not (re)started
+
+                                                   // >> better try restructuring the iteration of kepAlive when restart the connection in a cleaning way ?
+    let connCfg=this.cfg.connCfg;// set in models.js new defFVMng() as localEntity.connCfg during plant registration/definition
+                                  //localEntity: see in haPlants.json , the list of all ha plants configured
     if(reset)this.client=this.ws=null;
     if(this.client!=null)return true;// client is working if its not null !!  sure ? its enougth ?
     this.client=await getNewCon(connCfg,this.PRTLEV);// fills client ctl and its ws api ctl with a new connection . TODO really should just reset the client.ws conn
     this.ws=this.client.rawClient.ws;// raw ws protocol client
     
     if(this.client){
-      let that=this;
-      main(); // ?? restart tracing state, events ,,,,
-
-
+      let that=this;// this=mqttInst
+      main(this.client); //  now trace current ha entities state on inState, events ,,,,
 
       // ws=client.rawClient.ws;
 			this.client.on('ws_error',// in ws we used : client.on('error',
       console.error);
 			//ws.onopen(heartbeat);// 
-      this.ws.on('open',function (x){ heartbeat(that);}// TTGG
+      this.ws.on('open',function (x){ // or ()=>heartbeat(this)
+        heartbeat(that);}// TTGG
       
       );//client.on('open', heartbeat);
-			this.ws.on('ping',function(x){heartbeat(that);}
+			this.ws.on('ping',function(x){
+        heartbeat(that);}// that=Fact()=anewcon
 
       );//client.on('ping', heartbeat);
 			this.client.on('ws-close',// or client.on('close',
                                 //  ws.onclose handler will pass-trought the close event to client.emitter ws-close event.so here add a listener on ws_close. 
                                 // but here this=client , so ws=this.ws ?
 
-      function clear(){ 
+      function clear(){ // never called ?
                                           //   if server asks  to close clear connection obj then exit 
 			  clearTimeout(this.ws.pingTimeout);
         if(PRTLEV>6) console.log('client fired ws-close event on ha connection ');
@@ -881,7 +933,7 @@ Fact.prototype.kepAlive=async function (reset=false){// if client==null: start t
     */
 	//		import WebSocket from 'ws';
 			function heartbeat(inst) {// nb being a handler of ws.on('some',handler). probably as TTGG, this is the (client=ws).on context , 
-                                // so this=ws and inst=Fact instance=anewcon (see   TTHH) 
+                                // so this=global?? and inst=Fact instance=anewcon (see   TTHH) 
         if(PRTLEV>7) console.error('hawsclientFact  client ws received a ping heartbeat, so resetting a timeout to terminate this client ws conn after a not receiving next  ping');
 			  clearTimeout(this.pingTimeout);// set previously in // TTHJ
 
@@ -891,24 +943,67 @@ Fact.prototype.kepAlive=async function (reset=false){// if client==null: start t
 			  // sends out pings plus a conservative assumption of the latency.
 			  this.pingTimeout = setTimeout(() => {// TTHJ
           if(PRTLEV>5) console.error('hawsclientFact  ws didnt received a ping heartbeat, so terminate current ws conn and restart a new ws client conn ');
-			    this.terminate();
+			    inst.ws.terminate();//this.terminate();
               
                 restartWs(inst);
-			  }, 60000 + 1000);
+			  }, 60000 + 3000);
 
-			}
-      function restartWs(inst){// after a while restart the client on anew ws instance
+			
+        /*
+      // debugging : at first heartbeat start a timeout not resetted by oter heartbeat calls, so reset manually after 3 minutes 180000 ms:
+      if(!this.pingTimeoutdeb )// just run once
+      this.pingTimeoutdeb = setTimeout(() => {// TTHJ
+        if(PRTLEV>5) console.error('+++++ debugging  hawsclientFact try to restart ws to ha ');
+        clearTimeout(this.pingTimeout);
+        inst.ws.terminate();//this.terminate();
+            
+              restartWs(inst);
+      }, 120000);
+      */
+
+    }
+  
+
+
+
+      function restartWs(inst){// after a while restart the client on anew ws instance iterating this keepAlive() , inst=mqttInst
         inst.client=null;// todo restart only the ws instance ? seems too difficult
         inst.ws=null;
+        inst.readyProm=// false;  error
+                      null;inst.conReady=false;// so when dev state change we sen a topic msg but as conn is still to be restarted the change wont be sent into corresponding ha entitiy
+                                          // todo : nullify all send to haws (using inst.client) see WWAA
+                                          // todo nb as no data comes to ...  , inState could not receiving some update from ha !!!!!!!!!!!!!!!!!!!!!!
+                                          //              nb inState is only x log of changing values , usually we insert income msg to process from a registered entity change , 
+                                          //                          >> see Fact.prototype.setSwitch=function(ctlpack,topic, topicNodeRed,pubtopic)
+        if(PRTLEV>7) console.error('++++ hawsclientFact try to restart ws to ha by 5 seconds ');
+        
         setTimeout(() => {
-			  inst.kepAlive();// restart connection , and main ??
+          //inst.readyProm=
+          inst.readyProm=// added 
+          inst.kepAlive(true)// will reset the inst.client     BBGG
+                 // inst.readyProm=inst.kepAlive(true);// restart connection , and main ?? 
+                //  todo better wait the return of promise : inst.kepAlive().then((result)=>{if(result)inst.onReset();else console('kepAlive error:  cant get a valid connection to ha')});
+                //    inst.client is != null if the conn to ha is estabilished
+          .then((succ)=>{
+            if(succ){// kepAlive ended ok , so docmd can process new updates to ha entities using  the new connection inst.client !
+                inst.conReady=true;// another connection ws is got , goon with see WWAA , now docmd can update the ha entities (before the canges were lost )  see MMJJ
+
+                if(PRTLEV>7) console.error('++++ hawsclientFact  restarted WS: ',inst.conReady);
+                if(TEST)inst.test();// restart stdin test reads from terminal
+            }
+            // and main ?? 
+           });// .catch()// wait more or restart or exit ...?
+
         if(inst.onReset)inst.onReset();// warn that the client was resetted 
-              
-			  }, 60000 + 1000);}
+			  }, 20000 + 3000);}
 }
 
-function docmd(topic,reason,...reads){// old, before instance. md,...arguments call ex: docmd(topic,reason,'ser','switch','turn_on','switch.rssi') docmd(topic,reason,'ser','python_script','set_state','switch.rssi','on')
- if(PRTLEV>5) console.log('docmd(), preparing ha ws callService: ha ws command called on topic: ',topic,' reason: ',reason,' action: ',reads);
+let docmd;// now used only to test . we test first plant that ask x a haws ctl
+
+/* old 
+function docmd(topic,reason,...reads){// old,now use PPHH . before instance. md,...arguments call ex: docmd(topic,reason,'ser','switch','turn_on','switch.rssi') docmd(topic,reason,'ser','python_script','set_state','switch.rssi','on')
+ if(PRTLEV>5) console.log('docmd(), preparing ha ws callService: ha ws command fired on dev topic: ',topic,' reason: ',reason,
+  '\n .... action[cmdtype=exit/ser/event,entitydomain=switch/python_script,cmdservice=turn_on/turn_off/set_state,entitynewval,entitynweAttrib]: ',reads);
   if (reads[0] == 'exit') console.error('Call a cmd, ends');
   else if (reads[0] == 'ser') {// ha ws api: command call , can be : call_service command or 
     // Call a service, by its domain and name. The third argument is optional.
@@ -916,7 +1011,7 @@ function docmd(topic,reason,...reads){// old, before instance. md,...arguments c
     if(reads[2]=='turn_on'||reads[2]=='turn_off'||reads[2]=='set_state'){//  available service
       let target,data={// data=service_data={entity_id} , check : hs developers websocket API, calling a service
         // domain,name data={ entity_id: reads[3]
-        //  ,state:'the new value'}// if domain=
+        //  ,state:'the new value'}// if domain='python_script'
         entity_id: reads[3]
         },service=reads[2];
       if(reads[2]=='set_state'){if(reads.length>4)data.state=reads[4];else return;// reads[1] must be 'python_script'. 
@@ -926,12 +1021,14 @@ function docmd(topic,reason,...reads){// old, before instance. md,...arguments c
                                   for (item in reads[5])data[item]=reads[5][item];
                                 }
 
-                                                                                }// service_data={entity_id,state}
-       else target=data;   // if the request reads[2] is turn_on/turn_off
+                                }// service_data={entity_id,state}
+       else {target=data;  // or target=reads[3]; ?  // if the request reads[2] is turn_on/turn_off
+              // data=undefined;
+                }
       // target={entity_id:'light.kitchen'=entity_id=reads[3]}; here or in service_data??? check api: seems in target
-      if(reads[3]=='switch.rssi')service='turn_on';// debug
-      if(PRTLEV>7) console.log('docmd(), calling callService, params:  ',reads[1],service,data,target);
-    client.callService(reads[1], service, data,target)//  question is client still connected ? , data=service_data
+      //if(reads[3]=='switch.rssi')service='turn_on';// debug
+      if(PRTLEV>7) console.log('docmd(), calling callService, domain:  ',reads[1],' service: ',service,' data: ',data,' target: ',target);
+    client.callService(reads[1], service, data,target)//  callService(domain, service, additionalArgs = {},target) {// ex1: client.callService('switch','turn_on','switch.rssi' or {entity_id:'switch.rssi' ?}). question is client still connected ? , data=service_data
      .then((response)=>{
       if(PRTLEV>7)console.log('ha ws callService succeeded on action: ',reads);}
       ,(err) => { 
@@ -946,10 +1043,8 @@ function docmd(topic,reason,...reads){// old, before instance. md,...arguments c
           .then((response)=>{if(PRTLEV>8)console.log('ha ws fireEvent succeeded on action: ',reads);}) // dont need the async cb 
           ;
   }
-
-
 }
-
+*/
 
 const controller={ /*
                       initx:// no|, arrow function take this from outer object , the obj n which you call the function !!
@@ -957,8 +1052,79 @@ const controller={ /*
                           this.setSwitch(swname);
                           return true;
                         },*/
-              
-                    init://
+
+  /* mngment summary :
+
+                        an action fired to ha via ws with mqtt protocol is managed by ws ctl in haWs  , 
+	set in mqttInst = new mqttClass(plantconfig) ,  set and returned in haWs init() , :
+	
+		   -if(plantconfig.isHaWebSoc) {// some dev have a corresponding ha entities ....  !!!
+			    - connector=init_hawsclient(plantconfig);				<<<   returns  hawsclient.init(cb,PRTLEV,plantconfig),  an instance of wsclientFact() 
+			    												it returns anewcon , a connector instance to ha ws library index....js:
+			    													anewcon=new Fact(ctlcb_,plantconfig,PRTLEV_)			a obj
+			    														then inject to anewcon the func to do a ws cmd :
+			    															anewcon.docmd=function(topic,reason,...reads) : send data to ha using anewcon.client TTFF
+			    														
+			    														then running anewcon.readyProm=kepAlive(true):  a promise 
+			    															resolving it, we set in anewcon.client  the ctl to connect to ha ws library :
+			    																this.client=await getNewCon(connCfg,this.PRTLEV);	// TTFF (this=anewcon).client
+			    																	nb: getNewCon resolves into clientInst= hass_(connCfg, PRTLEV);// a promise
+			    																		hass_=createClientresolving=connectAndAuthorize(client,clientObject(client));
+			    																			>>  resolves with clientObject(client) when the handler is called:
+			    																				client.emitter.on('auth_ok',handler)
+			    																				(event fired returning from a async ws call to ha)
+			    															
+			    															and also a ref to ws basic obj in client :
+			    																this.ws=this.client.rawClient.ws;
+			    																on which ws, we register a open and ping event  heartbeat handler  :
+			    																	ws.on(open,function (x){ heartbeat(that);});	event from ws
+			    																	this.ws.on('ping',function(x){heartbeat(that);} , event from this=anewcon (passed by ws)
+			    																	
+			    																	in heartbeat we start a timer that, if not reseted, :
+			    																		terminate the current this=ws instance
+			    																			this.terminate();
+	    																				restart the connection on current inst=anewcon
+                																				restartWs(inst), where :
+                																				
+                																				       reset current client and ws  inst.client=inst.ws=null;
+                																				       and after a timeout :
+        
+																							  inst.kepAlive();// restart connection , and main ??
+        																						  inst.onReset();// warn that the client was resetted 
+                																				
+                																			
+			    - this.ws=new wsClass(connector);	// this=mqttInst  , mqttInst.ws is the client to use, instead of client, to connnect the dev connected to ha via ws with mqtt ptotocol
+				nb ws.hawsclient=connector   nb hawsclient=connector=init_hawsclient(plantconfig)	<<<   hawsclient.init(cb,PRTLEV,plantconfig)  << anewcon=new Fact(ctlcb_,plantconfig,PRTLEV_), instance of wsclientFact() LOPPO 
+				
+															(ws.hawsclient=anewcon).client=await getNewCon(connCfg,this.PRTLEV);	// TTFF (this=anewcon).client
+			    																	getNewCon resolves into clientInst= hass_(connCfg, PRTLEV);// a promise
+			    																	so the    
+			    
+when in async function getio  we want to get ctlpack we call :
+	mqttClass.prototype.fact = function(gp,ind,inorout='out',injCustDev)
+		 return promise resolving in  ctlpack={ctl:new fc(gp,ind,inorout,cfg)={gpio=portid/devid,devNumb=index,type=inout,cfg,cl=1(clas='out')/2(a var)/3(clas='in'OR'prob'),ison,readsync,writesync},
+		                                //                                               ex: ctl={cfg=	{portid,clas protocol,subtopic},cl:1,devNumb:0,gpio:11,isOn:true,readsync,writesync}
+		                                //                                       				devNumb:ind,
+		                                //                                          			type:'mqtt'}  
+		                                
+		in fact() :
+		- we got the dev ctl with :
+		 	fc= function (gp,ind,inorout,cfg,mqttInst)
+		 
+		 		where we set as wsclient  ws ,the ws connection ctl :
+		 	
+		 	   if(cfg.client=='haWebSoc') 		//  KKUU choose the client between mqtt and haws client( will use state in writeSync(val,state)) ...... !!!
+  				  this.wsclient=mqttInst.ws;	// LOPPO recover the ws client , is connected ?
+
+
+		- before resolving fact() into the ctlpack it is checked (hawsclient case only ) that the first connection is esthabilished : ctlpack.ctl.wsclient.hawsclient.client  HHOOII
+			testing the promise   ctlpack.ctl.wsclient.hawsclient.readyProm so setting ctlpack.ctl.wsclient.hawsclient.conReady=true
+				we are sure that is set :
+					ctlpack.ctl.wsclient.hawsclient.client , filled with the resolved of getNewCon(connCfg,this.PRTLEV); // resolves imply conReady=true ,  AAIIUU    ??????
+
+
+*/             
+                    init:// returns newcon=new Fact().kepAlive() , a promise ?
                       function (ctlcb_, PRTLEV_=2, plantconfig//,ctlComTopic_
                       ) {
                         let anewcon;
@@ -970,63 +1136,229 @@ const controller={ /*
                         // ctlComTopic=ctlComTopic_;// >>>>>>>>>>>>>>  can be avoid using LLCC, so got the name of topic and cmdtopic from ....  and put the topic on ctlcb(topic/cmdtopic,val)
                         //if(ctlpack);// ?? this.transYalm();
                         if(plantconfig.connCfg){
-                          anewcon=new Fact(ctlcb_,plantconfig,PRTLEV_).kepAlive(true); //:: must instantiate  and return it!!!!!!!!!!!!!
+                          anewcon=new Fact(ctlcb_,plantconfig,PRTLEV_);// wil be  .mqttInst
+                          anewcon.conReady=false;// see MMJJ
+                          anewcon.readyProm=anewcon.kepAlive(true); //set this promise to check after   (when? in fact()? see MMJJ)   if the connection is ready , so set conReady=true ! see  HHOOII
+                                                                    // problem how can conReady become true ?  AAIIUU  say yes ,is true ?
                           anewcon.docmd=(function(client_){// a func with a closure local var not available from outside (different from obj var !)   , see BBHH
-                                                          // anyway tis is a func added to obj, better use a prototipe func .docmd_ also if with var available as obj property
-                                                          // todo : do theh same in .setSwitch
-                            let client=client_;
-                            return function (topic,reason,...reads){// cmd,...arguments call ex: docmd(topic,reason,'ser','switch','turn_on','switch.rssi') docmd(topic,reason,'ser','python_script','set_state','switch.rssi','on')
-                              if(PRTLEV>5) console.log('docmd(), preparing ha ws callService: ha ws command called on topic: ',topic,' reason: ',reason,' action: ',reads);
-                               if (reads[0] == 'exit') console.error('Call a cmd, ends');
-                               else if (reads[0] == 'ser') {// ha ws api: command call , can be : call_service command or 
+                                                          // anyway this is a func added to obj, better use its alternative .docmd_ : a Fact prototipe func .docmd_ also if with var available as obj property
+                                                          // todo : do the same in .setSwitch
+                                                          // used in BBHH1
+                                                          // need anewcon.client : yes to call callService or fireEvent !
+                            // let client=client_;
+                            return function (topic,reason,...reads){// PPHH cmd,spread syntax, ...arguments call ex: docmd(topic,reason,'ser','switch','turn_on','switch.rssi') docmd(topic,reason,'ser','python_script','set_state','switch.rssi','on')
+                                                                    // surely bound to hawsclient anewcon=ws.hawsclient inst, so  this.client is a the library instance to connect to ha (): = await getNewCon(connCfg,this.PRTLEV);
+
+                                                                    // this is the anewcon
+
+                                if(!this.client||!this.conReady)return;// do nothing we dont have the connection this.client (by this.) and not ready , MMJJ
+                                                                    // wait next data to send and recheck if client is reset by .kepAlive(true).then(..) in BBGG
+                                                                    // accepted cmd :
+                                                                    // reads= [ 'ser', 'switch'       , 'turn_onoff', 'entityname' ]   
+                                                                    //        [ 'ser', 'python_script', 'set_state' , 'entityname','newvalue' ,'a attributename of entity','its text? value' ]
+                                                                    // or
+                                                                    // reads=[ 'event', 'mydomain_event', 'device_id', 'y-device-id' ,'type',"motion_detected"]  max 2 attributs
+
+                              if(PRTLEV>5) console.log('docmd(), preparing ha ws callService: ha ws command called on topic: ',topic,' reason: ',reason,
+                                '\n .... action[cmdtype=exit/ser/event,entitydomain=switch/python_script,cmdservice=turn_on/turn_off/set_state,entitynewval,entitynweAttrib]: ',reads);
+                               if (reads[0] == 'exit') {console.error('Call a cmd, ends');
+                               if(cb)cb();
+                                }else if (reads[0] == 'ser') {// ha ws api: command call , can be : call_service command or 
                                  // Call a service, by its domain and name. The third argument is optional.
                                  // console.log('docmd(), Call a service, by its domain and name. The third argument is optional:', reads);
-                                 if(reads[2]=='turn_on'||reads[2]=='turn_off'||reads[2]=='set_state'){//  available service
-                                   let target,data={// data=service_data={entity_id} , check : hs developers websocket API, calling a service
-                                     // domain,name data={ entity_id: reads[3]
-                                     //  ,state:'the new value'}// if domain=
+                                 if(reads[2]=='turn_on'||reads[2]=='turn_off'||reads[2]=='set_state'){//  available service , domain must be switch/.. or python_script, if set_state 
+                                   let target,
+                                   data={// data=service_data={entity_id} , check : hs developers websocket API, calling a service
+                                     // domain,name data={ 
+                                     //  ,state:'the new value'}// if service is set_state add state as newvalue
+
+                                     //  ,an_entity_attribute to merge with entity attribute example data.weather='piovoso'  , we set entity attribute .weather=data.wheather
+                                     //           >> so data properties different from state and entity_id will become properties of the entity 
                                      entity_id: reads[3]
                                      },service=reads[2];
-                                   if(reads[2]=='set_state'){if(reads.length>4)data.state=reads[4];else return;// reads[1] must be 'python_script'. 
+                                   if(reads[2]=='set_state'){if(reads.length>4)data.state=reads[4];else return;// service is set_state, domain/reads[1] must be 'python_script'. 
                                                                                                                // can also set attributes , see https://community.home-assistant.io/t/how-to-manually-set-state-value-of-sensor/43975/3?page=6
-                                                             // data={entity_id,state,attrib1,attrib2,,,}, so extract attrx from reads[5]
-                                                             if(reads[5]){// read[5]={attrib1,attrib2,,,}
-                                                               for (item in reads[5])data[item]=reads[5][item];
+                                                             // data={entity_id,state,attrib1,attrib2,,,}, so extract attrx from reads
+
+
+                                                             
+                                                             // if(reads.lenght>5){// read[5]={attrib1:val,attrib2:val,,,}// must be a map write entity attribute 
+                                                             //  for (item in reads[5])data[item]=reads[5][item];// merge map into data 
+                                                             // }
+
+                                                            
+                                                             if(reads.lengh>6){data[reads[5]] = reads[6];// a map with only one property with its value
+                                                             if(reads.lengh>8)data[reads[7]] = reads[8];// a map with only one property with its value
                                                              }
-                                                                                                             }// service_data={entity_id,state}
-                                    else target=data;   // if the request reads[2] is turn_on/turn_off
+
+
+
+
+
+
+
+
+                                                          }// service_data={entity_id,state}
+                                      else { // target=data; // optional
+                                        
+                                        // target=data; or target=reads[3]; ?  // if the request reads[2] is turn_on/turn_off
+                                              // data=undefined
+                                            const notuseswitch=true;//: use set_state instead of turn_on turn_off
+                                            if(notuseswitch){
+                                              reads[1]='python_script';// force service 
+                                              if(reads[2]=='turn_on')
+                                                data.state='on';
+                                                else  data.state='off';
+                                              service='set_state';
+                                            }
+                                                }
                                    // target={entity_id:'light.kitchen'=entity_id=reads[3]}; here or in service_data??? check api: seems in target
-                                   if(reads[3]=='switch.rssi')service='turn_on';// debug
-                                   if(PRTLEV>7) console.log('docmd(), calling callService, params:  ',reads[1],service,data,target);
-                                 client.callService(reads[1], service, data,target)//  question is client still connected ? , data=service_data
+                                  // if(reads[3]=='switch.rssi')service='turn_on';// debug
+                                                let rand=0;
+                                   if(PRTLEV>7) 
+                                   rand=Math.floor((Math.random()*1000000)+1);
+                                   //console.error('pippo');
+                                   {let outs='docmd(), calling callService, id: '+rand+', actions: '+reads+'\n domain(switch/python_script):  '+reads[1]+' service(turn_onoff/set_state): '+service+' dataobj: '+JSON.stringify(data)+' targetentity: '+target;
+                                   console.log(outs);
+                                   console.error(outs);}
+
+                                                                /* to send :
+                                                                       {
+                                                                        "id": 24,
+                                                                        "type": "call_service",
+                                                                        "domain": "light",
+                                                                        "service": "turn_on",
+                                                                        // Optional
+                                                                        "service_data": {
+                                                                            "color_name": "beige",
+                                                                            "brightness": "101"
+                                                                                                    >> some says i can set here the entity_id prop !!!!
+                                                                        }
+                                                                        // Optional
+                                                                        "target": {
+                                                                            "entity_id": "light.kitchen"
+                                                                        }
+                                                                        // Must be included for services that return response data
+                                                                        "return_response": true
+                                                                        }
+
+                                                                         client.callService('light','turn_on',{entity_id: 'light.kitchen'
+                                                                                                                // optional 
+                                                                                                                    ,"color_name": "beige"
+                                                                                                                    ,"brightness": "101"
+                                                                        
+                                                                                                            }
+                                                                                                            ,{entity_id: 'light.kitchen'}   // seems duplicate !
+                                                                                                                 
+                                                                                                                 )
+
+                                                                          so  reads= [ 'ser', 'light'       , 'turn_on', 'light.kitchen' ]  
+
+
+                                                                      to send 
+                                                                       {
+                                                                        "id": 24,
+                                                                        "type": "call_service",
+                                                                        "domain": "python_script",
+                                                                        "service": "set_state",
+                                                                        // Optional
+                                                                        "service_data": {
+                                                                          "entity_id": "entityname ex switch.rssi"
+                                                                            "color_name": "beige", // optional
+                                                                              "state":'newvalue'
+                                                                        }
+
+
+                                                                        // Must be included for services that return response data
+                                                                        "return_response": true
+                                                                        }
+
+
+
+                                                                         client.callService('python_script','set_state',{entity_id: 'entityname'
+                                                                                                                state:'newvalue'
+                                                                                                                // optional attribute
+                                                                                                                    ,"color_name": "beige"
+                                                                                                                    
+                                                                        
+                                                                                                            }
+                                                                                                            
+                                                                                                                 
+                                                                                                                 )
+
+
+
+                                                                          so  [ 'ser', 'python_script', 'set_state' , 'entityname','newvalue' ,'color_name','beige' ]
+
+
+                                                                        */
+
+
+
+
+
+
+
+                                 this.client.callService(reads[1], service, data,target)//  question is client still connected ? , data=service_data
                                   .then((response)=>{
-                                   if(PRTLEV>7)console.log('ha ws callService succeeded on action: ',reads);}
+                                   if(PRTLEV>7)console.log(' docmd(): dev topic: ',topic,' emission caused ha ws callService succeeded on execution of action: ',reads);
+                                   if(this.test&&reason=='testing')
+                                   this.test();// restart input x new test  GGQQ  ,  JJHHNN
+                                  }
                                    ,(err) => { 
-                                     console.error('ha ws callService not succeeded on action: ',reads,' with error: ',err); 
-                                     console.log('ha ws callService not succeeded on action: ',reads,' with error: ',err); }
+                                     console.error('ha ws callService not succeeded on id: '+rand+', action: ',reads,' with error: ',err); 
+                                     console.log('ha ws callService not succeeded on id: '+rand+', action: ',reads,' with error: ',err); }
                                    ) // dont need the async cb 
                                    ;}
-                               } else if (reads[0] == 'event') {
+                               } else if (reads[0] == 'event') {// reads=['event','eventname','firstpropertyname','first property val']
                                  console.error('fire event, by type, data :', reads);
-                                 let data = {}; data[reads[2]] = reads[3];
-                                 client.fireEvent(reads[1], data)
-                                       .then((response)=>{if(PRTLEV>8)console.log('ha ws fireEvent succeeded on action: ',reads);}) // dont need the async cb 
+                                 let data = {}; 
+                                 if(reads.lengh>3){data[reads[2]] = reads[3];// a map with only one property with its value
+                                 if(reads.lengh>5){data[reads[4]] = reads[5];// a map with only one property with its value
+                                 if(reads.lengh>7)data[reads[6]] = reads[7];// a map with only one property with its value
+                                 }}
+                                 this.client.fireEvent(reads[1], data)
+                                       .then((response)=>{if(PRTLEV>8)console.log('docmd(): dev topic: ',topic,' emission caused ha ws fireEvent succeeded on execution of action: ',reads);
+
+                                                        /* see https://developers.home-assistant.io/docs/api/websocket#fire-an-event
+                                                            to send :
+                                                            {
+                                                                "id": 24,
+                                                                "type": "fire_event",
+                                                                "event_type": "mydomain_event",
+                                                                // Optional
+                                                                "event_data": {
+                                                                    "device_id": "my-device-id",
+                                                                    "type": "motion_detected"
+                                                                }
+                                                                }
+
+                                                            : client.fireEvent('mydomain_event',{"device_id": "my-device-id",
+                                                                                                "type": "motion_detected"
+                                                                                                })
+                                                            so reads=[ 'event', 'mydomain_event', 'device_id', 'y-device-id' ,'type',"motion_detected"]  
+
+                                                            */
+
+
+
+
+                                       if(this.test&&reason=='testing')this.test();// restart input x new test,   JJHHNN
+                                    }) // dont need the async cb 
                                        ;
-                               }
-                             
-                             
+                               }   
+                               console.error('poppo:');
                              }
-
-                          })(anewcon.client);
-
-
+                          })();
+                          if(TEST)(anewcon.test=TEST(anewcon,plantconfig.plantName)) // try register testing on anewcon.docmd definition. 
+                                                                                  (); //so now we are waiting for user testing input
+                                                                                      // after send a user testing docmd , at successful feedback we restart a new read x testing, see JJHHNN
                         }else return false;
                         // check ...
                         return anewcon;
                       }
                     ,
                     transYalm:()=>{// transer or check config addend
-
                     },
                     addDev:// useful ?
                         (swname)=>{
@@ -1034,7 +1366,6 @@ const controller={ /*
                           return true;
                         }
                     ,
-                   
                     //queues,
                     /*
                     setProbe:(name,ent)=>{//add a listener for the state changed event to fill the switch queue , dev type=3 of name name
@@ -1063,13 +1394,8 @@ const controller={ /*
                       },
 
 
-
-
-
-
-
                       //setSwitch:function (name,cmdent,ent,ctlpack){// see  WSTMS 
-                        setSwitch:function (ctlpack,topic, topicNodeRed,pubtopic){// moved to Fact()
+                        setSwitch:function (ctlpack,topic, topicNodeRed,pubtopic){// old not used anymore : moved to Fact()
                                                                                   // *** use fv3 device topics(topic,pubtopic,cmd topic) that interfaces fv3 with real device to interface related ha entity and its triggers,changes
                                                                                   //      returns the ha topic/pubtopic trigger handler 
                                                           //                         type 1 :the ha entity control the real devices usually with same topics . 
@@ -1117,8 +1443,6 @@ const controller={ /*
                         type = ctl.cl;// 0,1,2,3,4 , used to .....
                           portid==0?url='':url='setMan';// cmdtopic url setMan excluding portid 0 
                         
-
-
                         // let {eventMng='mqtt',haEntity,haManButton,package,dashboard}=cfg;// cfg =plant.mqttnumb/mqttprob[dev], the dev cfg
 
                         // ??
@@ -1150,8 +1474,6 @@ const controller={ /*
                           */
 
                           // 
-
-
 
                           let cmdent=haManButton,// >> the buttons entities to send the device a std format cmd topic  (not type 3) with a url (to address a handler specific entry points) :    PPLL
                                                           //  - if type=1,2,4  entity that fire cmdtopic in a msg with url  'setMan' : haManButton=[[entity,on/off]
@@ -1372,7 +1694,7 @@ const controller={ /*
 
 
 
-                            //   NOW :            fv3  >>>>>>>>>>>>>>>    sending device info to ha entities
+                            //   NOW :            fv3  >>>>>>>>>>>>>>>    sending device info to ha entities SSDDCB
 
                             // >>>>  ** now RETURN a function that will be used to update the ha entity related with the dev indipendentemente  of the topic/pubtopic but depending from dev type (not type 3)
       
@@ -1407,7 +1729,7 @@ const controller={ /*
                          
                             let act;
                             if (val=='on')act=ON;else act=OFF;
-                            docmd(myf.topic,'new value on pubtopic','ser','switch',act,ent);// 
+                            docmd(myf.topic,'new value on pubtopic','ser','switch',act,ent);// can be defaulted to call setstate python
                           };// call f('switch','turn_on','switch.rssi'
 
                         }else if(type==2||4){/* topics=topic
@@ -1418,7 +1740,8 @@ const controller={ /*
                         if(type==4&&portid==777)  det='for state entities: '+state_;else det='for ha entity: '+ent;
                           if(PRTLEV>6)console.log('hawsclient setswitch ,  setting the pubtopic handler to send  dev portit: ',portid,'writeSync msg (type 2/4) using ws docmd to send a change entity state service ',det);
                           
-                          return function myf (val_,topic,state) {  // x dev 777 , val is set in ioreadwritestatus:
+                          return function myf (val_,topic,state) {  // x dev 777 , val is set in ioreadwritestatus: 
+                                                                    // myf.topic is set on .........   , unusual set a property in a func obj !
                               const val=JSON.parse(val_);
                             
                             if(type==4&&portid==777){// QQIIJK  portid=777  state dev: fill all std entity that depend on state var found on dev topic msg

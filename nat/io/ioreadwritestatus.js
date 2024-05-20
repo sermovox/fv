@@ -55,7 +55,7 @@ const api={// see https://javascript.info/promise-chaining
           process.env.PersFold+// location of states/scripts
           plantcfg.name+// // should be = LLII  ='MarsonLuigi_API'
           '.json';
-          if (!resetstate&&file&&fs.existsSync(file)) {
+          if (!resetstate&&file&&fs.existsSync(file)) {// dont reset , take the state in stored persistance
               try {
                   scripts = require(file);
               } catch(err) {
@@ -190,8 +190,9 @@ const api={// see https://javascript.info/promise-chaining
             relays:new_scripts.relays// the pump browser state 
         }},new_scripts);
     }}
-
+    loopExecute=2;
     return new Promise(function(resolve, reject) {
+        loopExecute=3;
           let bank,file;
           //console.log('writescript: file ',file,' starting .... ',new_scripts);
           if(file_){

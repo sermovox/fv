@@ -113,17 +113,17 @@ let fff={66:async function(set_=0)// custom dev interface to add action on cust 
 
 };*/
 
-async function getio(num, iotype, ind, ismqtt = false,mqttInst) {// returns promise , resolving into   {ctl,devNumb:ind,type:'gpio'}
+async function getio(num, iotype, ind, ismqtt = false,mqttInst) {// returns promise , resolving into   ctlpack={ctl,devNumb:ind,type:'gpio'}
                                                                 //   .ctl=, gives:{readSync,writeSync} working on io in  closure clos 
                                                         // iotype = 'out'   'in-var' dice dove trovare la cfg di model (mqttnumb o mqttprob)e come costruire il ctl 
                                                         // num is the portid, can be null usually if ismqtt false
     let ctl
     // ,custF=custDev[num]
     ;
-  if (ismqtt) {
+  if (ismqtt) {// a haws or mqtt dev
 
     let retu, injCustDev = null;
-    if (mqttInst.avail) {
+    if (mqttInst.avail||mqttInst.ws) {
       // antipattern: retu=await mqtt.fact(num);//
       //if (num == 66)  console.log('lopo');
       // console.log('lopo is ', num, ' ', ind);
@@ -138,7 +138,7 @@ async function getio(num, iotype, ind, ismqtt = false,mqttInst) {// returns prom
       //    or if (iotype='int' , num=0   : a ctl interface using a dummy var
       // iotype: is the capability requested and must match the dev registration data done in init()
 
-      if (num == 66) console.log('lopo');
+      if (num == 66) console.log('getio found a dev with portid=66');
     } else retu = null;
     return retu;//
   } else {// embed raspberry gpio, presently only 'out' iotype, type 1
@@ -157,13 +157,13 @@ async function getio(num, iotype, ind, ismqtt = false,mqttInst) {// returns prom
     */
 
     // bb
-    console.log(' creating gpio parm: ', num, iotype);
+    if(PRTLEV>5)console.log(' getio(): try creating gpio portid: ', num, 'type ',iotype);
     if (Gpio && num != null && num > 0 && num < 28) {
       ctl = new Gpio(num, iotype); 
       injCustDev_(ctl,num);// add in writesync custF x this num gpio dev available to this plant, portid=name=num in gpio
       return { ctl, devNumb: ind, type: 'gpio' }; // as async will return a Promise.resolve(aval)
     } else {
-      console.log(' getio, dev number ', ind, ', creating null ctl , type: ', iotype, ' but  forcing to gpio');
+      console.log(' getio(), dev index ', ind, ', creating null ctl , type: ', iotype, ' null ctl is forced to gpio type');
       return { ctl: null, devNumb: ind, type: 'gpio' };// in no raspberry return a dummy obj with .ctl=null
     }
 
@@ -318,7 +318,7 @@ module.exports =  {init:// no|, arrow function take this from outer object , the
    let numOfDev;// number of dev excluding portid=0
         if(gpionumb)numOfDev=gpionumb.length;else if(mqttnumb) numOfDev=mqttnumb.length; else numOfDev=0;
         //if(numOfDev>0&&mqttWebSock)numOfDev++;
-return new Promise((resolve) => {// the getctls() returning promise SSSDD==(GGDDSS)
+return new Promise((resolve,reject) => {// the getctls() returning promise SSSDD==(GGDDSS)
 
   const promises = [];
 let resu=Array(numOfDev).fill(null);// the returning dev ctl array, null means there is no dev , the sw will not do any write and anyway read a 0 state 
@@ -342,14 +342,14 @@ return getio(gpio,clas,ind,ismqtt,mqttInst);// return a promise pr
 
 
 
-function setMqttXWebsock(){
+function setMqttXWebsock(){// create portit=0 dev 
 
   //let pr;
 
-  if(mqttInst&&mqttInst.avail&&mqttWebSock){// 
+  if(mqttInst&&mqttWebSock){ // 
     if(mqttWebSock.portid!=0)console.error(' setMqttXWebsock(): portid must be 0 ');
     else {
-      resu.push(null);// increment for the portid=0 dummy dev
+      resu.push(null);// increment INDEX numOfDev for the portid=0 dummy dev
       pr=doSomethingAsync(0,numOfDev,true);//probj={ind:i,prom:pr};//mqttWebSock is     {portid:0,subtopic:'mqtt_websock_',varx:0,isprobe:false,clas:'int',protocol:'mqttxwebsock'},// a dummy var that creates ctl websocket topic
     fillProm(pr);  
   }}
@@ -359,52 +359,70 @@ function setMqttXWebsock(){
 function fillctls() {// main run : create  device i-esimo from dev description mqttnumb/gpionumb
 
 for(i=0;i<numOfDev;i++){
-// first ctl :
-if(mqttInst&&mqttInst.avail&&mqttnumb[i]){// try first to get the mqtt device if mqttnumb[i]!=null only if the mqttInst is available
+let ishaws=false;
+if(mqttnumb[i]){// try first to get the mqtt device if mqttnumb[i]!=null (only if the mqttInst is available)
+    // needmqtt= (mqttnumb[i].client!=null&&(ishaws=mqttnumb[i].client=="haWebSoc")) : true if we require haws otherwise mqtt client is necessary  so mqttInst.avail must be true
+    // needhaws= mqttInst.ws  todo :::
+
+  if(mqttInst&&((mqttnumb[i].client!=null&&(ishaws=mqttnumb[i].client=="haWebSoc"))||mqttInst.avail)){// if mqtt client is necessary () check it is available
 // use a mqtt device topic as gpio as registered in BBVV
 // attach the mqtt io ctl in some relais index, here 0
 
 // if(mqttnumb[i].portid==66) console.log('lopo');
-          console.log('fillctls(): create a dev ctl x mqtt/wsha device, portid= ',mqttnumb[i].portid,' ',i);
+          console.log('fillctls(): create a dev ctl , is a connected  mqtt/haws device: ',mqttnumb[i].client,', portid= ',mqttnumb[i].portid,' ',i);
 // mqtt ctl registered at key/index 11 in AAFF
 pr=doSomethingAsync(mqttnumb[i].portid,i,true);//probj={ind:i,prom:pr};// mqttnumb[i] is {portid:110,topic:'gas-pdc',varx:3,isprobe:false,clas:'var'/'out'}
-}else{// if there is a spare in local raspberry gpio 12
-pr=doSomethingAsync(gpionumb[i],i);// gpionumb[i] is an integer: the raspberry device port/id 
+if(ishaws)mqttInst.ws.register(mqttnumb[i].portid);// register the haws dev
+}else {
+  console.log('fillctls error : cant build dev index ',i,' because mqtt/ws mqttInst is not available, so abort ctl builing');
+  console.error('fillctls cant build dev index ',i,' because mqtt/ws mqttInst is not available, so abort ctl builing');
+  return -1;
+}
+}else{// no dev configured in mqttnumb, so try if there is a spare in local raspberry gpio 
+  let gpio=null;
+  if(gpionumb)gpio=gpionumb[i];
+pr=doSomethingAsync(gpio,i);// gpionumb[i] is an integer: the raspberry device port/id 
 }
 fillProm(pr);
 }
+return 0;
 }
+
+
 
 // main start here : 
 
-fillctls();// fill array of resolving device (portid!=0) that when resolved ( all or after a max time) resolve the  SSSDD promise with the array of available devices ctl: resu[dev1ctl,,,]
+if(fillctls()<0)reject('cant build all dev because cant build mqttInst');// fill array of resolving device (portid!=0) that when resolved ( all or after a max time) resolve the  SSSDD promise with the array of available devices ctl: resu[dev1ctl,,,]
 
 // add also a dev to manage websocket interface (commands similar to browser plant requests)
 if(mqttWebSock&&isProbe==false)setMqttXWebsock(); // set mqtt relay to websocket interface  (dev with portid=0)
 
 
 // FINALLY RESOLVE (GGDDSS)
-const to=1500, myto=setTimeout(() => {
-//resolved.forEach((val)=>{if(val)push(resu)})
+const to=1500,
 
+myto=setTimeout(() => {
+//resolved.forEach((val)=>{if(val)push(resu)})
 console.error("Resolving max time , the active ctl are only: ",resolved,',in ',to,'ms,  plant with null ctl cant work, should rebuilt !');
 console.timeEnd('mqtt connection');
-
+ console.log("**** error  getctls(): Resolving max time, cant build all ctls in time, so some ctl is forced null, the array of resolved ctl is",resu);// JSON.stringify(resu, null, 2));
 resolve(//(GGDDSS)  BGT returns the devices subscribed in untill to. some dev can still subscribing later ?or we have to stop subscription waiting
   {ctls:resu,// ctls=[ctl1,,,,,] ctlx: see PIRLA in mqtt
   devmap:resolved});// devmap=[{devNumb,devType,portnumb},,,,],release the ctl array , max time to resolve the ctl has got, some item can be null
 }, to);
+
 // >>>  or wait x all before max time to resolve the SSSDD promise 
   Promise.all(promises)// send all resolved promise resu and its descriptors resolved
     .then((results) => {
       clearTimeout(myto);
       console.timeEnd('mqtt connection');
-      if (PRTLEV > 5) { 
+      if (PRTLEV > 5) {  console.log("**** getctls(): All ctls done, the array of resolved ctl is: \n",resu);//, JSON.stringify(results, null, 2));
+              if(mqttInst&&mqttInst.ws){
                         console.log("     ... mqttInst used ws client for  ",mqttInst.ws.haDevList.length,`  devices portid: ${mqttInst.ws.haDevList} ` );
                         console.log(`     ... mqttInst used ws client with fv3 registered topic : ${mqttInst.ws.subTop}` );
-                        console.log(`     ... mqttInst used ws client handler for following topic : ${ Object.keys(mqttInst.ws.ha_stdTop)}` );
+                        console.log(`     ... mqttInst used ws client handler for following std topic : ${ Object.keys(mqttInst.ws.ha_stdTop)}` );
                         console.log(`     ... mqttInst used ws client handler for following pubtopic : ${ Object.keys(mqttInst.ws.ha_pubsTop)}` );
-      if (PRTLEV > 8) console.log("**** getctls(): All ctls done, the array of resolved ctl is", JSON.stringify(results, null, 2));
+              }
                         
       }
       // resolve(resultsCtl);only the results[i].ctl
@@ -413,7 +431,7 @@ resolve(//(GGDDSS)  BGT returns the devices subscribed in untill to. some dev ca
     })
     .catch((e) => {
       // Handle errors here
-      console.error("All ctls done error: ", e);
+      console.error("getcts(): catched a uncatched exception or a rejection on some promise in upwarding promise chain : All ctls done error: ", e);
     });
 
 function fillProm(pr){// buiding dev i-esimo. called for increasing index 0,1,2,,,,numOfDev by fillctls() and if(mqttWebSock&&isProbe==false) by setMqttXWebsock() .       . nb index=it.devNumb
