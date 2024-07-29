@@ -158,7 +158,11 @@ const api={// see https://javascript.info/promise-chaining
     const new_scripts=fn.state,
     file_=fn.state.app.plantname;// should be = LLII
     //fn.socket.emit('status',JSON.stringify(fn.state,null,2));// send the status to the browser too, also if the related section is not jet visible !
-    let prettyjson=prettyJSONStringify(fn.state, {
+
+    let info=Object.assign({},fn.state);
+      // error circular structure  info.socketId=fn.getcontext.socket;
+      // 
+    prettyjson=prettyJSONStringify(info, {
       shouldExpand : function(object, level, key) {
           if (key == 'lastT'||key=='TgiornoToll'||key=='probes'||key=='execute'||key=='PMCgiorno'||key=='relays'||key=='devMap'||key=='probMap') return false;
           if (key == 'doExpand') return true;
@@ -171,18 +175,18 @@ const api={// see https://javascript.info/promise-chaining
     if(fn.socket)fn.socket.emit('status',fn.state,prettyjson);// send the status to the browser too, also if the related plant section is not jet visible !
     if(fn.socketNR)fn.socketNR.emit('state',fn.state);// in case a node-red is listening with websocket
 
-    // x send  home assistant state QQIIJJ :
+    // x send  home assistant state QQIIJJ    on type 4 dev with portid 777:
     let statedev=null,stind;
     // old : if(inp&&inp.probMapping) old map=inp.probMapping;// [2,4]
     if(fn.iodev&&fn.iodev.probs_&&new_scripts.app.plantconfig.virt2realProbMap&&(stind=new_scripts.app.plantconfig.virt2realProbMap[0])>=0){// the dev to send to home assistant 
         let desTemp=21;// def
         if(fn.state.lastProgramAlgo&&fn.state.lastProgramAlgo.desT)
-              desTemp=fn.state.lastProgramAlgo.desT[0];// get desidered temp
+              desTemp=fn.state.lastProgramAlgo.desT[0];// get desidered temp from program algo last run 
               else desTemp='';//  non available
         if((statedev= fn.iodev.probs_[stind])!=null){//!== undefined) {
             // 15122023 better do in ha !: convert hetr true/false > 'ON'/'OFF' :            let relays_=new_scripts.relays.map();
 
-            statedev.writeSync_({state:{anticipate:new_scripts.anticipate != false&&new_scripts.anticipate != null,// send to ha the status it expects
+            statedev.writeSync_({state:{anticipate:new_scripts.anticipate != false&&new_scripts.anticipate != null,// send to ha the status it expects 
                 program:new_scripts.program != false&&new_scripts.program != null,
             battery:new_scripts.aiax.battery,
             inverter:new_scripts.aiax.inverter,

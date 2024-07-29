@@ -49,7 +49,9 @@ try {
 // uncought exception let ddd;ddd[3]=8;
 
 // tracking vars
-const started ={};
+const started ={};// current running plant
+let disconTime=[], disconPlant=[];// track plant disconnected x recovery it after a socket reconnection 
+
 let  loopStartRepetitive=0,// now every plant algo loop write this running state on these global var, so at time of stop these values are written by last plant algo loop  !
                           // todo : move 1 x plant in plan.inst.getcontext.
 loopRepetitive=0,// can say if last running algo (a repetition every 5 minutes )  is working at crash
@@ -111,6 +113,7 @@ const  pdate=function (){let d=new Date();d.setHours(d.getHours()+dOraLegale);re
 
 // debug staff normally is false
 const DEBUG_probe=true;// assign a std 20 degrees if no read on device  
+const DEBUG_savings=true; // dont increment savings array
 const PRTLEV=8;// print log level, >5 many prints! 
 //const PRTLEV=5;// print log level, <=5 less prints! 
 
@@ -1102,7 +1105,7 @@ ccbbRef=function ccbb(plantname) {
   let inst,repeat,repeat1;
   if (plantname) {
     let name = plantname;
-    console.log('ccbb  name:',plantname,' instance alredy started? : ',started[name]);
+    console.log('ccbb  name:',plantname,' instance alredy started? : ',started[name]!=null);
     //console.log('ccbb  factory:',eMCustomClass.toString());started.some.get
     
     if (started[name]&&started[name].inst)// its alredy requested and a instance is alredy set, so continue on a fv instance 
@@ -1304,7 +1307,7 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
 
   /*
   inp__=sched:  {
-          inp=programs: { giorno: { sched: [{"8:30": 15,"17:00": 19,}],    set in HHDD  
+          inp_=programs: { giorno: { sched: [{"8:30": 15,"17:00": 19,}],    set in HHDD  
                                   toll: [{"8:30": 0.5,"17:00": 0,6}] // molto fine basterebbe unico valore di toll =1.3
                       notte:   {}
                       ,,
@@ -1324,20 +1327,20 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
 
   let ret = null,// pumps if t<desidered , no anticipating
     antret,// pumps if t<desidered + toll,  anticipating
-    desTemp = [21, 21],// std desidered temp
+    desTemp =[[21, 21],[21,21],[21, 21],[21,21]],// std desidered/desideredAnticipating temp x giorno/notte/scant, acs  . will be set by toact() !
     h, m, optimRet = null;
-  let date = pdate();//new Date();date.setHours(date.getHours()+dOraLegale);
-
+  let date = pdate(),//new Date();date.setHours(date.getHours()+dOraLegale);
+        plant=state.app.plantname;
   // register into the last read probes
   state.program.triggers2.lastT = [date.toLocaleString(), probes];//JSON.stringify(probes)]; anomalus array with different types
   // find zone to activate
-  let toactivate ,// [actiongiorno,actionnotte]
+  let toactivate ,// [actiongiorno,actionnotte, actionscant,actionacs]
   activation ,// true if at least one is in toactivate
   activationantic; 
 
   if (probes && inp) {// inp=sched={giorno:{'16:10':-3,,,,},notte:{},probMapping:[],mapping:[],ei} 
 
-    toactivate = [],// [actiongiorno,actionnotte]
+    toactivate = [],// [actiongiorno,actionnotte] , 
       activation = false,// true if at least one is in toactivate
       activationantic = false;// true if at least one is in toactivate
 
@@ -1349,14 +1352,14 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
 
     let mres;
     // 0 giorno
-    let desT, desTgiorno = [21], desTnotte = [21];
+    let desT, desTgiorno = [21,21], desTnotte = [21,21], desTacs = [21,21];
     if (inp.giorno) {
-      mres = toact('giorno', probes.giorno, inp.giorno, isSummer, desTgiorno);
+      mres = toact('giorno', probes.giorno, inp.giorno, isSummer, desTgiorno);// updates desTgiorno with [desideredTemp,DesideredTempwith Anticipatinf (=desideredTemp+ Toll)] !
       if (mres[0]) activation = true;
       if (mres[1]) activationantic = true;
       toactivate.push(mres);
     } else toactivate.push([false, false]);
-    desTemp[0] = desTgiorno[0];
+    desTemp[0] = desTgiorno;// updated by toact !, ex [26,24]  26 desidered 24 if anticipate (+ tollrance)
     // notte
     if (inp.notte) {
       mres = toact('notte', probes.notte, inp.notte, isSummer, desTnotte);
@@ -1364,7 +1367,7 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
       if (mres[1]) activationantic = true;
       toactivate.push(mres);
     } else toactivate.push([false, false]);
-    desTemp[1] = desTnotte[0];
+    desTemp[1] = desTnotte;
 
     // sottoterra scantinato
     toactivate.push([false, false]);// todo
@@ -1372,9 +1375,31 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
     // acs
     // recover acs probe ...   todo 
 
-    if (inp.acs) mres = toact('acs', 21.11, inp.acs, false, desTnotte);// inp.acs.sched= [{"8:30": 45,"17:00": 10,}] // 45 e 10 si confrontano con 21.11 a dummy acs probe
+    if (inp.acs) mres = toact('acs', 21.11, inp.acs, false, desTacs);// inp.acs.sched= [{"8:30": 45,"17:00": 10,}] // 45 e 10 si confrontano con 21.11 a dummy acs probe
     else mres = [false, false];
     toactivate.push(mres);
+
+    // add acs2 scaldabagno program   
+    mres=[false,true];// start ever when anticipating is ok 
+    // check if power margin are enought
+    // isPcdtOn=true;// the pdc is started 
+    let antDispPower=inverter-consumo>1.5;// when anticipating the disp powre is this, ex lavatrice is on  so consumo=0.3+2.5 per pdc + 2 per lavatrice =4.8
+                                            // quindi es inverter=5.5  per accendere lo scaldabagno 5.5 - 4.8= 0.7 > 1.5 che è  false  
+                                            // allora aspetto che lav =0 al che avrei 5.5 - 2.8 > 1.5   true
+                                            // naturalmente se nel intervallo di 5 min accendo fornello sono fuori ! ci vorrebbe interrupt per rigirare il program 
+                                            //  al verificarsi di incrementi di power 
+                                            // o power superiore a 2.8 + 1.5= 4.3  cioe dico che faccio andare lo scaldabagno lasciando spazio per un addizionale 1.5
+                                            //    cioe se supero i 5.5  spegno subito lo  scadabagno se sto producendo 6
+                                            //    es sono a 4.2 con scalda , accendo fornello vado a 6.2 , spengo subito lo scalda  ????
+                                            // sto prima ad accendere solo se ho inverter- consumo senza scaldabagno  >  2  cosi male che vada ho dispon 1kw per i consumi transitori tra 2 int 
+                                            //   es ho 5.5 e scalda acceso allora calcolo   5.7 - 2.8 - 1.5   + 1.5 se lo scalda e acceso = 2.9  > 2.9=1.5 + disp=1.4   e cosi se accendo lo scalda -1.5 ho ancora disp 1.4 kw per i carichi che aggiungo tra gli intervalli 
+                                            //      cio inverter - consumi + 1.5 se acceso scalda > 1.5 + disponibilita per i disp
+                                            //          inverter >  consumi - 1.5 se acceso scalda + 1.5 + disponibilita per i disp
+                                            //           inverter >  consumi + 1.5 se non acceso scalda + disponibilita per i disp
+                                            //             inverter >  2.8 + altri consumi oltre al scalda  + 1.5  + disponibilita per i disp 
+                                            //   quindi visto che inverter < 6 avro che la disp deve essere minore di 6 - 2.8 - 1.5 = 1.7  , metteremo disp = 1.5 
+                                            //      cosi accendiamo lo scalda se inverter > consumi senza scalda + 1.5 + 1.5  , che se consumi senza scalda è 2.3 è  inverter > 5.8   
+                                            // tra la fine di program e l'inizio del nuovo program , e cosi di anticipate 
 
     /*
     >>>>>>>>>>>>>><
@@ -1387,16 +1412,17 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
 
     console.log('program() calculate activation for termostat of  giorno , notte, scant, pdc : ',toactivate);
 
-    // TODO TODO only 2 zones giorno notte !
+    // TODO TODO only 2 zones giorno notte + acs items  of toactivate can be !=[false,false] (if have programs and probe(but not acs))
+    //  cioe scantinato is ever [false,false]
 
     state.lastProgramAlgo = state.lastProgramAlgo || { model: 'programbase' };
 
     let changing = false;
-    if (activation) {// some section is cooler than programmed in winter or warmer in summer
-      ret = [true, false, false, false, false, null, null, true];// [heat,pdc,g,n,s,split,gaspdcPref,acs]. program algo (specific) suggestion 
+    if (activation) {// some section (now giorno notte only ) is cooler than programmed in winter or warmer in summer
+      ret = [true, false, false, false, false, null, null, true];// [heat,pdc,g,n,s,split,gaspdcPref,(block)acs]. program algo (specific) suggestion 
       antret = [true, true, false, false, false, null, null, false];// blockacs=false split = ?
 
-      if (toactivate[0][0]) {// giorno
+      if (toactivate[0][0]) {// giorno, see toactivate[0]
         ret[2] = true;
         antret[2] = true;
       } else {
@@ -1432,13 +1458,16 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
       // al last reset battSav aumenta ogni check di dT*inverter e cosi enSavings che pero viene diminuto del lastbatreset
 
       state.lastProgramAlgo.setby = '(last) event handler called by some execute/algo step, procname unknown';//,', \n so consolidation/optimizing with anticipating and manual set we got : ',optimRet);
-      console.log('programming() found desidered  not satisfied temp so suggests this virtual ([heat,pdc,g,n,s,split]) actions: ', ret);
+      // console.log('programming() found desidered  not satisfied temp so suggests this virtual ([heat,pdc,g,n,s,split]) actions: ', ret);
+      console.log('programming() runned x plant ',plant,' at ',date.toLocaleString(),' :found some unsatisfacted programmed temp in house, so suggests virtual  (like [heat,pdc,g,n,s,split]) relays updates: ', ret,'\n and  anticipate relays updates:',antret);
+      if(PRTLEV>5)console.log('.... giorno/notte zones desidered temp (std , anticipate) are: ',desTemp,', and giorno/notte current temp are: ',probes); 
+
       if (state.lastAnticAlgo) console.log(' \n nb later in attuators, we do consolidation/optimizing with last manual  and anticipating action : ', state.lastAnticAlgo.pumps);
 
       optimRet = ret;
       //console.log('\n at last got: : ',optimRet);
 
-    } else {//  no one of programs has temperature out of  target on current time slot 
+    } else {//  no one of (giorno , notte )programs has temperature out of  target on current time slot 
 
       ret = [false, false, false, false, false, null, null, true];// [false, null,null,null,null,null];// desidered program algo virtual actions : heat e i rele zonali: off, e nessuna modifica x gli altri rele 
       antret = [false, true, false, false, false, null, null, false];
@@ -1461,13 +1490,14 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
       // now call in attuators optimRet=consolidate(state,'program');// consolidation taking care of anticipating algo and user manual set
       optimRet = ret;// here optimate is just ret , effective consolidation will be called after
 
-      console.log('programming() found no unsatisfacted programmed temp in house, so suggests virtual  ([heat,pdc,g,n,s,split]) program actions: ', ret,'\n',antret);
+      console.log('programming() runned x plant ',plant,' at ',date.toLocaleString(),' :found no unsatisfacted programmed temp in house, so suggests virtual  (like [heat,pdc,g,n,s,split]) relays updates: ', ret,'\n and  anticipate relays updates:',antret);
+      if(PRTLEV>5)console.log('.... giorno/notte zones desidered temp (std , anticipate) are: ',desTemp,', and giorno/notte current temp are: ',probes); 
       // if(state.lastAnticAlgo)console.log(' \n so next consolidation/optimizing with last anticipating action : ', state.lastAnticAlgo.pumps);
       //console.log('\n at last got: : ',optimRet);
     }
     // todo set para to split depending on zones to do in consolidate
 
-
+    // now set blocking acs :
           ret[7] = !toactivate[3][0];// ! becauseis a noacs  , no  acs !!
       antret[7] = !toactivate[3][1];
 
@@ -1475,11 +1505,12 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
 
     state.lastProgramAlgo.updatedate = date.toLocaleString();
     state.lastProgramAlgo.time = date.getTime();
-    state.lastProgramAlgo.probes = probes;
+    state.lastProgramAlgo.probes = probes;// current T for zones 
     state.lastProgramAlgo.program = inp;
     state.lastProgramAlgo.pumps = ret;// action if not anticipating 
     state.lastProgramAlgo.anticGap = antret;// action if  anticipating 
-    state.lastProgramAlgo.desT = desTemp;// current desidered t , def> 21
+    state.lastProgramAlgo.desT = desTemp;// current desidered t and desidered t on anticipating,extracted from programming schedule + tollerance x anticipating
+                                          // temporarely giorno , notte   ( add acs ?)
 
   } else {
     state.lastProgramAlgo = false; optimRet = null;
@@ -1513,11 +1544,11 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
   return optimRet;
 
 
-  function toact(zona, sonda, sc_, isSummer, desT = [21]) {// zona,valore sonda, sc=programma orario x la zona. verifica se una zone ha temperatora sonda <  alla programmata nello slot dove cade l'ora corrente
+  function toact(zona, sonda, sc_, isSummer, desT = [21,21]) {// zona,valore sonda, sc=programma orario x la zona. verifica se una zone ha temperatora sonda <  alla programmata nello slot dove cade l'ora corrente
     // se  torna true
-    // updata desT[0] !
+    // nb returns/updata desT[0] too!
     /* sc_= 				      {sched: {"8:30": 27,"17:00": 30,},
-                            toll: {"8:30": 0,"17:00": 0,},// temporaneamente ricavato da TTollerance : 
+                            toll: {"8:30": 0,"17:00": 0,},// same orari che in sched!, temporaneamente ricavato da TTollerance : 
                             TTollerance: 0,
                             },    */
 
@@ -1526,14 +1557,14 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
       console.error(' toact() analizing  zona: ', zona, ', sonda is( null) : ', sonda, ' so algo exit');
       return;
     }
-    let sc = sc_.sched, scantic = sc_.toll;
-    let DELTA; if (!scantic) DELTA = sc_.TTollerance || 0; else DELTA = null;// use if .toll is null
+    let sc = sc_.sched, scantic = sc_.toll;//  scantic = [{"8:30": 0.5,"17:00": 0,6}]
+    let DELTA; if (!scantic) DELTA = sc_.TTollerance || 0; else DELTA = null;// use if .toll is null or  0
     // nb toll future use : query lastAnticAlgo to see if a fv production is expected in short time
     // if(lastAnticAlgo.short)dt=true;
     let keylist = Object.keys(sc);// orari del programma =["8:30","17:00"]
     // cerca dove cade la cur temp : slot
 
-    if (PRTLEV > 5) console.log(' toact() analizing  zona: ', zona, ' programma : ', sc, ',  at present hour:min  ', h, ':', m,);
+    if (PRTLEV > 4) console.log(' toact() analizing  zona: ', zona, ' programma : ', sc, ',  at present hour:min  ', h, ':', m,);
 
     let slot = -1, // time interval dove l'ora corrente cade, quindi   temp = sc[keylist[slot]] è la temperatura programmata !
       last = keylist.length - 1, temp = sc[keylist[last]], resu = 'none', tempx = '';
@@ -1546,20 +1577,20 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
       //tempx =tempx + '-'+i; 
       let ma = keylist[i].split(":");// ['8','30']
 
-      console.log(' toact() analizing  zona: ', zona, ' orario: ', keylist[i], ',  with present hour min : ', h, m,);
+      if (PRTLEV > 5) console.log(' toact() analizing  zona: ', zona, ' orario: ', keylist[i], ',  with present hour min : ', h, m,);
 
       if (h < ma[0]) {// 10 < '8'
         // got! ends scan the index in sc is slot
         slot = i - 1; i = 1000;// got slot
         //tempx =tempx + ' - got slot '+ slot ;// ma[0]; 
-        console.log(' got slot ', slot, ', because present hour is less then slot+1 hour');
+        if (PRTLEV > 6) console.log(' got slot ', slot, ', because present hour is less then slot+1 hour');
       }
 
       else {
         if (!(h > ma[0]) && m < ma[1]) {
           slot = i - 1; i = 1000;// got slot
           // tempx =tempx + ' - got slot '+ slot +' minute '+m;// ma[0]; 
-          console.log(' got slot  ', slot, ' because present hour is = but current min is < !');
+          if (PRTLEV > 6) console.log(' got slot  ', slot, ' because present hour is = but current min is < !');
         }
       }
 
@@ -1567,10 +1598,11 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
     if (slot < 0) slot = last;
 
     temp = sc[keylist[slot]];//programmed desidered temp x the current slot
-    desT[0] = temp;// trace back the desidered temp
+    desT[0] = temp;// trace back//updates the desidered temp if no anticipating 
     let delta = DELTA || scantic[keylist[slot]];
     if (isSummer) delta = -delta;
     tempantic = temp + delta;//tolerance temp to start anticipate  x the current slot
+    desT[1]=tempantic;
     // if(lastAnticAlgo.short)// last anticipate expect to produce fv energy (> 2kWh) in short time (less 1 hour)
 
     /*if (sc_.sched && sc_.toll[keylist[slot]] > 0 && sc_.toll[keylist[slot]] < 2)// tolleranza temperatura desiderata ta 0 e 1  ?????????????
@@ -1588,8 +1620,8 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
 
     //  if (act) {        console.log(' toact() activate generator . infact in zone ',zona,', found current time slot: ', slot, ' with desidered temp: ', temp,' and probe temp ',sonda,' . modalità condizionatore/riscaldamento ',isSummer);
     //  }      else  console.log(' toact() do not activate generator . infact found current time slot: ', slot, ' with desidered temp: ', temp,' and probe temp ',sonda,' . modalità condizionatore/riscaldamento: issummer: ',isSummer);
-    console.log(' toact() activate generator: ', act, ' . infact found current time slot: ', slot, ' with desidered temp: ', temp, ' and probe temp ', sonda, ' . modalità condizionatore/riscaldamento: issummer: ', isSummer);
-    console.log(' toactantic() activate generator: ', actantic, '  . infact found current time slot: ', slot, ' with desidered antic temp: ', tempantic, ' and probe temp ', sonda, ' . modalità condizionatore/riscaldamento: issummer: ', isSummer);
+    if (PRTLEV > 5) console.log(' toact() activate generator: ', act, ' . infact found current time slot: ', slot, ' with desidered temp: ', temp, ' and probe temp ', sonda, ' . modalità condizionatore/riscaldamento: issummer: ', isSummer);
+    if (PRTLEV > 5) console.log(' toactantic() activate generator: ', actantic, '  . infact found current time slot: ', slot, ' with desidered antic temp: ', tempantic, ' and probe temp ', sonda, ' . modalità condizionatore/riscaldamento: issummer: ', isSummer,', delta: ',delta,', updating desT: ',desT);
     return [act, actantic]; //[false,true]=[activeIfNotAnticipate,activeIfAnticipate]
   }
 
@@ -1817,8 +1849,8 @@ function calcsavings(){// calcola alle ore 8 i savings del giorno precedente
   saving.checkedHour.push(ddd.getHours());// day and hour of daily calc
   saving.minLevBattery.push(battery);// initial battery val for next days
   */
-
-  saving.push({enSavings:es,battSavings:state.lastAnticAlgo.daysavings.battery,day:checkday,date:ddd.toLocaleString(),checkedHour:ddd.getHours(),minLevBattery:battery});
+ if(DEBUG_savings)saving[saving.length-1]={enSavings:es,battSavings:state.lastAnticAlgo.daysavings.battery,day:checkday,date:ddd.toLocaleString(),checkedHour:ddd.getHours(),minLevBattery:battery};
+  else saving.push({enSavings:es,battSavings:state.lastAnticAlgo.daysavings.battery,day:checkday,date:ddd.toLocaleString(),checkedHour:ddd.getHours(),minLevBattery:battery});
 
   
 return true;
@@ -1997,6 +2029,23 @@ openapi getstat() catched so results is null .........
 
 
                  }}
+    /* todo insert  meter to see the grid power
+    ,meter :  {body:{devIds:state.app.plantconfig.huawei.bat,// 1000000035350466
+                 devTypeId:"39"},
+                 extract:(data)=> {
+                   
+                   console.log(' aiax extracting battery info from aiax data got: ',JSON.stringify(data,null,2));
+ 
+                   // todo : change state.aiax.inverter to state.aiax.battery 
+                   let ret= state.aiax.battery= data.data[0].dataItemMap.battery_soc,
+                     ret1=state.aiax.battCharge= data.data[0].dataItemMap.ch_discharge_power;
+                       
+                   console.log(' aiax x battery got: ',ret);
+                   return {battery:ret,battCharge:ret1};
+ 
+ 
+                  }}
+      */
 
     // add consumi , so inverter - consumi = delta battery 
 
@@ -2008,13 +2057,13 @@ openapi getstat() catched so results is null .........
 let results={},// the aiax results to get from all devices
 resu;
  let keylist=  Object.keys(bodies);
-  for(let i=0;i<keylist.length;i++){// ['inverter','battery']
+  for(let i=0;i<keylist.length;i++){// ['inverter','battery']   add meter ?
    //  Object.keys(bodies).forEach(function(key,index) {// for each bodies items post 
       // key: the name of the object key
       // index: the ordinal position of the key within the object 
    
     let key=keylist[i],el=bodies[key];
-    console.log(' getstat, looping  devices, now rest device: ',key,', Type id: ',el.devTypeId);
+    console.log(' getstat, looping  devices, now rest device: ',key,', Type id: ',el.body.devTypeId);
 
 
       resu= //{data,token}
@@ -3942,6 +3991,8 @@ adminNamespace.emit("", "everyone!");// see from .......
 // nb  io.sockets, it's simply an alias for io.of("/")
 io.sockets.on('connection', function (socket) {// WebSocket Connection :server is listening a client browser so now we built the socket connection, transmit to server if there are status updates 
                                               // mainspace
+                                              // this is the .on connection handler . it is a closure of function that use closure state , like eM
+                                              //  eM e' settato da socket.on('startuserplant',...    see eM setting !
 
 let user=socket.request.user ? socket.request.user.username : '';// set user in closure
 
@@ -3962,9 +4013,40 @@ repeat,// active rep func x anticipate repetitive algo // onconnection var to st
 repeat1,// active rep func x program repetitive algo// onconnection var to start/stop repetitive algo
 clientDiscon=false;
 console.log('on connection got from a browser set in login, user: ',user,`new  session: ${session.id}  , socket connection id ${socket.id}`,
-            '\n   so clientDiscon is set false ');
+            '\n   ... so clientDiscon is set false ',
+            '\n  ... eM is null : ',eM==null,', so in case of socket reconnect the browser (has a plant view active) can ask plant event that require the recovery of eM ! ',
+            ' \n  ... so do eM recovery!');
+console.error('on connection got from a browser set in login, user: ',user,`new  session: ${session.id}  , socket connection id ${socket.id}`,
+            '\n   ... so clientDiscon is set false ',
+            '\n  ... eM is null : ',eM==null,', so in case of socket reconnect the browser (has a plant view active) can ask plant event that require the recovery of eM ! ',
+            ' \n  ... so do eM recovery!');
 
-console.log(`saving user and socketid ${socket.id} in session ${session.id} used by future fn ( will be associated to user plant). in case algo procedure wants to do something with session and socket if they are active`);
+// see if this is a socket reconnection
+let ctime=pdate().getTime(); 
+if(disconTime.length >0 &&ctime-disconTime[disconTime.length -1]> 5000){// too old so its a new connection , continue normally
+disconPlant=[];disconTime=[];// reset 
+}else{// recover session and plant name ,recover eM
+
+ disconPlant.forEach((dt,ind)=>{// 1 discover the plnt disconnected and ask user what want to reconnect 
+                            // or 2 if the session remain the old reconnect to plat with same session 
+  // if(dt.plant)
+  // 2:
+  console.error('on connection discovered recent socket reconnection for session: ',disconPlant[ind].session,' plant: ',disconPlant.plant,' so recover it !!!!! ');
+  if(ctime-disconTime[ind]<5000&&disconPlant[ind].session==session.id&&started[disconPlant.plant]&&started[disconPlant.plant].instance){
+    eM=started[disconPlant.plant].inst;
+    eM.getcontext.socket=socket.id;// was set at discon
+    eM.getcontext.clientDiscon=false;
+
+    disconTime[ind]=0;// exclude for future
+  }
+
+ }) 
+
+
+}
+
+
+console.log(`saving user and socketid ${socket.id} in session ${session.id}.it will be  used by future fn ( when  associated to user plant). in case algo procedure wants to do something with session and socket if they are active`);
 console.log('session will be duplicated on fn.getcontext and the socket is still active if fn.getcontext.discFromBrow=false ! '); 
 session.socketId = socket.id;// hope one ws for session !
 session.user = user;// session.user is already used ?, probably only req.user or socket.user are used !
@@ -4020,7 +4102,6 @@ socket.on('createUsrPlant',// to do emit in browser.  create the plant config in
        console.error('startuserplant , eM is not built/recovered from pool  on session: ',session.id);
         return }
     
-    
     eM = recInsts.inst;
     repeat = recInsts.repeat;//  // nb presently inst.state must still to be recovered , also inst.config is still undefined!  repeat= {repeatcheckxSun,stopRepeat} 
     repeat1 = recInsts.repeat1;// onconnection var to start/stop repetitive algo
@@ -4028,12 +4109,12 @@ socket.on('createUsrPlant',// to do emit in browser.  create the plant config in
     // prevWs;// prev ws
 
     // reset the context = this closure (socket.on('startuserplant',closure)) 
-    // must be nullified when socket disconnect so closure can be garbagecollected 
-    if (!eM.reBuildFromState) {let prevSes;if(eM.getcontext.getSession)prevSess=eM.getcontext.getSession().id;
-      console.log(' startuserplant , user ', user, ', plant: ', plant_, ' recovered a plant ctl(eM/fn) running ,changing ctl session/socket browser context data. old/new session id are: ', prevSess, '/', session.id);
+    // must be nullified (cioe tutte le funzioni del closure non devono essere referenziate all'esterno del closure , ex closure return a closure func) when socket disconnect so closure can be garbagecollected 
+    if (!eM.reBuildFromState) {let prevSes;if(eM.getcontext.getSession)prevSess=eM.getcontext.getSession().id;// eM instance is recovered in plants , getcontext represent the socket .on(connect ) closure state , ex session,socket
+      console.log(' startuserplant , user ', user, ', plant: ', plant_,'  at: ',pdate(),'  recovered a plant ctl(eM/fn) already running ,changing, eM.getcontext, ctl session/socket browser context data. old/new session id are: ', prevSess, '/', session.id,' new socketid: ',socket.id);
     
 
-    } else console.log(' startuserplant , user ', user, ', plant: ', plant_, ' no running plant ctl found . setting session/socket context data. no em.getcontext, so new session id are: ', session.id);
+    } else console.log(' startuserplant , user ', user, ', plant: ', plant_, '  at: ',pdate(),', no running plant ctl found . setting session/socket context data. no em.getcontext, so new session id are: ', session.id,' new socketid: ',socket.id);
     // **************    ma quando recupero eM in un nuovo socket getcontext mi da la sessione e il clientDisconnect del nuovo socket visto che lo riassegno !!!!
     // reset update or new ?  todo
     { // use a class to new!
@@ -4133,11 +4214,11 @@ socket.on('createUsrPlant',// to do emit in browser.  create the plant config in
     // UUYY add here (or in instance constructor ???)
 
 
-    if (!eM.reBuildFromState&&!em_.iodev) {// only not eM.reBuildFromState (recovered from runtime plants) has already the devices !)
+    if (!eM.reBuildFromState&&eM.iodev) {// only not eM.reBuildFromState (recovered from runtime plants) has already the devices !)
     console.error('startfv_:  a runtime instance has not the io dev settled  !');
     return
     }
-    if (eM.reBuildFromState&&em_.iodev){ // only not eM.reBuildFromState (recovered from runtime plants) has already the devices !)
+    if (eM.reBuildFromState&&eM.iodev){ // only not eM.reBuildFromState (recovered from runtime plants) has already the devices !)
     console.error('startfv_:  a recovered  instance has the io dev settled  !');
     return}
 
@@ -4154,7 +4235,7 @@ socket.on('createUsrPlant',// to do emit in browser.  create the plant config in
 
 
 
-    buildDev()
+    function buildDev()
        {// em_=eM
 
         if (!eM.iodev) {// only not eM.reBuildFromState (recovered from runtime plants) has already the devices !)
@@ -4162,7 +4243,7 @@ socket.on('createUsrPlant',// to do emit in browser.  create the plant config in
           console.log(' startfv_ called because device are not defined jet in fn ctl !');
           startfv_(eM, ()=>{// lascia traccia di quando e stato bildato i dev 
             eM.iodev.session=session.id;eM.iodev.socket=socket.id;
-            oncomplete_});
+            oncomplete_()});
 
         } else {
           oncomplete_();// new risparmia di settare i dev che ho gia !   ma non devo aver cambiato il models.js !
@@ -4832,11 +4913,13 @@ function setanticipateflag(set_,algo,activeAlgoRes=null){ //  AAQQOO
                                                           // nbnb is duplicated  on     other namespace.on() !!!! todo do 1 function only !!!!
 
 
-  if(!eM)console.error('.. setanticipateflag() eM is null ');
-  if(!eM)console.log('.. setanticipateflag() eM is null ');else console.log(' . setanticipateflag(), eM is found '); 
+
+  if(!eM){console.log('.. setanticipateflag() eM is null ');
+  console.error('.. setanticipateflag() eM is null ');
+}else console.log(' . setanticipateflag(), eM is found '); 
     console.log(' setanticipateflag() called to set running algo: ',algo,' init param: ',set_,' , in state.',algo,' ,(if null init parm will also  reset state.',activeAlgoRes);
     //if(set_)
-    anticipateFlag(set_,eM,algo,activeAlgoRes);// eM is set before in a preceeding  socket.on('startuserplant',,, ( like create a  closure var)
+    anticipateFlag(set_,eM,algo,activeAlgoRes,session);// eM is set before in a preceeding  socket.on('startuserplant',,, ( like create a  closure var)
 }
 
 // repeat=checkFactory(eM);// eM could not still be set by a preceeding  socket.on('startuserplant',,, ( like create a  closure var)
@@ -5083,13 +5166,16 @@ function stopprogrammer() {
   socket.on('disconnect',() => {// to do 
     // set a flag to avoid browser .emit call from any function that can do that
     // eM will run also if the client dead . when a new connection come and it refears to same plant of the running eM , attact it to the closure and goon  
-    console.log(' socket connection lost');
-   if(eM&&eM.getcontext){ console.log(' .......conn lost on  plant: ',eM.state.app.plantname,', session ',eM.getcontext.getSession().id,
+    console.error(' .on(disconnect : socket connection lost');
+   if(eM&&eM.getcontext){ console.error(' .......conn lost  at: ',pdate(),' on  plant: ',eM.state.app.plantname,', session ',eM.getcontext.getSession().id,' socketId: ',eM.getcontext.socket.id,
                                      '\n  socket.on disconnect,  so clientDiscon is set false ');
-                                     session.id=null;//session=null;
-                                     if(eM)eM.socket=null;
-  }
+                                     session.id=null;//or session=null;
+                                     eM.getcontext.socket=null;
+                                     eM.getcontext.clientDiscon=clientDiscon=true;
+                                     disconTime.push(pdate().getTime()); disconPlant.push({plant:eM.state.app.plantname,session:eM.getcontext.getSession().id});
+  }else console.error(' .......conn lost  at: ',pdate(),'  eM is null!');
     clientDiscon=true;
+  
   
   });
 
@@ -5118,7 +5204,7 @@ process.on('SIGINT', function () { //on ctrl+c
 //return 'ok';    ??
 
 
-function anticipateFlag(set_,fn,algo,activeAlgoRes){// like onRelais, write state after completed it to store anticipate algo init param// algo =anticipate/program/manual
+function anticipateFlag(set_,fn,algo,activeAlgoRes,session=null){// like onRelais, write state after completed it to store anticipate algo init param// algo =anticipate/program/manual
                                                     // sets state.activeAlgoRes to store the temp results of algo  
                                                     // if set_=null  state.activeAlgoRes=null
                                                     //  new:
@@ -5126,20 +5212,22 @@ function anticipateFlag(set_,fn,algo,activeAlgoRes){// like onRelais, write stat
                                                     // - otherwhise reset algo init param  e algo result (state[activeAlgoRes]=null)
                                                     // - call api.writeScriptsToFile(fn) to write fn.state onto persistand + call websocket topic to update state staff on browser + ....
 
-  if(!fn)console.error('anticipateFlag(), eM is null!, probably after a debugging stop point');
-  if(!fn){console.log('anticipateFlag(), eM is null ');}else console.log(' anticipateFlag(), eM is found ');
+  if(!fn){console.error('anticipateFlag(), eM is null!, probably after a debugging stop point or a restart session without a plant set. cant goon, session: ',session);
+ }else {
+  console.log(' anticipateFlag(), eM is found ');
   let state=fn.state;
   state[algo]=set_;// state.program=
   if(set_==null)state[activeAlgoRes]=null;// nullify last algo results 
   return api.writeScriptsToFile(fn)// // - write fn.state to file_=fn.state.app.plantname , fn=ctl
                                       // - send state to browser using socket :fn.socket.emit('status,,) + ....
+                                      // return not actually used 
     .catch(function(err) {
       console.log(' anticipateFlag(),  error calling api.writeScriptsToFile : ',err);
         console.error(err);
 
         // process.exit(1);
       });
-}
+}}
 
 async function onRelais(pump,data,coming,fn) { //pumps unique handlerget pumps switch status from client web page  data=0/1 pump ='pdc',,,
                                                 // return a promise but is never used !
@@ -5695,7 +5783,7 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
     }
 
 
-  console.log(' consolidate() , at hour ', date.getHours(), ', merging anticipate (', antic, '), program (', program, ') and usermanual (', user, ') applyed intermedite (', apply, ') , relays merge into: ', res);
+  console.log(' consolidate() , at hour ', date.getHours(), ', merging : \n anticipate (', antic, '),\n program (', program, ') \n and usermanual (', user, ')\n choose to applyed intermedite (', apply, ') ,\n update the relays state into: ', res);
 
   return res;
 

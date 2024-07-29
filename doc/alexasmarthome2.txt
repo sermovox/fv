@@ -1,0 +1,310 @@
+1)  in : https://www.saggiamente.com/2020/01/come-usare-home-assistant-con-alexa-gratuitamente-metodo-aggiornato-senza-nabucasa-e-token/
+
+	possibile soluzione alternativa ad haaska
+ 
+	 (usa login with amazon , ha supporta login with amazon  auth server, quindi la lambda ricve il token con cui fare api con ha 
+	 	ATTENZIONE un custom skill, che chiama ha api, usa il sdk-cli per ottenere il token dal json in entrata . il alexa si arrangia a fare il account linking con ha : vedi bookmark in alexatop
+	 			nb attenzione che l'esempio che usa ha come login x ottenete il token via login with amazon come auth server si trova nel nodejs project dir hostedhelloworld
+	 			    mentre le normali cutom skill usano logonarsi con amazon perche usano solo i server aws per servire i lambda che autonomamente gestiscono la risposta connettendosi autonomamente a fixed services 
+	 			    definiti internamente ai lambda  
+					- si ricorda che con i custom skill gli https end point ricevono json nlp intent , una volta verificato che i msg provengono da alexa si deve provvedere librerie che interrogano un handler in
+						formato funzione lambda, see https://developer.amazon.com/en-US/docs/alexa/custom-skills/handle-requests-sent-by-alexa.html
+					- ciò perche indipendemente dal ambiente server e linguaggio si possa processare il in intent da una template di funzione lambda che usa i parametri al ingresso per ricevere tutte le info su json 
+						e auth token
+						
+					> see in local node project dir : https://developer.amazon.com/en-US/docs/alexa/alexa-skills-kit-sdk-for-nodejs/develop-your-first-skill.html#lambdahandler
+								https://developer.amazon.com/en-US/docs/alexa/alexa-skills-kit-sdk-for-nodejs/develop-your-first-skill.html#lambdahandler
+					
+					-we need : A request handler is the code responsible for taking action on one or more types of incoming requests data  (json).
+
+						When you use the Alexa Skills Kit SDKs, in lambda you can define these handlers by easily implementing the RequestHandler interface 
+								> via a lambda handler . it routs the params got from incoming json to right request handler 
+						The SDK then automatically routes an incoming request to the correct request handler set in lambda handler. If you do not use the SDK, you need to code the logic 
+							to inspect the incoming request and route it to the correct handler yourself.  see https://jordankasper.com/building-an-amazon-alexa-skill-with-node-js/
+							    Identify the requests the handler can handle
+							    Process the request and return a response
+						nb we need to put SDK as dependency  , and also to install into node_modules before to upload the local code
+							but if we use the aws editor of lambda code probably  nodejs sdk is automatically loaded in your behalf
+							    
+						the SDK is called by endpoint server with the json input sent to the endpoint using a interface call to link the server post handler with the sdk
+						if use a aws hosted lambda :
+							that linking is done automatically/internally by aws lambda or manually in a custom web server with some post capability 
+								(we need to set a post handler that calls the sdk interface call linking)
+							see example in python : https://www.home-assistant.io/integrations/alexa/#manual-setup done in case of custom or smarthome skill 
+							see example in nodejs : 2) or 1) 
+										also https://community.home-assistant.io/t/building-a-custom-alexa-skill-part-7-a-brand-new-approach-no-aws-lambda/729502
+															
+					
+					
+					
+					in questo modo  bastera realizzare la lambda che usa parametri noti per ottenere info nel linguaggio scelto indipendentemente dallambiente server che realizza il end point 
+					in altre parole il pseudo codice per la lambda e' indipendente dal tool server usati e banalmente si implementa nel environment scelto (nodejs js environment)
+					per ogni ambiente server ci saranno le librerie che interfacciano il end point al lambda  es ask cli per nodejs  che poi ha varianti dovuti del implementazione del web server express o ...
+					
+					nb la parte che recupera il token nei custom skill e' uguale a quella dei smart home skill : si
+
+	the lambda func : https://gist.githubusercontent.com/matt2005/744b5ef548cc13d88d0569eea65f5e5b/raw/97b018bb12f574e780927c7b8dc85beae3fce6cc/lambda_function.py
+	seems try to get the token to call the ha end point ,  otherwise use the long lived tokken set in env var 
+	the token is extracted by alexa site before call the lambda end point 
+		- redirecting the user that is doing the account linking on its alexa app to the auth end point of ha like the example : 
+			https://github.com/home-assistant/home-assistant-js-websocket
+			this example will redirect the user : https://github.com/home-assistant/home-assistant-js-websocket/blob/master/example.html
+				see https://stackoverflow.com/questions/46636300/using-javascript-es6-import-and-export-functionality-in-codepen-projects/49785540#49785540
+					https://javascript.info/modules-intro
+	 the ha endpoint is set on env var : BASE_URL
+	 
+2)	haaska	
+in:  https://indomus.it/guide/integrare-gratuitamente-amazon-echo-alexa-con-home-assistant-via-haaska-e-aws/#clientid
+
+	sembra che non recuperi il token breve da ha come 1) usando il account linking con ha (ha supporta login with amazon  auth server )
+
+	creato file di config alexa yaml , da aggiungere con un !include sul configuration.yaml
+	
+	created a skill aaska :
+		https://developer.amazon.com/alexa/console/ask/build/prebuilts/config/amzn1.ask.skill.5f74bf88-5db3-4c9b-a6c4-7023da949ef7/development/it_IT/smartHome
+		
+	acceduto a https://developer.amazon.com/home.html e  accedere al proprio amazon developer account luigi.marson@gmail.com 
+		pass .....?  le proprie credenziali di accesso di Amazon.com/.it) per entrare. 
+		
+		- andare alla developer console : https://developer.amazon.com/dashboard
+			e chiedere login with amazon  dove si imposta il security profile assio
+			dove si settano i return url, vedi dettagli : https://developer.amazon.com/docs/login-with-amazon/web-docs.html, https://developer.amazon.com/docs/login-with-amazon/register-web.html
+			
+			>> nb serve per logonarsi/usare le api di  homeassistant usando un servizio di login di amazon come provider di identità : https://docs.aws.amazon.com/it_it/cognito/latest/developerguide/amazon.html
+				https://www.npmjs.com/package/login-with-amazon
+				
+				con questi doc in pratica  si fa questo (https://developer.amazon.com/docs/login-with-amazon/conceptual-overview.html):
+				If your website usando un button che avvia la procedura di identificazione via amazon,  will be making HTTPS calls to the Login with Amazon authorization service 
+				and at the end the http calls returns  specifying a redirect_uri (with querystring or post data ) for replies, add those redirect URIs to Allowed Return URLs. 
+				The return URL includes the protocol, domain, path, and query string(s) (for example, https://www.example.com/login.php).
+				la procedura si ottiene con l'uso di:
+					 Login with Amazon provides a JavaScript SDK that you may use to obtain access tokens and retrieve customer profiles. 
+					 the Login with Amazon SDK for JavaScript will handle all of the difficult parts of integrating Login with Amazon into your website. 
+					 Before you can make an access grant call or retrieve a profile, the SDK must load itself from Amazon's content delivery network.
+					 
+				https://developer.amazon.com/docs/login-with-amazon/authorization-grants.html
+				https://medium.com/api-university/part-1-of-alexa-account-linking-via-oauth-registration-with-oauth-provider-c6507c04348f
+				
+				nb google uses : https://cloud.google.com/docs/authentication#service-accounts
+				
+			
+		- si userà il :
+			Your Client ID e il client secret 
+			per settare la config del account linking che alexa fara per recuperare i token per accerede ai servizi home assistant 
+			 usando il login con amazon
+			il quale appena finito di identificare lo user passera i dati identificati facendo ritornare lo user sulle pagine di alexa che usera i dati identificati dello user per fare 
+			le chiamate a servizi di ha
+	
+	- poi in aws creo il servizio lambda logandomi a https://console.aws.amazon.com/console/home dopo che ho ottenuto login da https://developer.amazon.com/ poi scegli aws , ottenendo :
+		https://aws.amazon.com/
+			e da qui poi fai login ...
+		poi alla fine https://signin.aws.amazon.com/signin?redirect_uri=https%3A%2F%2Fconsole.aws.amazon.com%2Fconsole%2Fhome%3FhashArgs%3D%2523%26isauthcode%3Dtrue%26nc2%3Dh_ct%26src%3Dheader-
+			signin%26state%3DhashArgsFromTB_eu-north-1_3657a9d9d840758c&client_id=arn%3Aaws%3Asignin%3A%3A%3Aconsole%2Fcanvas&forceMobileApp=0&code_challenge=4EjJeHFaLdQVvYPLye1JCBupP555Y78-Q9TmupMRlOg&code_challenge_method=SHA-256
+		- login  come root user: luigi.marson@gmail.com pass :  AwsAws02! 
+			posso andare su 
+			lambda page 
+				e gestire la lambda haaska
+				caricata da zip file :
+					- Cliccare poi sul bottone “Aggiungi“. Spostarsi ora sul tab “Codice“, cliccare a destra su “Carica da…” per provvedere ad inviare ad AWS 
+						il file haaska.zip scaricabile presso questo link : https://github.com/mike-grant/haaska/releases/download/1.1.0/haaska_1.1.0.zip
+					alcuni file sono copiati sul project haaska 
+			
+			o su iam page 
+		
+
+
+3)	https://mischianti.org/it/aws-alexa-smart-home-skill-crea-la-lambda-e-gestisci-la-sicurezza-3/		
+
+	le differenze rispetto i precedenti sono :
+	- lambda x nodejs , vedi node project in localexa-skill-manage-relay-nodejs
+	- test dopo il linking da app alexa fatto con dev console
+	- Esamina i log su CloudWatch
+	- la lambda non accede a servizi ha ( da linkare per avere il token ) ma comanda direttamente mqtt !
+	
+4) homeassistant suggest : 	a) the integration x smart home skill: 
+				https://www.home-assistant.io/integrations/alexa.smart_home/ that is like 1)  as the code is  matt2005/lambda_function.py
+				
+				ACCOUNT LINKING : 
+				but it dont use lwa auth server like 1) quindi non si usa un security profile ! 
+					>>> quando si configura il account linking non si usa il client secret e i redirect url che si prendono dal security profile
+						quindi come sono satti assegnati ????? magari non contano
+					>>> ATTENZIONE CHE QUI SI RICHIEDE DI NON ATTIVARE IL: Allow users to link their account to your skill from within your application or website 
+						INVECE RISULTA ATTIVO !!!   >> disattivarlo ??
+				
+					si ribadisce che le condizioni da rispettare per un account link con alexa sono :
+						https://developer.amazon.com/en-US/docs/alexa/account-linking/requirements-account-linking.html
+					in particolare :
+						Although it is possible to assign a different port, Alexa requires you use port 443, so make sure your firewall/proxy is forwarding via port 443.
+							Read more from the Alexa developer documentation about requirements for account linking.
+							>> see example using lwa : https://developer.amazon.com/en-US/docs/alexa/smarthome/set-up-account-linking-tutorial.html
+							
+							solution with tunnelling ? : https://gist.github.com/matt2005/744b5ef548cc13d88d0569eea65f5e5b?permalink_comment_id=3933293
+							or use handle_path : https://caddy.community/t/plain-reverse-proxy-works-fails-when-using-handle-path/21470/2
+									https://caddy.community/t/reverse-proxy-for-a-specific-path/372/5   ??
+									
+						>> RISOLTO configurando correttamente caddy che punta il ha su un subdomain con porta 443
+						
+					>>> da chiarire tra 1) e 4) cosa serve il profilo di sicurezza se poi non uso il login with amazon lwa e vado direttamente a logonarmi con ha ?
+							forse il profilo di sicurezza serve solo per autorizzare il lambda in aws ? 
+						
+				nb 	
+						> see post in community :
+							haaska vs alexa smart integration : https://community.home-assistant.io/t/haaska-vs-alexa-smart-integration/512872
+						to see the differencies between a) and 1)
+		
+		
+			b) and a integration alexa.intent with custom skill https://www.home-assistant.io/integrations/alexa.intent/
+			
+			for a comparison amog a and b see : https://www.home-assistant.io/integrations/alexa/
+			
+			
+			nb the integration intent_script on ha supports intent from both alexa ( both a) and b) ) and dialogflow : https://www.home-assistant.io/integrations/intent_script/
+		
+			
+so chosen method is 1) ,but see at the difference with 4) !
+
+
+____________________________________________
+
+account linking 
+
+alexa account linking process is described: https://developer.amazon.com/en-US/docs/alexa/account-linking/account-linking-concepts.html
+				and https://developer.amazon.com/en-US/docs/alexa/account-linking/account-linking-quick-reference.html
+				https://developer.amazon.com/en-US/docs/alexa/account-linking/configure-authorization-code-grant.html
+				https://developer.amazon.com/en-US/docs/alexa/account-linking/configure-implicit-grant.html
+				node example: https://codeculturepro.medium.com/implementing-authentication-in-nodejs-app-using-oauth2-0-59fee8f63798
+				
+	it uses an auth server , ex the LWA > question can ha act direcly as auh server ? where i set the auth server ? in skill account linking ?
+	it is used by both custom and smart home skill but differently : https://developer.amazon.com/en-US/docs/alexa/account-linking/account-linking-for-custom-skills.html
+							https://developer.amazon.com/en-US/docs/alexa/account-linking/add-account-linking-logic-custom-skill.html
+							
+	to see difference from smart home and custom skill see https://developer.amazon.com/en-US/docs/alexa/smarthome/understand-the-smart-home-skill-api.html
+
+x smart home skill see https://developer.amazon.com/en-US/docs/alexa/smarthome/set-up-account-linking-tutorial.html#substeps-to-set-up-account-linking
+	For simplicity, this tutorial uses the Amazon authorization server, called Login with Amazon (LWA). 
+	
+x custom skill see: https://www.home-assistant.io/integrations/alexa.intent/  con code:  example_hass_alexa_intents_lambda_function.py
+	nb da questo codice si vede che in aws lambda è stato configurato in modo che dal json ricevuto si chiami la  lambda con i parametri normalizzati estratti dal json request del end point
+	>>> problem : non si apre nessun profilo di sicurezza . quindi come si fa il processo con il auth server se non c'e' LWA ?
+	
+LWA is described on https://developer.amazon.com/docs/login-with-amazon/conceptual-overview.html
+
+
+troubleshut : https://community.home-assistant.io/t/alexa-smart-home-account-linking/139646?page=3
+
+
+		
+		
+		
+_______________________________________
+nb to write a skill (CUSTOM skill!!!) code on nodejs can see :
+- https://github.com/alexa-js/alexa-app   , old dont use ask cli modules
+	examples : https://www.clouddefense.ai/code/javascript/example/alexa-app
+	
+- https://developer.amazon.com/en-US/docs/alexa/alexa-skills-kit-sdk-for-nodejs/develop-your-first-skill.html
+
+	https://www.linkedin.com/pulse/getting-start-sample-app-alexa-skills-kit-ask-masayoshi-yanase/
+	
+________________________________________
+
+
+______________________________
+look at google staff :
+- https://www.home-assistant.io/integrations/google_assistant_sdk and https://www.home-assistant.io/integrations/google_assistant
+		perhaps this works !
+- https://indomus.it/guide/integrare-gratuitamente-google-home-assistant-con-home-assistant-via-gcp/ e https://indomus.it/guide/local-fulfillment-integrare-localmente-google-assistant-a-home-assistant-addendum/
+
+___________________________________
+attenzione che quando si usa ask cli si parla di user e ci si riferisce a ........    see https://developer.amazon.com/en-US/docs/alexa/smapi/manage-credentials-with-ask-cli.html e vedi uso di  --profile alexa-user in /ask_cli in content.txt
+
+
+________________________________________________________
+details on oauth server how to :
+
+https://backstage.forgerock.com/docs/am/7.5/oauth2-guide/oauth2-authz-grant.html
+https://developer.amazon.com/en-US/docs/alexa/account-linking/configure-authorization-code-grant.html
+https://developer.amazon.com/en-US/docs/alexa/account-linking/app-to-app-account-linking-starting-from-Alexa-app.html :
+
+	class AppToAppConsent : AppCompatActivity() {
+	 
+	     // Constants
+	     private val QUERY_PARAMETER_KEY_CLIENT_ID = "client_id"
+	     private val QUERY_PARAMETER_KEY_RESPONSE_TYPE = "response_type"
+	     private val QUERY_PARAMETER_KEY_STATE = "state"
+	     private val QUERY_PARAMETER_KEY_SCOPE = "scope"
+	     private val QUERY_PARAMETER_KEY_REDIRECT_URI = "redirect_uri"
+
+	     private val USER_ACCEPT = "ACCEPT";
+	     private val USER_DENY = "DENY";
+
+	     // Incoming Query Parameters
+	     private var clientId: String? = null
+	     private var responseType: String? = null
+	     private var state: String? = null
+	     private var scope: String? = null
+	     private var redirectUri: String? = null
+	     private var url: String? = null
+	 
+	     private lateinit var acceptButton: Button
+	     private lateinit var denyButton: Button
+	 
+	 
+	     override fun onCreate(savedInstanceState: Bundle?) {
+		 super.onCreate(savedInstanceState)
+		 val appLinkData = intent.data
+	 
+		 // Get values from App Link
+		 clientId = appLinkData.getQueryParameter(QUERY_PARAMETER_KEY_CLIENT_ID)
+		 responseType = appLinkData.getQueryParameter(QUERY_PARAMETER_KEY_RESPONSE_TYPE)
+		 state = appLinkData.getQueryParameter(QUERY_PARAMETER_KEY_STATE)
+		 scope = appLinkData.getQueryParameter(QUERY_PARAMETER_KEY_SCOPE)
+		 redirectUri = appLinkData.getQueryParameter(QUERY_PARAMETER_KEY_REDIRECT_URI)
+	 
+		 setContentView(R.layout.activity_consent_screen)
+		 initializeComponents()
+	     }
+	 
+	     private fun initializeComponents() {
+	  
+		 acceptButton = findViewById(R.id.btn_accept_linking)
+		 acceptButton.setOnClickListener {
+		     val responseUri = callBackendForAuthorization(clientId, responseType, state, scope, redirectUri, USER_ACCEPT)
+
+		     // implementation of this method shown in the following step
+		     openUrl(responseUri)
+		 }
+	 
+		 denyButton = findViewById(R.id.btn_decline_linking)
+		 denyButton.setOnClickListener {
+		     val responseUri = callBackendForAuthorization(clientId, responseType, state, scope, redirectUri, USER_DENY)
+
+		     // implementation of this method shown in the following step
+		     openUrl(responseUri)   
+		 }
+	     }
+	}
+
+account linking : detail of authorization url get page + access token post:  :https://developer.amazon.com/docs/login-with-amazon/authorization-code-grant.html
+	https://codeculturepro.medium.com/implementing-authentication-in-nodejs-app-using-oauth2-0-59fee8f63798
+
+	example of post to get access token :
+		https://github.com/pedroetb/node-oauth2-server-example + https://mixedanalytics.com/tools/basic-authentication-generator/
+
+		https://layla.amazon.com/:pippo   > base64 is : aHR0cHM6Ly9sYXlsYS5hbWF6b24uY29tLzpwaXBwbw==
+
+		curl http://ha.sermovox.duckdns.org:3000/oauth/token \
+			-d "grant_type=client_credentials" \
+			-H "Authorization: Basic aHR0cHM6Ly9sYXlsYS5hbWF6b24uY29tLzpwaXBwbw==" \
+			-H "Content-Type: application/x-www-form-urlencoded"
+		
+	example of auth url get :
+	https://ha.sermovox.duckdns.org/auth/authorize?state=abc&client_id=https%3A//layla.amazon.com/&scope=smart_home&response_type=code&redirect_uri=https%3A//pitangui.amazon.com/api/skill/link/M2AAAAAAAAAAAA
+	
+	thats really similar to what browser redirect in normal ha entry point url :
+	https://ha.sermovox.duckdns.org:9000/auth/authorize?response_type=code&redirect_uri=https%3A%2F%2Fha.sermovox.duckdns.org%3A9000%2Flovelace%2F0%3Fauth_callback%3D1&client_id=https%3A%2F%2Fha.sermovox.duckdns.org%3A9000%2F&state=eyJoYXNzVXJsIjoiaHR0cHM6Ly9oYS5zZXJtb3ZveC5kdWNrZG5zLm9yZzo5MDAwIiwiY2xpZW50SWQiOiJodHRwczovL2hhLnNlcm1vdm94LmR1Y2tkbnMub3JnOjkwMDAvIn0%3D
+	
+	> just that it used port 9000 !
+
+__________________________________________
+
+

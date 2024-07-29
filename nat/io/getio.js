@@ -399,7 +399,7 @@ if(mqttWebSock&&isProbe==false)setMqttXWebsock(); // set mqtt relay to websocket
 
 
 // FINALLY RESOLVE (GGDDSS)
-const to=1500,
+const to=3000,// > 3000
 
 myto=setTimeout(() => {
 //resolved.forEach((val)=>{if(val)push(resu)})

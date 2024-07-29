@@ -33,6 +33,11 @@ module.exports =
 
     },
     topicMsg: // will be set as property of ctl so here the context this is the ctl itself!
+           //  called in :
+           //               - ctl.writeSync so val_ =0/1
+           //               - no error :msgtopics=ctl.topicMsg(stateChangedEvent.data.new_state.state);// build/format the msg for the topics topic , msg is simply stateChangedEvent.data.new_state.state (a number )
+
+
         // dev writes on a topic or (if type 1 ) on pubtopic :
         //       >> we use pubtopic only in type 1 , protocol shelly   , 
         //          according with content of mqttTopPub/mqttTop 
@@ -99,10 +104,11 @@ module.exports =
         */
 
         const val_=inState[ent];// must be :  Actstates.indexOf(ent) < 0 ==true
-        if (this.cl > 0 || this.cl < 3) {
-            if (!url || url == 'setMan')// per ora i type 1,2 possono solo emettere url=setMan
+        if (this.cl > 0 && this.cl < 3) {
+            if (!url || url == 'setMan'){// per ora i type 1,2 possono solo emettere url=setMan
                 if (event == 'on') return JSON.stringify({ payload: 1, sender: { plant: this.plantName, user, url: 'setMan', checked: 1, data: 'somedata' } });
                 else if (event == 'off') return JSON.stringify({ payload: 0, sender: { plant: this.plantName, user, url: 'setMan', checked: 1, data: 'somedata' } });
+            }else return null;
         } else if (this.cl == 0) { //
             // really insert a case x each  event
             if (!url || url == 'mqttxwebsock') { // per ora i type 0 possono solo emettere url=mqttxwebsock
@@ -136,7 +142,7 @@ module.exports =
 
                 const  payloadstart=1,payloadstop=0;// 0/1 fixed value in this msg
 
-                if (event = 'repeatcheckxPgm') {// entity input_button.£start_progservice launch this event repeatcheckxPgm
+                if (event == 'repeatcheckxPgm') {// entity input_button.£start_progservice launch this event repeatcheckxPgm
                                                 // to send a message to process the event by the handler of cmdtopic
                                                 // 
                    //   let entdata = entStates('sensor.startprogrammer')
@@ -169,10 +175,10 @@ module.exports =
 
 
 
-                } else if (event = 'stopcheckxPgm'){
+                } else if (event == 'stopcheckxPgm'){
                     return JSON.stringify({ payload: payloadstop, sender: { plant: this.plantName, user }, url: "mqttxwebsock", event });
 
-                } else if (event = 'repeatcheckxSun'){// use also ent: sensor.pippo,  text1
+                } else if (event == 'repeatcheckxSun'){// use also ent: sensor.pippo,  text1
 
                     // todo : manca :     condition: "{{ states.input_text.casinauser1_opirun.state == 'OFF'}}"
 
@@ -190,17 +196,17 @@ module.exports =
                    return JSON.stringify({ payload: 1, sender: { plant: this.plantName, user:777}, url: "mqttxwebsock", event ,data:pippoVal,data1:text1Val,param:true});
 
 
-                }else if (event = 'stopcheckxSun'){
+                }else if (event == 'stopcheckxSun'){
                     return JSON.stringify({ payload: payloadstop, sender: { plant: this.plantName, user }, url: "mqttxwebsock", event });
-
                 }
             }// else ....
+            else return null;
         }
     }
 }
 
- const bank=        [// bank of formatting function for type i dev
-         function(protocol,plantName,val_){//// type 0, val_ is integer , the opposite of relay state   0 <> 1 
+ const bank=        [// bank of formatting function for type i dev called by ctl.
+         function(protocol,plantName,val_){//// ?? check it : type 0, val_ is integer , the opposite of relay state   0 <> 1 
             let intval=null;if(Number.isInteger(val_))intval=valCorrection(val_);// if val is integer, inverse value 0 <> 1  , because of gpio inversion !!!!
             if(intval==null)return null;
             let message='';

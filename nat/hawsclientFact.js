@@ -3,7 +3,7 @@ outprompt='>>>>>>>>>>>> please input :  lights,turn_on,light.my_light to change 
 
 let readline=null;// not used in production 
 // const readline=readline_;// only debug 
-const DoTestonHa=true;//debug only
+const DoTestonHa=true;//debug only : to test docmd() to ha ws 
 if(DoTestonHa){TEST=test_;
   readline= require('readline').createInterface({// see https://stackoverflow.com/questions/65260118/how-to-use-async-await-to-get-input-from-user-but-wait-till-entire-condition-sta
     input: process.stdin,
@@ -104,12 +104,14 @@ const hass_=require("../../homeassistant_new/node_modules/homeassistant-ws/build
 function getNewCon(cfg_,PRTLEV){// called by : async function kepAlive(reset=false)
 
   let clientInst;
+  if(PRTLEV>5)console.log('getNewCon is connecting a new ws client to ha server')
 if(cfg_)connCfg=cfg_;// only first call set the conn param 
       // Establishes a connection, and authenticates if necessary:
 if(connCfg&&connCfg.token&&connCfg.host&&connCfg.port){
  //  client 
   clientInst=// await 
-    hass_(
+    hass_(// is function createClient;
+
     /*connCfg={  // ..... LLHH resolve with clientobj=clientObject(client)
     token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJiNmYxMDk3NDYxODI0YmZhYjkwNTc2NjQ1ZDVmODU4MyIsImlhdCI6MTY5NDQ0Mjg2MiwiZXhwIjoyMDA5ODAyODYyfQ.ppeuf-Ma1vLVQCT0Qrt07C5TXGHsHasX3ElOl1NCX3A', 
     host: '192.168.1.212',
@@ -127,12 +129,18 @@ if(connCfg&&connCfg.token&&connCfg.host&&connCfg.port){
 }
 
 
-async function main(client) {// call in a connected client to init/restart the initial state inState
+async function main(anewcon) {// call in a connected client to init/restart the initial state inState
+const client= anewcon.client; 
     // client can get null when after  connection lost
     if(client==null)return;
 
       // Get a list of all available states, panels or services:
-  client.inState=await client.getStates();// store initial state values
+  const stateArr=await client.getStates();// store initial state values
+  stateArr.forEach((item)=>{
+    anewcon.inState[item.entity_id]=item.state;// item.attributes ?
+  })
+ 
+
   console.log(' hawsclient: main()  restart new client tracing state, events  ');
   if(PRTLEV>8)console.log(' hawsclient: main() inital states are: ',client.inState);
 
@@ -291,13 +299,14 @@ if(entity==null){
   }
 }
 
-let Fact=function(ctlcb_,cfg_,PRTLEV_){// return the anewcon=connector obj (to be completed):
+let Fact=function(ctlcb_,cfg_,PRTLEV_){// return the anewcon=connector obj (to be completed after the new Fact() ):
                                         //  {cfg,client,ws,setSwitch,Actstates,inState,ctlcb,kepAlive,onReset
                                         //        docmd,docmd_            // funzioni alternative, todo: docmd_da utilizzare al posto di un this.docmd added as func in BBHH : bastta scambiare i nomi   docmd_  <>   docmd 
                                         //  } // TTHH
+                                        // so we set mqttInst.ws.hawsclient=anewcon=new Fact()
 this.cfg=cfg_;// plantconfig
-this.client=null;
-this.ws=null;
+this.client=null;// the CLIENT obj returned by CLIENT=clientObject(client) 
+this.ws=null; // the ws row client in CLIENT
 this.PRTLEV=PRTLEV_;
 this.Actstates=[];//  list of tracked entities in inState ex: ['switch.rssi',,,]
               // the updated ha state list  we want to trace, can be :
@@ -305,30 +314,32 @@ this.Actstates=[];//  list of tracked entities in inState ex: ['switch.rssi',,,]
               //  - switch state (pubtopic,topic state is only to check what the switch is doing and can be avoid) or 
               //  - probe state : topic only
               //  - switch buttonpress (cmdtopic)event
-
-
-
-this.inState=null;// the updated state of Actstates: if null means there is no connection active, . nb when recennecting inState could not receiving some update from ha !!!!!!!!!!!!!!!!!!!!!!
+this.inState={};// filled on main() in kepAlive() that connect ws to ha
+            // the updated state of Actstates: if null means there is no connection active, . nb when recennecting inState could not receiving some update from ha !!!!!!!!!!!!!!!!!!!!!!
             // if entity isnot in Actstates is not updated !
             // it will be init with state at connection time , then when we add a dev queue  add Actstate and 
             // add state-change handler that 
             //  - at next update updates Actstates and call ctlcb to fill the queue 
             //    we can use the present inState if  reset inState=await client.getStates(); then :
             // - we can call ctlcb, just after the add queue request, to send present value
-this.ctlcb=ctlcb_; // calls msgList(topic,msg) , the fv3 income process handler of msg on suscribed/expecting topic : this.msgHand(topic,val)=msgList 
+this.ctlcb=function (){console.error('Fact ha listener still waiting to be set : msg from ha rejected ')}; // will call msgList(topic,msg) , the fv3 income process handler of msg on suscribed/expecting topic : this.msgHand(topic,val)=msgList 
+                    // now set after creation with Fact.ctlcb=......
+
             //    issue  val on topic topic to the message handler:  msgList
             //    the cb function to fill fv3 Actstates cmdtopic/interrupt ( queue not interesting) for type 1,2
             //                                      topic ovvero queue per type=3
             //    so x topic and cmdtopic
-this.onReset=function(){console.error('hawsclientFact: onReset, error in haws connection , is resetted')};// the cb to warn haWs that this instance reset the client and ws properties. todo some recovery
-// try to set test on ths plant ha
+this.onReset=function(){console.error('hawsclientFact: onReset, error in haws connection , is resetting x a new connection')};// the cb to warn haWs that this instance reset the client and ws properties. todo some recovery
+// try to set test on this plant ha
 this.test=null;
-
+// ???????
 }
 
-Fact.prototype.docmd_=function (topic,reason,...reads){
-  
-                                                      // alternativa a this.docmd che  alla data 01052024 rimane quella  di rif . qusta alternativa non è aggiornata 
+Fact.prototype.docmd_=function (topic,reason,...reads){// >> future use , to update !
+                                                      // nb questa funzione alla data è aggiunta  an oggetto dopo la sua creazione in DOCMD
+                                                      // questa alternativa  sarebbe il miglior modo di aggiungere subito la funzione al obj
+                                                      // alla data 01052024 DOCMD rimane quella  di rif . 
+                                                      // se si vuole migrare a questa alternativa va aggiornata secondo DOCMD !
                                                       // alternative to use the func added without prototype. if use this , portare a livello delle correzioni nell'altra funzione
                                                       // cmd,...arguments call ex: docmd(topic,reason,'ser','switch','turn_on','switch.rssi') docmd(topic,reason,'ser','python_script','set_state','switch.rssi','on')
   if(PRTLEV>5) console.log('docmd(), preparing ha ws callService: ha ws command called on topic: ',topic,' reason: ',reason,' action: ',reads);
@@ -571,112 +582,123 @@ if(!hascmdent)// ?
 
 if(cmdent)cmdent.forEach((it) =>{let ent=it[0];this.Actstates.push(ent);});// register entities in cmdent as tracked 
 
-// *****  haManButton  cmdtopic management: register a change listener that according with haManButton entity event will send a msg (cmdtopic format: url,event,value,....)  on dev cmdtopic 
-if(cmdent||(ent&&type==3)){
-if(PRTLEV>6)console.log('hawsclient setswitch() called to set listener for cmdtopic/topic from ha entities:',ent,'-',cmdent,'-',state_);
-client.on('state_changed', (stateChangedEvent) => {// add a listener x future changes . here checks the dev related entity (haEntity,haManButton) that fire topic and cmdtopic x this dev 
-// we could have just 1 listener that check all entity for all devs 
-let msgtopics;// the msg x cmdtopic issued by this dev of type 2 : 
 
-let finded,
-entity_=stateChangedEvent.data.entity_id;// the entity that chnged state : usually a button press event
-if(PRTLEV>7)console.log('hawsclient setswitch . listener for cmdtopic for entity: ',ent,' from entities ',cmdent,',\n   got statechange :',JSON.stringify(stateChangedEvent));
-if(cmdent&&(finded=findCmdtopicEnt(entity_))>=0){//  the entity that fired its change is registered as this dev cmdtopic entity to send msg in cmdent array !
 
-// PPLL when ha entity  change a dev (! type 3 ) val will send a cmdtopic with a msg on std format
-//    depending on type we set automatically the url so that in income goonP() the correct interrupt handler will be chosen 
-//          type 0 : url= 'mqttxwebsock'
-//          type 1,2,4 url='setMan'
-// >>>>>>>>>>>>>    entity var or id ???????????   changes on cmdent entity 
+// *****  haManButton  cmdtopic management: if the dev has cmdtopic registered on haManButton :
+//        > register a change listener that according with haManButton entity event will send a msg (cmdtopic format: url,event,value,....)  on dev cmdtopic 
+
+if (cmdent || (ent && type == 3)) {
+    if (PRTLEV > 6) console.log('hawsclient setswitch() called to set listener for cmdtopic/topic from ha entities:', ent, '-', cmdent, '-', state_);
+    client.on('state_changed', (stateChangedEvent) => {// add a dev listener x future changes . here checks the dev related entity (haEntity,state,haManButton) that fire topic and cmdtopic x this dev 
+
+      // ******************  future enhancements :
+      // we could have just 1 listener that check all entity for all devs but now we add a listener each dev with cmdtopic
+
+      let msgtopics;// the msg x cmdtopic issued by this dev of type 2 : 
+
+      let finded,
+        entity_ = stateChangedEvent.data.entity_id;// the entity that chnged state : usually a button press event
+      if (PRTLEV > 7) console.log('hawsclient setswitch listener x dev portid: ', portid, ' listener for its registered cmdtopic  entities: ', cmdent, ', receives a update for entity: ', entity_, ',\n   got statechange :', JSON.stringify(stateChangedEvent));
+      if (cmdent && (finded = findCmdtopicEnt(entity_)) >= 0) {//  the entity that fired its change is registered as this dev cmdtopic entity to send msg in cmdent array (see haManButton)!
+
+        // PPLL when ha entity  change a dev (! type 3 ) val will send a cmdtopic with a msg on std format
+        //    depending on type we set automatically the url so that in income goonP() the correct interrupt handler will be chosen 
+        //          type 0 : url= 'mqttxwebsock'
+        //          type 1,2,4 url='setMan'
+        // >>>>>>>>>>>>>    entity var or id ???????????   changes on cmdent entity 
         // check is entity_id like switch.rssi   ???????
-// this will use the  client = await hass() set up of a emitter interface subscription: client.on ( works after launched command  command({ type: 'subscribe_events' },  )
-// but can also define a some additional triggers (see https://developers.home-assistant.io/docs/api/websocket/) like : 
-//  setTrigger: async () => command({ type: 'subscribe_trigger' }, client),
-/*
-{
-"id": 2,
-"type": "subscribe_trigger",        // command FRTT
-"trigger": {
-"platform": "state",
-"entity_id": "binary_sensor.motion_occupancy",
-"from": "off",
-"to":"on"
-}
-}
+        // this will use the  client = await hass() set up of a emitter interface subscription: client.on ( works after launched command  command({ type: 'subscribe_events' },  )
+        // but can also define a some additional triggers (see https://developers.home-assistant.io/docs/api/websocket/) like : 
+        //  setTrigger: async () => command({ type: 'subscribe_trigger' }, client),
+        /*
+        {
+        "id": 2,
+        "type": "subscribe_trigger",        // command FRTT
+        "trigger": {
+        "platform": "state",
+        "entity_id": "binary_sensor.motion_occupancy",
+        "from": "off",
+        "to":"on"
+        }
+        }
+        
+        
+        and , using a button will be :
+        .... {
+        "platform": "state",
+        "entity_id": "input_button.start_ensavings"
+        } ....
+        
+        
+        */
+        // and manages the .onTrigger() (like we did with .on()  !!) checking the return of the command FRTT with its  id=2
+
+        let entity = entity_,// ok ?
+          event = cmdent[finded][1];// there is a entity entity that can send a topic to the dev interrupt handler to proces the event event
+
+        // ctlcb(name,stateChangedEvent.data.new_state.state);// B)
 
 
-and , using a button will be :
-.... {
-"platform": "state",
-"entity_id": "input_button.start_ensavings"
-} ....
+        //             "topic": "@Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd",
+        //     msg >>       "{\"payload\":1,\"sender\":{\"plant\":\"Casina_API\",\"user\":1055},\"url\":\"setMan\",\"checked\":1,\"data\":{{ states.input_number.hour.state}}}\n"
 
 
-*/ 
-// and manages the .onTrigger() (like we did with .on()  !!) checking the return of the command FRTT with its  id=2
+        // ** here we have a to issue a dev cmdtopic msg. to fv3 income . it depende on dev type (?) and protocol because must be handle according to fv3 income handler 
+        //    so the msg x topic of a device is got by ctl.topicMsg=msgFormat.topicMsg;  and ctl.cmdtopicMsg
+        //  il dev avendo dichiarato haManButton sul dev mqttnumb significa che il entity haManButton è usato per emettere un cmdtopic msg che ha un format base che contiene
+        //  url che viene usato in goonP per cercare un handler registrato in una property ctl.int1 . l'handler lavora con msg con format base o uno esteso.
+        //  il msg viene creato da ctl.cmdtopicMsg che per costruire il msg (format base o esteso) ha a disposizione il context ctl che builda il msg per i 
+        //  url implementati (inserire handler, suo mappaggio in goonP, build del msg in cmdtopicMsg in msgFormat poi assegnato come property di ctl)
 
-let entity=entity_,// ok ?
-event=cmdent[finded][1];// there is a entity entity that can send a topic to the dev interrupt handler to proces the event event
+        let url;
+        // >>>>  if a cmdtopic of a deve can fire more urls , add url to array in haManButton ex : 
+        //        cfg.haManButton=[['input_button.setManx3hours_portid11','on',url='setMan']],// 
+        type ? url = 'setMan' : url = 'mqttxwebsock';// set std url for dev type. url='mqttxwebsock' if type=0
 
-// ctlcb(name,stateChangedEvent.data.new_state.state);// B)
+        //+/  Actstates cant contain all entity addressed on cmdtopicMsg  !! (url,event=null,param=null,val_=0,Actstates,trackEnt,user='extctlId'
+        this.inState[entity] = stateChangedEvent.data.new_state.state;// updates value, tracking the entity
+        if (PRTLEV > 7) console.log(' hawsclient setswitch .state_changed  (button) reports an entity', entity, ' update/pressed, so according to dev haManButton[], fire an cmdtopic event: ', event, ' on url: ', url,
+          ',\n new value: ', this.inState[entity]);
 
+        // msgtopics=ctl.cmdtopicMsg(url,event,param=null,1,Actstates,trackEnt,user='extctlId');
 
-//             "topic": "@Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd",
-//     msg >>       "{\"payload\":1,\"sender\":{\"plant\":\"Casina_API\",\"user\":1055},\"url\":\"setMan\",\"checked\":1,\"data\":{{ states.input_number.hour.state}}}\n"
+        // msgtopics = ctl.cmdtopicMsg(url, event, param = null, entity, this.inState, user = 'extctlId', this.Actstates, plantconfig.Ent_Prefix);// >>>>>> according to url, event 'repeatcheckxSun' is fired by ha entity ('input_button.'+Ent_Prefix+'start_savingservice') 
+        msgtopics =  this.inState;// the entity send the msg in right format 
 
+        // build the standard msg to send on dev cmdtopic    (>>>>>> see msgFormat.cmdtopicMsg())
+        //  ( so will be routed to a url/event entry point on the cmdtopic interrupt handler of the dev )
+        // nb event point to a procedure to calc the msg using plantconfig that has info about the ha entity name of the plant (knows the entity name prefix Ent_Prefix)
+        // all is specified by dev cfg  haManButton:                   HHGG
+        /*
+                this.mqttWebSock=        {portid:0,subtopic:'mqtt_websock_',varx:0,isprobe:false,clas:'int',protocol:'mqttxwebsock',
+                    haManButton:[['input_button.'+Ent_Prefix+'start_savingservice','repeatcheckxSun'],// >>> entity start_savingservice firing event repeatcheckxSun, on url related to cmdtopic 
+                    ['input_button.'+Ent_Prefix+'stop_savingservice','stopcheckxSun'],
+                    ['input_button.'+Ent_Prefix+'start_progservice','repeatcheckxPgm'],
+                    ['input_button.'+Ent_Prefix+'stop_progservice','stopcheckxPgm'] 
+        */
 
-// ** here we have a to issue a dev cmdtopic msg. to fv3 income . it depende on dev type (?) and protocol because must be handle according to fv3 income handler 
-//    so the msg x topic of a device is got by ctl.topicMsg=msgFormat.topicMsg;  and ctl.cmdtopicMsg
-//  il dev avendo dichiarato haManButton sul dev mqttnumb significa che il entity haManButton è usato per emettere un cmdtopic msg che ha un format base che contiene
-//  url che viene usato in goonP per cercare un handler registrato in una property ctl.int1 . l'handler lavora con msg con format base o uno esteso.
-//  il msg viene creato da ctl.cmdtopicMsg che per costruire il msg (format base o esteso) ha a disposizione il context ctl che builda il msg per i 
-//  url implementati (inserire handler, suo mappaggio in goonP, build del msg in cmdtopicMsg in msgFormat poi assegnato come property di ctl)
+        // the payload, ha id, the url of the interrupt handler
 
-let url;
-// >>>>  if a cmdtopic of a deve can fire more urls , add url to array in haManButton ex : 
-//        cfg.haManButton=[['input_button.setManx3hours_portid11','on',url='setMan']],// 
-type?url='setMan':url='mqttxwebsock';// set std url for dev type. url='mqttxwebsock' if type=0
+        this.ctlcb(topicNodeRed, msgtopics);// press of cmdent button will pub  new val on dev topicnodered=cmdtopic , so incoming process handler goonP() will receive val on the dev cmdtopic 
+        // this.queue.push(stateChangedEvent.data.new_state.state);// A)
+        // in mqtt int  we did : ......................
 
-//+/  Actstates cant contain all entity addressed on cmdtopicMsg  !! (url,event=null,param=null,val_=0,Actstates,trackEnt,user='extctlId'
-this.inState[ent]=stateChangedEvent.data.new_state.state;// updates value, tracking the entity
-if(PRTLEV>7)console.log(' hawsclient setswitch .state_changed  (button) reports an entity',entity,' update/pressed, so according to dev haManButton[], fire an cmdtopic event: ',event,' on url: ',url ,
-',\n new value: ',this.inState[ent]);
+      } else if (ent && stateChangedEvent.data.entity_id == ent) {// the dev has a haEntity cfg entry !
+                                                                  //ha entity send  dev topic msg: called only x probs (type 3). if ha entity want change a dev (! type 3 ) val will send a cmdtopic !
+        if (PRTLEV > 7) console.log('hawsclient setswitch . ha entity ', ent, ',transmit msg value to topic, only x sensor ....todo)  ', stateChangedEvent, ',\n new value: ', stateChangedEvent.data.new_state.state,
+          ' so process in fv3 goonP listener');
+        // ctlcb(name,stateChangedEvent.data.new_state.state);// B)
 
-// msgtopics=ctl.cmdtopicMsg(url,event,param=null,1,Actstates,trackEnt,user='extctlId');
-msgtopics=ctl.cmdtopicMsg(url,event,param=null,ent,this.inState,user='extctlId',this.Actstates,plantconfig.Ent_Prefix);// >>>>>> according to url, event 'repeatcheckxSun' is fired by ha entity ('input_button.'+Ent_Prefix+'start_savingservice') 
-                              // build the standard msg to send on dev cmdtopic    (>>>>>> see msgFormat.cmdtopicMsg())
-                              //  ( so will be routed to a url/event entry point on the cmdtopic interrupt handler of the dev )
-                              // nb event point to a procedure to calc the msg using plantconfig that has info about the ha entity name of the plant (knows the entity name prefix Ent_Prefix)
-                              // all is specified by dev cfg  haManButton:                   HHGG
-                              /*
-                                      this.mqttWebSock=        {portid:0,subtopic:'mqtt_websock_',varx:0,isprobe:false,clas:'int',protocol:'mqttxwebsock',
-                                          haManButton:[['input_button.'+Ent_Prefix+'start_savingservice','repeatcheckxSun'],// >>> entity start_savingservice firing event repeatcheckxSun, on url related to cmdtopic 
-                                          ['input_button.'+Ent_Prefix+'stop_savingservice','stopcheckxSun'],
-                                          ['input_button.'+Ent_Prefix+'start_progservice','repeatcheckxPgm'],
-                                          ['input_button.'+Ent_Prefix+'stop_progservice','stopcheckxPgm'] 
-                              */
-
-                              // the payload, ha id, the url of the interrupt handler
-
-this.ctlcb(topicNodeRed,msgtopics);// press of cmdent button will pub  new val on dev topicnodered=cmdtopic , so incoming process handler goonP() will receive val on the dev cmdtopic 
-// this.queue.push(stateChangedEvent.data.new_state.state);// A)
-// in mqtt int  we did : ......................
-
-} else if(ent && stateChangedEvent.data.entity_id==ent){//ha entity send  dev topic msg: called only x probs (type 3). if ha entity want change a dev (! type 3 ) val will send a cmdtopic !
-if(PRTLEV>7) console.log('hawsclient setswitch . ha entity ',ent,',transmit msg value to topic, only x sensor ....todo)  ',stateChangedEvent,',\n new value: ',stateChangedEvent.data.new_state.state,
-' so process in fv3 goonP listener');
-// ctlcb(name,stateChangedEvent.data.new_state.state);// B)
-
-// ** here we have a to issue a dev topic msg. to fv3 income . it depende on dev type (?) and protocol because must be handle according to fv3 income handler 
-// msgtopics= "{\"payload\":1,\"sender\":{\"plant\":\"Casina_API\",\"user\":1055},\"url\":\"setMan\",\"checked\":1}";  // nb data is useless !
-
-msgtopics=ctl.topicMsg(stateChangedEvent.data.new_state.state);// build/format the msg for the topics topic , msg is simply stateChangedEvent.data.new_state.state (a number )
-
-this.ctlcb(topic,msgtopics);// // changes of ent will pub new val on dev topic , so incoming process handler will receive val on the dev topic 
-// this.queue.push(stateChangedEvent.data.new_state.state);// A)
-}
-else  if(PRTLEV>7)console.log('hawsclient setswitch . listener for cmdtopic/topic for entity: ',ent,' found no matches');
-})};
+        // ** here we have a to issue a dev topic msg. to fv3 income . it depende on dev type (?) and protocol because must be handle according to fv3 income handler 
+        // msgtopics= "{\"payload\":1,\"sender\":{\"plant\":\"Casina_API\",\"user\":1055},\"url\":\"setMan\",\"checked\":1}";  // nb data is useless !
+        // error::    msgtopics = ctl.topicMsg(stateChangedEvent.data.new_state.state);// build/format the msg for the topics topic , msg is simply stateChangedEvent.data.new_state.state (a number )
+        msgtopics=stateChangedEvent.data.new_state.state;// msg is right the message sent by the probe
+        this.ctlcb(topic, msgtopics);// // changes of ent will pub new val on dev topic , so incoming process handler will receive val on the dev topic 
+        // this.queue.push(stateChangedEvent.data.new_state.state);// A)
+      }
+      else if (PRTLEV > 7) console.log('hawsclient setswitch .the updated ha entity: ', entity_, ' dont send messages to fv3 probe dev nor send cmdtopic/interrupts to fv3 dev ');
+    })
+  };
 
 
 
@@ -850,7 +872,7 @@ that.docmd(myf.topic,' new value on topic ','ser','python_script','set_state',en
 
 }else return null;// other type (0,3) dont write to ha !
 }
-function findCmdtopicEnt(entity){
+function findCmdtopicEnt(entity){// see if updating entity is amog the entities registered for this dev
 if(cmdent!=null){
 for(let i=0;i<cmdent.length;i++){
 if(cmdent[i][0]==entity)return i;
@@ -864,17 +886,48 @@ Fact.prototype.kepAlive=async function (reset=false){// if client==null: the pro
                                                     //  the connection start a heartbeat that will set a restart recalling kepAlive()
                                                    // resolve in  false if client is not (re)started
 
+                                                   // todo :
                                                    // >> better try restructuring the iteration of kepAlive when restart the connection in a cleaning way ?
+                                                   // also when restart a new ws after a heartbeat fails , in main()?, we must reset :
+                                                   //  all the .on set in setSwitch
+                                                   // so better register them and recover whe reset the new ws , to avoid recall setSwitch 
+                                                   // so we left one .on on_change in main() and build a handler that will call all registered .on in setSwitch ! 
+                                                   /* here the log :
+                                                                                                            >>>>>>>>>>>>>>>    why didnd received the heartbeat ? was stopped by vs debugging , seems not 
+
+                                                      hawsclientFact  ws didnt received a ping heartbeat, so terminate current ws conn and restart a new ws client conn 
+                                                      ++++ hawsclientFact try to restart ws to ha by 5 seconds 
+                                                      kepAlive is resetting the ws connection 
+                                                      getNewCon is connecting a new ws client to ha server
+                                                      HA WS API:  creating ws connection to ha : host:192.168.1.212
+                                                      connectAndAuthorize promise starting, configuring top level client.emitter using base ws connection emitter client  (client.ws) connected to ha ws server
+                                                      hawsclientFact: onReset, error in haws connection , is resetting x a new connection
+                                                      ha ws callService sending ws ctl command to ha websocket api:  {"type":"subscribe_events","id":1}
+                                                      ha ws callService receiving feedback to ws ctl command :  {"type":"subscribe_events","id":1} , it is :  true
+                                                      ha ws callService sending ws ctl command to ha websocket api:  {"type":"get_states","id":2}
+                                                      ++++ hawsclientFact  restarted WS:  true
+                                                      ****** trying to get input to run test on ws ha commands, so prompt with: >>>>>>>>>>>> please input :  lights,turn_on,light.my_light to change entity related to dev in ha associated to plant: casinauser1_API
+                                                      >>>>>>>>>>>>  
+                                                      >>>>>>>>>>>>   ha ws callService receiving feedback to ws ctl command :  {"type":"get_states","id":2} , it is :  true
+                                                      hawsclient: main()  restart new client tracing state, events  
+                                                   */
+
+
+
+
+
     let connCfg=this.cfg.connCfg;// set in models.js new defFVMng() as localEntity.connCfg during plant registration/definition
                                   //localEntity: see in haPlants.json , the list of all ha plants configured
+    if(PRTLEV>4)console.log('kepAlive is resetting the ws connection ')
     if(reset)this.client=this.ws=null;
     if(this.client!=null)return true;// client is working if its not null !!  sure ? its enougth ?
-    this.client=await getNewCon(connCfg,this.PRTLEV);// fills client ctl and its ws api ctl with a new connection . TODO really should just reset the client.ws conn
+    this.client=await getNewCon(connCfg,this.PRTLEV)// fills client ws ctl/connManager and its ws api ctl with a new connection . TODO really should just reset the client.ws conn
+    .catch(error => { console.error('getNewCon() rejected with error : ',error,' so goon with null result to find error. please restart !!! ')});// in case aiax fire error and be rejected 
     this.ws=this.client.rawClient.ws;// raw ws protocol client
     
     if(this.client){
-      let that=this;// this=mqttInst
-      main(this.client); //  now trace current ha entities state on inState, events ,,,,
+      let that=this;// this=mqttIns.ws
+      main(this); //  now trace current ha entities state on inState, events ,,,,
 
       // ws=client.rawClient.ws;
 			this.client.on('ws_error',// in ws we used : client.on('error',
@@ -932,7 +985,8 @@ Fact.prototype.kepAlive=async function (reset=false){// if client==null: the pro
 
     */
 	//		import WebSocket from 'ws';
-			function heartbeat(inst) {// nb being a handler of ws.on('some',handler). probably as TTGG, this is the (client=ws).on context , 
+			function heartbeat(inst) {// inst is the  connector:mqttInst.ws.hawsclient ,
+                                //   nb being a handler of ws.on('some',handler). probably as TTGG, this is the (client=ws).on context , 
                                 // so this=global?? and inst=Fact instance=anewcon (see   TTHH) 
         if(PRTLEV>7) console.error('hawsclientFact  client ws received a ping heartbeat, so resetting a timeout to terminate this client ws conn after a not receiving next  ping');
 			  clearTimeout(this.pingTimeout);// set previously in // TTHJ
@@ -946,7 +1000,7 @@ Fact.prototype.kepAlive=async function (reset=false){// if client==null: the pro
 			    inst.ws.terminate();//this.terminate();
               
                 restartWs(inst);
-			  }, 60000 + 3000);
+			  }, 600000 + 60000 + 3000);// 10 min in debug
 
 			
         /*
@@ -994,7 +1048,7 @@ Fact.prototype.kepAlive=async function (reset=false){// if client==null: the pro
             // and main ?? 
            });// .catch()// wait more or restart or exit ...?
 
-        if(inst.onReset)inst.onReset();// warn that the client was resetted 
+        if(inst.onReset)inst.onReset();// warn that the client is  resetting, reset this .test
 			  }, 20000 + 3000);}
 }
 
@@ -1125,7 +1179,7 @@ when in async function getio  we want to get ctlpack we call :
 
 */             
                     init:// returns newcon=new Fact().kepAlive() , a promise ?
-                      function (ctlcb_, PRTLEV_=2, plantconfig//,ctlComTopic_
+                      function (ctlcb_=null, PRTLEV_=2, plantconfig//,ctlComTopic_
                       ) {
                         let anewcon;
                         if(PRTLEV_>PRTLEV)PRTLEV = PRTLEV_; // set if less 
@@ -1140,24 +1194,30 @@ when in async function getio  we want to get ctlpack we call :
                           anewcon.conReady=false;// see MMJJ
                           anewcon.readyProm=anewcon.kepAlive(true); //set this promise to check after   (when? in fact()? see MMJJ)   if the connection is ready , so set conReady=true ! see  HHOOII
                                                                     // problem how can conReady become true ?  AAIIUU  say yes ,is true ?
-                          anewcon.docmd=(function(client_){// a func with a closure local var not available from outside (different from obj var !)   , see BBHH
-                                                          // anyway this is a func added to obj, better use its alternative .docmd_ : a Fact prototipe func .docmd_ also if with var available as obj property
+                          anewcon.docmd=(function(client_){// DOCMD   pay attention to this func added to the obj after its creation !!!  see DOCMD 
+                                                          // a func with a closure local var not available from outside (different from obj var !)   , see BBHH
+                                                          // anyway this is a func added to obj, better, in a future,  implements its alternative .docmd_ : a Fact prototipe func .docmd_ also if with var available as obj property
                                                           // todo : do the same in .setSwitch
                                                           // used in BBHH1
                                                           // need anewcon.client : yes to call callService or fireEvent !
                             // let client=client_;
                             return function (topic,reason,...reads){// PPHH cmd,spread syntax, ...arguments call ex: docmd(topic,reason,'ser','switch','turn_on','switch.rssi') docmd(topic,reason,'ser','python_script','set_state','switch.rssi','on')
                                                                     // surely bound to hawsclient anewcon=ws.hawsclient inst, so  this.client is a the library instance to connect to ha (): = await getNewCon(connCfg,this.PRTLEV);
+                                                                    // FORMATS :
+                                                                    // >>>>  THE new VALUE ( parametro settimo di docmd() ovvero index 4 di reads):
+                                                                    //  can be of type text or numeric . if the entity is numeric can also be send as text 
+                                                                    //  as  ha will automatically convert  in number if the entity has a numeric value !!!!!  
 
                                                                     // this is the anewcon
 
                                 if(!this.client||!this.conReady)return;// do nothing we dont have the connection this.client (by this.) and not ready , MMJJ
                                                                     // wait next data to send and recheck if client is reset by .kepAlive(true).then(..) in BBGG
-                                                                    // accepted cmd :
+                                                                    // accepted reads array from input line  to send ws cmd ,( see WSHA_CMD):
                                                                     // reads= [ 'ser', 'switch'       , 'turn_onoff', 'entityname' ]   
-                                                                    //        [ 'ser', 'python_script', 'set_state' , 'entityname','newvalue' ,'a attributename of entity','its text? value' ]
+                                                                    //        [ 'ser', 'python_script', 'set_state' , 'entityname','newvalue_astext_or int' ,'a attributename of entity','its text? value' ]
                                                                     // or
                                                                     // reads=[ 'event', 'mydomain_event', 'device_id', 'y-device-id' ,'type',"motion_detected"]  max 2 attributs
+
 
                               if(PRTLEV>5) console.log('docmd(), preparing ha ws callService: ha ws command called on topic: ',topic,' reason: ',reason,
                                 '\n .... action[cmdtype=exit/ser/event,entitydomain=switch/python_script,cmdservice=turn_on/turn_off/set_state,entitynewval,entitynweAttrib]: ',reads);
@@ -1204,7 +1264,7 @@ when in async function getio  we want to get ctlpack we call :
                                         // target=data; or target=reads[3]; ?  // if the request reads[2] is turn_on/turn_off
                                               // data=undefined
                                             const notuseswitch=true;//: use set_state instead of turn_on turn_off
-                                            if(notuseswitch){
+                                            if(notuseswitch){// but convert on set_state
                                               reads[1]='python_script';// force service 
                                               if(reads[2]=='turn_on')
                                                 data.state='on';
@@ -1222,7 +1282,8 @@ when in async function getio  we want to get ctlpack we call :
                                    console.log(outs);
                                    console.error(outs);}
 
-                                                                /* to send :
+                                                                /*  WSHA_CMD
+                                                                  to send cmd with ws msg , see  https://developers.home-assistant.io/docs/api/websocket:
                                                                        {
                                                                         "id": 24,
                                                                         "type": "call_service",
@@ -1395,486 +1456,14 @@ when in async function getio  we want to get ctlpack we call :
 
 
                       //setSwitch:function (name,cmdent,ent,ctlpack){// see  WSTMS 
-                        setSwitch:function (ctlpack,topic, topicNodeRed,pubtopic){// old not used anymore : moved to Fact()
-                                                                                  // *** use fv3 device topics(topic,pubtopic,cmd topic) that interfaces fv3 with real device to interface related ha entity and its triggers,changes
-                                                                                  //      returns the ha topic/pubtopic trigger handler 
-                                                          //                         type 1 :the ha entity control the real devices usually with same topics . 
-                                                          //                                    so we must relay the fv3 topics to :
-                                                          //                                      - transmit the fv3 pubtopic to real device  . this is achived changing ha switch state after received pubtopic from fv3 
-                                                          //                                            infact when writesync: fv3 publish to (topic/) pubtopic ( so not call fv3 handler msgList(topic,val) that is subscribed only to topic and cmd topic ) and 
-                                                          //                                                                    fire a ha setstate service to associated switch entity (via  writeWs func ha handler of pubtopic x this dev ) 
-                                                          //                                      - dont need to transmit back the real ha topic coming from real device  to fv3 
-                                                          //                                     and transmit the cmd topic from the dedicated button entity  to send external cmd to managed device  by interrupt handler 
-                                                          //                                            thats calling ctlcb(topic,val) that will call the msg handler : msgList(topic,val) 
-                                                          //                          type 2/4 :the ha entity monitor the fv3 published topic  
-                                                          //                                     and transmit the cmd topic from the dedicated button entity  to send external cmd to var device managed by interrupt handler
-                                                          //                          type 3  : ...........
 
+                     // here was old setSwitch moved in doc oldsetSwitch.txt
 
 
-                                                          //      obsolete:
-                                                          //  * ha >> fv3 :
-                                                          //    - (type 3,4?) : add a ws listener for the state-changed entity (button/switch) on associated ha entity to fill the corresponding dev queue  
-                                                          //      or
-                                                          //    
-                                                          //    - (type 1,2):  from associated ha cmd topic button entity send a cmdtopic to fv3 message handler the will issue a interrupt to specific user interface ws handler 
-                                                          //       that will set a manual(user/external request/cmd) algo object  
 
-                                                          //          >>> nb fw3 type 1,2 dev dont receive dev topic from ha, because not interested
-                                                          //              , so device income goonP() cant fill dev queue 
-                                                          //          but the proposal to  fv3 to change dev state (event from user int like ws)  must be done as cmd topic and managed throught interrupt calling associated browser ws handler
 
-                                                          //  * fv3 >> ha 
-                                                          //  - will return the writeWs func to call from writeSync to trigger ha associated switch change process (usually call a setstate service)
-                                                          //    the name dev will be mapped to ha entity ent provided by customer in models numbSubscr,,, or something else
 
-                                                          //  nb from fv3 , ex from models.js we get the associated ha entity and its cmd topic entity
-                          /* remember ctlpack= {ctl:new fc(gp,ind,inorout,cfg,that),devNumb:ind,type:'mqtt'}
 
-                          */
-
-                         // let entStates=null;// hass......    todo point to state traced by hass , ex entStates['switch.rssi']='on'
-                         let ctl=ctlpack.ctl,//
-                         plantconfig=ctlpack.plantconfig,// the plant cfg
-                         url;
-                         let {topicMsg,cmdtopicMsg,cfg}=ctl;// cfg is the dev config
-                        let portid=ctl.gpio,// dev portid
-                        devind=ctlpack.devNumb,// dev index;
-                        type = ctl.cl;// 0,1,2,3,4 , used to .....
-                          portid==0?url='':url='setMan';// cmdtopic url setMan excluding portid 0 
-                        
-                        // let {eventMng='mqtt',haEntity,haManButton,package,dashboard}=cfg;// cfg =plant.mqttnumb/mqttprob[dev], the dev cfg
-
-                        // ??
-                        let {eventMng='mqtt',
-                            haEntity,haManButton,// used to fire cmdtopic to fv3 , use a std cmdtopic msg format (PPLL) 
-                            // state, // used in state dev: portid==777, to update ha entities using a proper msg format on topic msg
-                            custF // new custF staff injected
-                            }=cfg;// todo : ** are recovered on cfg=ctlpack.ctl.cfg=plant.cfg.mqttnumb/mqttprob[dev], the dev cfg, 
-                                                                        // ctlpack.ctl.cfg.haEntity is the ha entity related to device with portid :  portid=ctlpack.ctl.gpio,
-                                                                        // nb  only device that are relayed on user ha can have haEntity,and (no probe ) haManButton
-                                                                        // haEntity is the target of topic or pubtopic 
-                                                                        // haManButton event are source of cmdtopic msg to fv3
-                                                                        // state only for portid=777
-                          let state_=cfg.state;// better rename cfg attr state > state_ . state directives
-                          /*
-                          when add a plant for a user we add a basic info in models.plants ,
-                           the user can register giving info:
-                           - its hw connected relay to connect ex consenso e probes
-                            - token per connettersi al ha del user via ws con questo modulo
-                           a questo punto posso generare i file yalm in package e in dashboards via std obj (rispecchiano i file ora usati )che updato in funzione di  info
-                            usandi il handler di app.post("/registerPlant/"  solo che riepio i package e dashboard invece che fare chiamata webhook 
-                            ora qui posso trasferirli usando il sevice di trasferimento file che temporaneamente e' in configuration.yaml che il user deve aggiungere al suo configuration 
-                            o in alternativa si copiera il pachage e il dashboard scaricabili durante la registrazione
-                            see transYalm()
-
-                            question: il supervisor ha per caso la capacità di leggere scrivere i file ??
-
-
-                          */
-
-                          // 
-
-                          let cmdent=haManButton,// >> the buttons entities to send the device a std format cmd topic  (not type 3) with a url (to address a handler specific entry points) :    PPLL
-                                                          //  - if type=1,2,4  entity that fire cmdtopic in a msg with url  'setMan' : haManButton=[[entity,on/off]
-                                                          //  - if type=0 the entity that fire cmdtopic in a msg  with url  'mqttxwebsock' and its event :
-                                                          //                    : haManButton=[[entitytostartprogram,event='repeatcheckxPgm'],
-                                                          //                                    [entitytostoprogram,event='stopcheckxPgm'],
-                                                          //                                    [entitytostart.....,event='repeatcheckxSun",
-                                                          //                                    ....
-                                                          //                                  ],
-
-                                                          //  >>>>>>>>>>  knowing the event in cmdtopicMsg we can complete the msg data with the data required by the receiving dev handler on the specific url : 
-                                                          //          see:     cmdtopicMsg: async function (url, event = null, param = null, val_ = 0, entStates, trackEnt, user = 'extctlId')
-
-
-
-                                                          /* >>>>>  ex ( see : function defFVMng(user,plant,localEntity) in models.js ): 
-                                                          cfg.haManButton=[['input_button.setManx3hours_portid11','on'],// todo : ha entity firing event on url related to cmdtopic :setMan
-                                                                          ],
-
-                                                          cfg.haManButton=[['input_button.start_savingservice','repeatcheckxSun'],// entity firing event on url related to cmdtopic of this dev 
-                                                                          ['input_button.stop_savingservice','stopcheckxSun'],
-                                                                          ['input_button.start_progservice','repeatcheckxPgm'],
-                                                                          ['input_button.stop_progservice','stopcheckxPgm']]
-
-
-                          >>>>> attenzione qui si usano i button per sparare i cmdtopic, def in function defFVMng(user,plant,localEntity) in models.js 
-                                tuttavia in interface si sono aggiunti anche dei automation che al trigger degli entity sparano un event
-                                 nel caso di problemi si potra usare tali event per sparare i cdmtopic al posto dei button entity . 
-                                                                        
-
-                                                          */
-
-                          ent=haEntity; //  ha entity   >>    fv3 dev : 
-                                        // type 3 dev (probe) :  the ha entity that send topic (not pubtopic or ) msg to dev income process (goonP) ,    PPLL 
-
-                                        // fv3 dev  >>   ha entity  : 
-                                        // type 1 dev : the ha entity to update on a pubtopic dev msg 
-                                        // type 2,4 dev, not portid=777 : the ha entity to update on a topic dev msg
-                                        // type 4 , portid=777 , a state dev , use state property , not this one !
-
-                                        //  ex: 'switch.rssi' , the switch entity to represent the dev state  PPLL 
-                                        /*
-
-                                                haEntity:localEntity.switch_consenso},// this dev has a ha entity related whose name is inserted on plant.localEntity
-                                        */
-                           if(PRTLEV>5)console.log('hawsclient setswitch registering listener ha statechange to catch cmdentity for dev portid:',portid);
-                          // now 
-                          // - foreach dev type we must simulate the mqtt message handler call client.on('message',msgList=function (topic, message, packet) 
-                          //    that, using mqtt, would be pub on a topic from ha after a change on corresponding dev entity in ha (  entity( switch/sensor) ,cmd topic button x fire interrupt) on dev topic or cmdtopic
-                          //    compreso il dev type 0 that is a dev that receives cmd topic whose interrupt call a subset of browser ws emit events
-                          //    >> in pratica ha deve mandare via wsclient nel message handler msgList  gli stessi msg sui topic che i dev si aspettano usando il normale  mqtt client !
-                          //        in sostanza i topics sono :
-                          //              per il type 3 probe il  topic topic
-                          //              per type 1  il pubcopy e il cmd topic (il topic non interessa)
-                          //              per  il type 2 il topic e il cmd topic
-                          //              per il type 0 il topic
-                          // - return the handler to call when the dev writesync pub data on pubtopic(/topic): wsclient.publish()
-                          //        must update same ent like in mqtt case the ha mqtt trigger set from a message on pubtopic/topic 
-                          //       HHSS : will trigger update of entity ent when dev writesync call wsclient.publish(dev_pubtopic, data)
-                          //            nb in state dev , portid=777 we fill many entities from state values, all must be mapped to the entity in the package cfg that must be cloned/downloaded/webhooked fron fv3 server
-                          //            temporaneamente lavoriamo su fixed package , so name are fixed and do need to be mapped in cfg data (models.js)
-                          //     >> il pratica i dev writesync sono pub su :
-                          //                pubtopic (type 1) e vanno a controllare il device fisico in attesa di msg su pubtopic o 
-                          //                vengono  cortocircuitati nel topic (type 2 e 4) , :
-                          //                    - quindi alimentando il queue del dev via handler msgList su topic e/o 
-                          //                    - osservato da chi e' eventualmente subscribed su tale topic (che e' solo ha nel caso di wsclient)
-                          //                se uso wsclient devo quindi assicurare che i messaggi publicati da writesync assieme al loro topic  alimenti un handler (HHSS) 
-                          //                    che sia in grado di updatare le entity associate al device
-                          //                     es : triggerare azioni service o event firing
-                          //                     nb l'hanler dovra nel caso di type 1 dovra gestire lo update del entity associata che essendo entity reale avra un nome customizzato che 
-                          //                      potra essere inserito in models.js nella conf del dev
-                          //                      ma potra come nel caso del dev state (type 4 , portid 777) updatare le var state che sono associate a altrettante entity che non dipendono dal plant
-                          //                        costanti perche definite nella config del package associato
-                          //                      a fv3 comprese le dashbord def.
-
-                          if(type!=-1){// useless, any type, but some ent , cmd ent can be null 
-                                        // usually not all dev type has  a ha cmdent (button ) to send cmd topic , ex type 3
-                                        //  type 1 and 2 and 4 and 0  are usually not interested to track the topic state of real entity ent on ha
-                                        //  
-                        //
-
-                        /*
-                        let hasent=false,hascmdent=false;
-                        if(cmdent!=null) {if(Actstates[cmdent]==true) hascmdent=true;// already registered to trace cmdent state_changed event
-                            else Actstates[cmdent]=true;} // aggiungo l'entity [] to trace all entities that can send this dev cmdtopic that are:
-                                                          //  - if type=1 the entity that fire cmdtopic with url  'setMan' 
-                                                          //  - if type=0 the entity that fire cmdtopic with url  'mqttxwebsock' and its event 
-                                                          // es x consenso sara ent=switch.rssi e cmdent=input_button.setmanual_rssi_on_but
-                            if(ent!=null) {if(Actstates[ent]==true) hasent=true;// already registered
-                        else  Actstates[ent]=true;}
-                        if(hascmdent&&hasent)return false;//  alredy processed 
-
-                          // if want present value : 
-                          //  inState=await client.getStates();// store updated  state values inState[name];// start tracking the state with t
-                          //  ctlcb(name,inState[name]);
-
-                          //   **  a) ha firing topics : depending on dev (use index or portid) fire  publish on topic (type 3 (probe), only ? ) or cmd topic ( type 1,2,4) 
-
-                         // nb this client is the haws client homeassistant-ws, not the custom ws client wsclient in haWs!
-
-                         if(!hascmdent)// ?
-                          */
-                         //let probee;// is a probe
-
-                         if(cmdent)cmdent.forEach((it) =>{let ent=it[0];Actstates.push(ent);});// register entities in cmdent as tracked 
-
-                         // *****  haManButton  cmdtopic management: register a change listener that according with haManButton entity event will send a msg (cmdtopic format: url,event,value,....)  on dev cmdtopic 
-                        if(cmdent||(ent&&type==3)){
-                          if(PRTLEV>6)console.log('hawsclient setswitch() called to set listener for cmdtopic/topic from ha entities:',ent,'-',cmdent,'-',state_);
-                        client.on('state_changed', (stateChangedEvent) => {// add a listener x future changes . here checks the dev related entity (haEntity,haManButton) that fire topic and cmdtopic x this dev 
-                                                                            // we could have just 1 listener that check all entity for all devs 
-                          let msgtopics;// the msg x cmdtopic issued by this dev of type 2 : 
-
-                          let finded,
-                          entity_=stateChangedEvent.data.entity_id;// the entity that chnged state : usually a button press event
-                          if(PRTLEV>7)console.log('hawsclient setswitch . listener for cmdtopic for entity: ',ent,' from entities ',cmdent,',\n   got statechange :',JSON.stringify(stateChangedEvent));
-                          if(cmdent&&(finded=findCmdtopicEnt(entity_))>=0){//  the entity that fired its change is registered as this dev cmdtopic entity to send msg in cmdent array !
-
-                                                                    // PPLL when ha entity  change a dev (! type 3 ) val will send a cmdtopic with a msg on std format
-                                                                    //    depending on type we set automatically the url so that in income goonP() the correct interrupt handler will be chosen 
-                                                                    //          type 0 : url= 'mqttxwebsock'
-                                                                    //          type 1,2,4 url='setMan'
-                                                                    // >>>>>>>>>>>>>    entity var or id ???????????   changes on cmdent entity 
-                                                                                        // check is entity_id like switch.rssi   ???????
-                                    // this will use the  client = await hass() set up of a emitter interface subscription: client.on ( works after launched command  command({ type: 'subscribe_events' },  )
-                                    // but can also define a some additional triggers (see https://developers.home-assistant.io/docs/api/websocket/) like : 
-                                   //  setTrigger: async () => command({ type: 'subscribe_trigger' }, client),
-                                    /*
-                                    {
-                                                  "id": 2,
-                                                  "type": "subscribe_trigger",        // command FRTT
-                                                  "trigger": {
-                                                      "platform": "state",
-                                                      "entity_id": "binary_sensor.motion_occupancy",
-                                                      "from": "off",
-                                                      "to":"on"
-                                                  }
-                                              }
-
-
-                                          and , using a button will be :
-                                               .... {
-                                                  "platform": "state",
-                                                  "entity_id": "input_button.start_ensavings"
-                                                } ....
-
-
-                                    */ 
-                                   // and manages the .onTrigger() (like we did with .on()  !!) checking the return of the command FRTT with its  id=2
-
-                          let entity=entity_,// ok ?
-                          event=cmdent[finded][1];// there is a entity entity that can send a topic to the dev interrupt handler to proces the event event
-
-                          // ctlcb(name,stateChangedEvent.data.new_state.state);// B)
-
-                          
-                                              //             "topic": "@Casina_API@ctl_var_gas-pdc_4/NReadUser/cmd",
-                                              //     msg >>       "{\"payload\":1,\"sender\":{\"plant\":\"Casina_API\",\"user\":1055},\"url\":\"setMan\",\"checked\":1,\"data\":{{ states.input_number.hour.state}}}\n"
-                          
-
-                          // ** here we have a to issue a dev cmdtopic msg. to fv3 income . it depende on dev type (?) and protocol because must be handle according to fv3 income handler 
-                          //    so the msg x topic of a device is got by ctl.topicMsg=msgFormat.topicMsg;  and ctl.cmdtopicMsg
-                          //  il dev avendo dichiarato haManButton sul dev mqttnumb significa che il entity haManButton è usato per emettere un cmdtopic msg che ha un format base che contiene
-                          //  url che viene usato in goonP per cercare un handler registrato in una property ctl.int1 . l'handler lavora con msg con format base o uno esteso.
-                          //  il msg viene creato da ctl.cmdtopicMsg che per costruire il msg (format base o esteso) ha a disposizione il context ctl che builda il msg per i 
-                          //  url implementati (inserire handler, suo mappaggio in goonP, build del msg in cmdtopicMsg in msgFormat poi assegnato come property di ctl)
-
-                        let url;
-                        // >>>>  if a cmdtopic of a deve can fire more urls , add url to array in haManButton ex : 
-                        //        cfg.haManButton=[['input_button.setManx3hours_portid11','on',url='setMan']],// 
-                        type?url='setMan':url='mqttxwebsock';// set std url for dev type. url='mqttxwebsock' if type=0
-                      
-                        //+/  Actstates cant contain all entity addressed on cmdtopicMsg  !! (url,event=null,param=null,val_=0,Actstates,trackEnt,user='extctlId'
-                        inState[ent]=stateChangedEvent.data.new_state.state;// updates value, tracking the entity
-                        if(PRTLEV>7)console.log(' hawsclient setswitch .state_changed  (button) reports an entity',entity,' update/pressed, so according to dev haManButton[], fire an cmdtopic event: ',event,' on url: ',url ,
-                        ',\n new value: ',inState[ent]);
-
-                      
-                        
-                         // msgtopics=ctl.cmdtopicMsg(url,event,param=null,1,Actstates,trackEnt,user='extctlId');
-                         msgtopics=ctl.cmdtopicMsg(url,event,param=null,ent,inState,user='extctlId',Actstates,plantconfig.Ent_Prefix);// >>>>>> according to url, event 'repeatcheckxSun' is fired by ha entity ('input_button.'+Ent_Prefix+'start_savingservice') 
-                                                                                                              // build the standard msg to send on dev cmdtopic    (>>>>>> see msgFormat.cmdtopicMsg())
-                                                                                                              //  ( so will be routed to a url/event entry point on the cmdtopic interrupt handler of the dev )
-                                                                                                              // nb event point to a procedure to calc the msg using plantconfig that has info about the ha entity name of the plant (knows the entity name prefix Ent_Prefix)
-                                                                                                              // all is specified by dev cfg  haManButton:                   HHGG
-                                                                                                              /*
-                                                                                                                      this.mqttWebSock=        {portid:0,subtopic:'mqtt_websock_',varx:0,isprobe:false,clas:'int',protocol:'mqttxwebsock',
-                                                                                                                          haManButton:[['input_button.'+Ent_Prefix+'start_savingservice','repeatcheckxSun'],// >>> entity start_savingservice firing event repeatcheckxSun, on url related to cmdtopic 
-                                                                                                                          ['input_button.'+Ent_Prefix+'stop_savingservice','stopcheckxSun'],
-                                                                                                                          ['input_button.'+Ent_Prefix+'start_progservice','repeatcheckxPgm'],
-                                                                                                                          ['input_button.'+Ent_Prefix+'stop_progservice','stopcheckxPgm'] 
-                                                                                                              */
-
-                                                                                                              // the payload, ha id, the url of the interrupt handler
-
-                          ctlcb(topicNodeRed,msgtopics);// press of cmdent button will pub  new val on dev topicnodered=cmdtopic , so incoming process handler goonP() will receive val on the dev cmdtopic 
-                                  // this.queue.push(stateChangedEvent.data.new_state.state);// A)
-                                  // in mqtt int  we did : ......................
-
-                         
-                        } else if(ent && stateChangedEvent.data.entity_id==ent){//ha entity send  dev topic msg: called only x probs (type 3). if ha entity want change a dev (! type 3 ) val will send a cmdtopic !
-                            if(PRTLEV>7) console.log('hawsclient setswitch . ha entity ',ent,',transmit msg value to topic, only x sensor ....todo)  ',stateChangedEvent,',\n new value: ',stateChangedEvent.data.new_state.state,
-                            ' so process in fv3 goonP listener');
-                            // ctlcb(name,stateChangedEvent.data.new_state.state);// B)
-
-                            // ** here we have a to issue a dev topic msg. to fv3 income . it depende on dev type (?) and protocol because must be handle according to fv3 income handler 
-                           // msgtopics= "{\"payload\":1,\"sender\":{\"plant\":\"Casina_API\",\"user\":1055},\"url\":\"setMan\",\"checked\":1}";  // nb data is useless !
- 
-                            msgtopics=ctl.topicMsg(stateChangedEvent.data.new_state.state);// build/format the msg for the topics topic , msg is simply stateChangedEvent.data.new_state.state (a number )
-
-                            ctlcb(topic,msgtopics);// // changes of ent will pub new val on dev topic , so incoming process handler will receive val on the dev topic 
-                            // this.queue.push(stateChangedEvent.data.new_state.state);// A)
-                            }
-                            else  if(PRTLEV>7)console.log('hawsclient setswitch . listener for cmdtopic/topic for entity: ',ent,' found no matches');
-                          })};
-
-
-
-
-
-                            //   NOW :            fv3  >>>>>>>>>>>>>>>    sending device info to ha entities SSDDCB
-
-                            // >>>>  ** now RETURN a function that will be used to update the ha entity related with the dev indipendentemente  of the topic/pubtopic but depending from dev type (not type 3)
-      
-                            // fv3 dev are write(d using writesync that pub a val on dev pubtopic to change the state of dev that gives values publishing on  dev topic:
-                            //      .pub('pubtopic',val)
-                            //          nb some dev type, like 2 ( not in  4 ? ) , pubtopic=topic so simulate a real switch device that pub on topic (so fill dev queue (the dev state)) just the val it was comanded using pubtopic
-                            // in haWs we are using haws instead of mqtt, so we build a custom ws client (wsclient) that when .pub on a pubtopic/topic must change the associated ha switch like when it was done using mqtt:
-                            //  >> so in wsclient when we .pub a topic we must do the same of the mqtt handler called becaused subscribed  on the dev pubtopic :
-                            //      change the dev associated switch state !
-                            //  so  on caller set :swclient.pubs[pubtopic]= the handler HHSS
-                            //    that handler will be called when writesync calls wsclient.pub('thedev_pubtopic',val)
-
-                          //   fv3  >>>> ha entities, sending device info to ha entities
-                          // ** b) ha receiving  topics (topics=topic or pubtopic if type 1) from dev.writeSync(): depending on dev do action ( no : depending on topic or pubtopic ),
-                          //       usually ha will fire event or switch service to change the entity state
-                          if(type==1){// a relay/pump dev , a topics=pubtopic msg
-
-                            // todo implement  on dev type or index .....
-                          
-                            if(PRTLEV>6)console.log('hawsclient setswitch ,  setting the writeSync pubtopic handler to send  dev portid: ',portid,' msg on pubtopic to ha entity: ',ent,' (type 1) using ws docmd to send a change state service ');
-                          return function myf(val,topic,state) {  // val is 0/1 (on/off) , topics= pubtopic
-                                                //              state is the eM.state just to get full state here
-                                                // this is the handler for coming msg (from fv3) of ha subscribed dev topics ( YYKK ), ( topics is topic if type 2,4 anf pubtopic if type1)
-                                                // as std mqtt case we can just updata the state of a mqtt switch or trigger a service from the coming mqtt msg topic 
-                            
-                            
-                                                // HHSS : will trigger update of entity ent when writesync pubs on  dev pubtopic for type 1 and on topic for type 2 and 4:
-                                                // in type 1 usually the ha entity ent is reading state from real device topic and pub on pubtopic to real device when we manually switch the device
-                                                // so this func will be called when client.publish('topic',val) call with topic= the registered pubtopic on this device , see XXFF  
-                            //    here we come for msg of topics (pubtopic x type1 , topic x type 2 e 4 : check it ! )
-                            //    now the problem is the msg will be on/off unless the portid 777 dev that is the state dev 
-                         
-                            let act;
-                            if (val=='on')act=ON;else act=OFF;
-                            docmd(myf.topic,'new value on pubtopic','ser','switch',act,ent);// can be defaulted to call setstate python
-                          };// call f('switch','turn_on','switch.rssi'
-
-                        }else if(type==2||4){/* topics=topic
-                          val =msg={"payload":0/1,"sender":{"plant":"Casina_API","user":55}
-                          so like in mqtt entity :  "value_template": "{% if value_json.payload == 0 %} \"0\" {% elif value_json.payload == 1 %} \"1\" {% endif %}",
-                        */
-                        let det;
-                        if(type==4&&portid==777)  det='for state entities: '+state_;else det='for ha entity: '+ent;
-                          if(PRTLEV>6)console.log('hawsclient setswitch ,  setting the pubtopic handler to send  dev portit: ',portid,'writeSync msg (type 2/4) using ws docmd to send a change entity state service ',det);
-                          
-                          return function myf (val_,topic,state) {  // x dev 777 , val is set in ioreadwritestatus: 
-                                                                    // myf.topic is set on .........   , unusual set a property in a func obj !
-                              const val=JSON.parse(val_);
-                            
-                            if(type==4&&portid==777){// QQIIJK  portid=777  state dev: fill all std entity that depend on state var found on dev topic msg
-                                                      // in this case the format of msg is an extendex format from the std format
-                            // debug: topic should be @Casina_API@ctl_var_state_0
-                            // use probmqtt state property to update entities when this dev will send a topic msg 
-
-                              /* todo : a presence detector of 777 status connection
-                                  just add a timer that will set a flag servicenotactive that detect when program algo is working
-                                  when a 777 state arrives the timer is resetted 
-                                  when the flag becomes active we know that the service is unavailable so we should :
-                                  - do nothing : so the entities remain in the state of last 777 message
-                                  - activate a local temp ctl : in program algo non active interval off all rele, in active interval start a spare termostat
-                                      the spare termostat will check a condition on flag before trigger the action ! 
-                              */
-
-
-
-
-
-
-                            /*
-                            val.payload= state:{anticipate,// send to ha the status it expects      JJOOPP
-                                                program,
-                                                battery:new_scripts.aiax.battery,
-                                                inverter:new_scripts.aiax.inverter,
-                                                desTemp,// desidered temp , giorno only !
-                                                relays:new_scripts.relays// the pump browser state
-                                    }})
-                              
-  
-                            /* mosquitto_sub -t @Casina_API@ctl_var_state_0   -u sermovox -P sime01 -h bot.sermovox.com -p 1883
-                            {"payload":{"state":{ "anticipate":true,"program":true,"battery":1,"inverter":0,"desTemp":20,
-                                                  "relays":{"heat":false,"pdc":false,"g":false,"n":false,"s":false,"split":false,"gaspdcPref":false,"acs":true}
-                                                }
-                                        },
-                              "sender":{"plant":"Casina_API","user":777}
-                            }
-                            // so no need to customize acs,battery,inverter,desTemp :
-
-                            */
-                           // battery entity :
-
-                              state_.forEach(el =>// for each  cfg.state  item  el  update the entity listed on  cfg.state , see GGUUNN, 
-                                            //            el=[ keycode,entityname]=
-                                            //            ['state.  program','input_text.'+Ent_Prefix+'pgmrun'],// * convertite true > 'ON'
-                                            //            ['sender.user','input_text.'+Ent_Prefix+'opt_service1'],
-                                            //            [state.relays.  acs,'input_text.'+Ent_Prefix+'acs'],  // * forse già usato solo come entity di acs pump: so useless 
-                                 {
-                                  let nval;// nb : convert boolean to string , let string , let number 
-                                if (el[0] == 'sender.user') {
-                                  // used to set the entity el[1] on or off depending on msg.sender.user value (777 means not a classical user but the procedure that send the msg (like a url in a post))
-                                  // actually the el[1] dont exists .
-                                  /* remember in models.js what about the property y=state[i] in dev cfg:
-
-                                            // >>>>>>>>>  il func returned by setSwitch fillera le entity !  .    this non depend on cust def entity so just put here in the constructor
-                                            // - remember the msg built in QQIIJJ of ioreadwritestatus.js is :
-                                            //                                val=msg={ "payload":{"state":{"anticipate":true,"program":true,"battery":1.6,"inverter":0.5,"desTemp":20,
-                                            //                                                              "relays":{"heat":false,"pdc":false,"g":false,"n":false,"s":false,"split":false,"gaspdcPref":false,"acs":true}
-                                            //                                                                        }
-                                            //                                                    },
-                                            //                                          "sender":{"plant":"Casina_API","user":777}}
-
-                                            // this var dev will send a msg (see in QQIIJK of hawsclient.js) to set different ha entities ( different from haEntity is the ent to write the new dev values extracted from the std format for a var msg (payload))
-                                            //    - if y.[0]=state.x : the msg.payload.state.x value is used to set the entity y.[1]
-                                            //    - if y.[0]=sender.user   >  write to entity y.[1] ON/OFF depending on msg.sender.user value 
-                                                                    
-                                  */
-                                  // if(val.sender.user==777)......
-                                
-                                }else if (el[0].substring(0,13) == 'state.relays.') { // [state.relays.acs,'input_text.acs'],  
-                                                                                        //is the pump index in mqttnumb
-                                  // convert relays tru/false to ON/OFF
-                                  let attr=el[0].substring(13) // attr='acs', val.payload.state= : see GGUUNN
-                                  //if(typeof state.relays[el[0]]=='boolean')
-                                  { val.payload.state.relays[attr] ? nval = 'ON' : nval = 'OFF'; }
-                                  docmd(myf.topic,'state.relays. :'+attr,'ser', 'python_script', 'set_state', el[1], nval);// el[1]='input_text.'+Ent_Prefix+'acs'
-                                }// entity like input_text !
-                                else if (el[0].substring(0,6) == 'state.') {
-                                  let attr=el[0].substring(6) // attr='program'/'desTemp' , see GGUUNN
-                                  if (typeof val.payload.state[attr] == 'boolean') { val.payload.state[attr] ? nval = 'ON' : nval = 'OFF'; } else nval = val.payload.state[attr];// true/false > ON/OFF  
-                                  docmd(myf.topic,'state. :'+attr,'ser', 'python_script', 'set_state', el[1], nval);// el[1]='input_text.'+Ent_Prefix+'pgmrun'
-                                }
-
-                              });
-                           
-                            
-                            } if((type==2||type==4)&&custF){// new injected func custF x type 2/4
-                              if(custF.exec){// future use : run a server bash
-
-                              }else{// send ha ent update or fire events
-                                  // cal x this dev new msg ( format like 777 dev ?)
-                                //let param=state_.p;
-                                let actions=custF(val,topic,state);// returns actions={ent:[[entname,newval,newattr={attrib1,,,,}]],events:[[eventN,attr,attrVal]],,,]}. state={customParam,,,,}
-                                let pippolo='ciao';
-                                if(actions)
-                                if(actions.ent)actions.ent.forEach((entr)=>{// can also se attributes: entity.attribute=entr[2], see python in BBVV
-                                  let newattr=null;
-                                  if(entr[2])newattr=entr[2];// the attributes to set 
-                                  docmd(myf.topic,'set ent :'+entr[0],'ser', 'python_script', 'set_state', entr[0], entr[1],newattr);
-                                });
-                                else  if(actions.events)actions.events.forEach((entr)=>{
-                                  console.log(pippolo,actions);
-                                  docmd(myf.topic,'fire :'+entr[0],'event', entr[0],entr[1],entr[2]);
-                                });
-
-                              }
-                            
-                            
-                            
-                            
-                            }else{// normal type 2,4  , topics=topic , update ent entity using msg.payload (msg in var dev has  std format )
-                            if(ent){
-                        let value=val.payload;// 0/1
-                        let act;
-                            if (value==1)act='1';else act='0';
-                            
-                            docmd(myf.topic,' new value on topic ','ser','python_script','set_state',ent,act) ;// text,set_text
-                            }
-                            }
-                          }
-
-                      }else return null;// other type (0,3) dont write to ha !
-                          }
-                      function findCmdtopicEnt(entity){
-                            if(cmdent!=null){
-                            for(let i=0;i<cmdent.length;i++){
-                              if(cmdent[i][0]==entity)return i;
-                            }
-                            return -1;
-                            }return -1;
-                          }
-                    },
                     /*
                     setCmdInterf:function (name,startcmdentity,stopcmdentity,ent){// see  WSTMS . ent : the entity associated to start stop algo ,ex: startcmdentity and stopcmdentity, the button entities to start stop the service 
                                                                                   // these entity usually are button , when pressed must send a msg on cmd topic x the interfae device (portid=0)

@@ -286,7 +286,7 @@ cfgs.cfgMarsonLuigi_haws={ name:'MarsonLuigi_API_haws',// testing : run in no ra
          custF:function (msg,topic,state){    // is like custDev[portid]  but works on wsclient to goto ha.  GGDD 
                                     // returns actions to start with turn on/off a local switch or fire some events triggered by local automation ( or insert on configurationuser.yaml ?)
                                     //  actions={ent:[[entname,newval,newattr]],events:[[eventN,attr,attrVal]],,,]}. state={customParam,,,,}
-                                    //,state)}// nb if we need we can also get here state oby that is full state info, so better that an extract put already in msg.payload.state:
+                                    //,state)}// nb if we need we can also get here state obj that is full state info, so better that an extract put already in msg.payload.state:
                                     //    msg, if  std format for type 2,4 (nod dev 777 that set payload an obj )will be :
                                     //                                {payload:0/1,sender:{plant:Plant,user:portid}}
           let payload=msg.payload,
@@ -296,7 +296,7 @@ cfgs.cfgMarsonLuigi_haws={ name:'MarsonLuigi_API_haws',// testing : run in no ra
                                                                           // these params are used to activate scaldabagno. ex: switch entity and allowed hours
           if(scaldabagno){// se il parametri (state.customParam.scaldabagno) per questo custF sono stati impostati all'avvio del algo program, setto la action che sara eseguita sui seguenti entity/event di ha
            //  let ent=scaldabagno.ent;ent=ent||'switch.scaldab';// def if not present in starting program form
-            if(msg.payload==1){// the dev val
+            if(msg.payload==1){// the dev val/state
               //return {ent:[ent,'on',{temp:50,inthour:scaldabagno.hours}]};// accendi switch.scaldabagno con attributo temp di 50 gradi
              return {events:[[scaldabagno.event,scaldabagno.attName,scaldabagno.attVal]]};// meglio fire a event with inthour as param/attribute/val :
 
@@ -350,7 +350,7 @@ cfgs.cfgMarsonLuigi_haws={ name:'MarsonLuigi_API_haws',// testing : run in no ra
 
         ['state.battery','input_number.battery'],// * put battery value in entity input_number.battery !
         ['state.inverter','input_number.inverter'],// *
-        ['state.desTemp','input_number.desTemp'],// *
+        ['state.desTemp','input_number.destemp'],// *
         // [state.relays.acs,'input_text.acs'],  // * forse già usato solo come entity di acs pump: so useless 
         ['state.anticipate','input_text.opirun'],// * convertite true/false > 'ON'/'OFF'
         ['state.program','input_text.pgmrun'],// * convertite true > 'ON'
@@ -965,9 +965,10 @@ return prods;
 
 
 function defFVMng(user,plant,localEntity)//,replE)// default=casina class plant factory. copyed from casina, factory of a std plant template of FV app . now called by addUserPlant
-                                          // localEntity will set local user specific hw entity, ex :numbmqtt and probmqtt : haEntity,haManButton 
+                                          // localEntity will set registering casina plant local user specific hw entity, ex :numbmqtt and probmqtt : haEntity,haManButton 
                                           //  haEntity will set ,haManButton 
-{       // plant=user+'_API',
+                                          //  called by addUserPlant()
+{                                         // plant=user+'_API',
 
 
     this.usingMqtt=false;// this plant wont use mqtt client at all so i wont be loaded mqtt client to connect to a rowser but only haWs client  
@@ -1072,10 +1073,7 @@ function defFVMng(user,plant,localEntity)//,replE)// default=casina class plant 
 
          }else return {events:[[Ent_Prefix+'scaldabagno_off']]};//reset . {ent:[ent,'off',null]};
        }
-
-
        }
-
     },
       {portid:12,clas:'out',protocol:'shelly',subtopic:'_shelly1-34945475FE06',// acs
       haManButton:[['input_button.'+Ent_Prefix+'setmanual_acs_on_but','on'],//    this non depend on cust def entity so just put here in the constructor
@@ -1114,7 +1112,7 @@ function defFVMng(user,plant,localEntity)//,replE)// default=casina class plant 
 
           ['state.battery','input_number.'+Ent_Prefix+'battery'],// * put battery value in entity input_number.battery !
           ['state.inverter','input_number.'+Ent_Prefix+'inverter'],// *
-          ['state.desTemp','input_number.'+Ent_Prefix+'desTemp'],// *
+          ['state.desTemp','input_number.'+Ent_Prefix+'destemp'],// *
           // [state.relays.acs,'input_text.'+Ent_Prefix+'acs'],  // * forse già usato solo come entity di acs pump: so useless 
           ['state.anticipate','input_text.'+Ent_Prefix+'opirun'],// * convertite true/false > 'ON'/'OFF'
           ['state.program','input_text.'+Ent_Prefix+'pgmrun'],// * convertite true > 'ON'
@@ -1212,7 +1210,7 @@ function defFVMng(user,plant,localEntity)//,replE)// default=casina class plant 
         if(localEntity.huawei)this.huawei=localEntity.huawei// devid casina
         this.custDev={ 66: custDev_2};// custDev_1
         };
-function defFVMng_(user,plant)// default=casina class plant factory. copyed from casina, factory of a std plant tempalte of FV app . now called by addUserPlant
+function defFVMng_(user,plant)// seems old , default=casina class plant factory. copyed from casina, factory of a std plant tempalte of FV app . now called by addUserPlant
         {  
 
         }

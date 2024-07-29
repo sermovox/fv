@@ -1,0 +1,16 @@
+- ha switch version mqtt :
+	set manuale degli switch in ha Casina_API  non cambiano i state in eM ctl
+	cio perche gli switch di ha intervengono (solo?) sul cmdtopic del device reale e non su topics del corrispondente device eM 
+	a anche se fosse cosi :
+		> gli state dei dev/rele type 1 non sono mai influenzati dal msg in topic che proviene dal device (che va si in queue e quindi leggibile col readSync che pero è usato solo per controllo  ), 
+		sono solo rappresentazione del ultimo cmd topic mandato da un state change di eM dev
+	
+	
+	
+	
+	
+- in raspberry fv20 abbiamo le modifiche minime del commit :
+	......    
+	circa del 25 ottobre 2023 ?
+	before alla scrittura del haWs 
+	salvato in fv20_19112023_prehaws_split2debugbug ?

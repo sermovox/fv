@@ -12,13 +12,15 @@
 		"£text2":{
 		  "name":  "Text 2",
 		  "initial": " {\"9:20\": 45 , \"16:30\":10}" 
-		  },
-		"£destemp":{
-		  "name":  "destemp",
-		  "initial": " {\"9:20\": 45 , \"16:30\":10}" 
 		  }
 		},
    "input_number": {
+		"£destemp":{
+		  "name":  "destemp",
+		  "initial": 20, 
+		  "min":1,
+		  "max":45
+		  },
 		"£hour":{
 		  "name":  "ore",
 		  "initial":1,

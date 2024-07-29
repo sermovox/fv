@@ -54,7 +54,7 @@
             "unit": null
           },
           "inner": {
-            "entity": "input_text.£destemp",
+            "entity": "input_number.£destemp",
             "label": "prog.",
             "unit": null
           },

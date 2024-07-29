@@ -1,0 +1,174 @@
+
+- sono luigi e vi volevo trasmettere l'esperienza su pdc e fv e in particolare su come valurare la conv dell'investimento e qulora possibili i possibili rimed iia una installazione sconveniente. gli eventuali correzioni da fare prima durante e dopo l'nstallazione , se possibili
+
+- ho effettuato 5 install  con 5 installatori diversi e ho valutato la convenienza dellinvestimento anche oaragonandola con le situazioni che gli installatori hanno avuto con i loro clienti 
+
+ - infatti si verifica che 1/3 1/3 e 1/3    , e gli eventuali correttivi da fare . 
+ 
+ - parliamo di valutazione investimento. cosa che e' complessa e che quasi nessuno fa prima e dopo l'onstallazione. vi daemo un modo semplice che molto vicino ai risutati reali di un impianto
+ 	> la chiave sugli impianti fv + pdc come tutti snno  e' autoconsumare 
+ e cosa di cui tutti parlano ma senza riuscire a tradurre i concetti in valuatzione economica dei risparmi effettivi . coprire almeno il 5% dell'investimento quindi dell'ordine di  almeno 1000 2000 euro annui
+
+ - per capire la logica del concetto di autoconsumo e i risparmi relativi andiamo ad esaminare
+ 	lvalutare i consumi in pratica e di valutare  quanto l'autoconsumo incide
+	ora l'analisi risulta piu immediata e semplice da osservare 
+	
+		>se le condizioni di lavoro sono quasi stazionarie 
+		
+		cioe' esamino una situazione gionaliera stabile cosi da rendere piu evidenti i concetti base 
+in questa situazione che vedete sostanzialmente nei grafici che esaminiamo per i periodi considerati 
+
+- risulta evidente che perche e' vantaggioso la pompa d calore solo se >>  la utilizzo in autoconsumo infatti con l'autoconsumo non si preleva en a caro prezzo dalla rete ma da''ipinto pdc+fv 
+	le condizioni per autoconsumare sono 
+	- fv abbastanza potente e giornate assolate
+	- capacita di immagazzinare l'energia per i consumi notturni che sara possibile solo se 'limpianto di accumulazione e' dimensionato accortamente  ( sono molto costosi e impianti di capacita elevata diventanno inconevtienti !
+		 per riuscire a consumare l'autoconsumo con impianti di capacita contenuta  quindi con costi accettabili e' necessario avere dei consumi ridotti serali 
+		 > risula quindi possibile realizzare l'autoconsumo spostando il piu possibile i consumi in corrispondenza dele periodo di produzion efv 
+		 come> favorire l'accensione di pdc , scaldabagni e altri carichi notevoli durante i periodi di autoproduzione
+		 
+		 quindi andrmo a valutare per ogni condizione stazionaria la percentuale di autoconsumo realizzato e i costi per la quota parte non realizzata 
+		 
+	infatti dai grafici si vede immediatamente che posso evitare i consumi elettrici dalla rete che pago salati solo se i miei consumi usano l'energia prodotta dal fotovoltaico
+ - in caso negativo devo rrichiederli satlati dalla rete !
+ 
+ questo avviene solo se riesco a immagazzinare l'energia del fotovoltaico prodotta in eccesso rispetto ai consumi istantanei nelle batterie per il consumo notturno
+ es consumo 15 kw al giorno e produco almenno 15 kw dal fv
+ immaginiamo che il sistama di regolaione della temperatura sia basato su termostato e non tenga conto della produzione istantanea di fv 
+  tale logica impone mediamente un consumo distribuito lungo tutta la giornata , anzi peggio perche quando arrivo a casa e alla mattina accendo i programmi a t elevata quindi avrro paradossalmemnte una concentrazione in momenti di non produzione  !
+  mettiamoci quindi comunque in situazione migliore di quella che effettivamente è e immaginiamo di distribuire il carico assorbito lalla pdc uniformemente 
+  
+  
+  
+  immaginiamo essere in stagione primaverile e che x riscadare una casa di mettiamo 200 m2  mi servano in media 15kw  giornalieri per pdc + immaginiamo avere 13 kwh per altri consumi, il che fa 28 kw a giorno . 
+  in un sistema non ottimizzato useremo un termostati x regolare la temperatura il che implica ipotizzare che i consumi siano eq distribuiti avro in sostanza un consumo durante la produzione fv (mettiamo giusto per essre concreti 6 ore , che quindi saranno 1/4 di 28kWh/4 quindi circa  7= 3 + 4 di pdc durante la prod fv e il resto 28-7=21 nel periodo sostanzialmente di buio  
+  
+  stazionario in febbraio/marzo, impianto FV tipico 6kW progettato correttamente per coprire i consumi stazionari : 28 kWh, temperatura risc 40 gradi
+  
+  					periodo di produzione FV	periodo notturno 		note, traccia calcoli
+  
+  	consumi  	28kWh   	=   7  giorno 		+  	21 buio (18 h)			nel periodo notturno la pdc lavora con temperature sfavorevoli (7 gradi invece di 12) 
+  	15kWh di pdc+13 altro		=   4 di pdc + 3		11 di pcd + 10			maggiori costi del 25% (delta temp 33 gradi invece di 28 gradi), 11/4= 3 kWh, 2 euro (L)
+  					=   1,2kW x 6h							potenza media pdc= 4/6=680W
+  					
+  	produzioneFV 	28kWh 		=   28 (6h)
+  					=   4.5kW x 6h
+  	batteria 	15kWh 						<=15kWh				15 solo se il FV riesce a caricarla la mattina , in questo caso ci riesce
+  	
+  	in rete 			    >= 6 kWh regalati						dopo aver consumato 7kWh e caricao la batt di 15kWh dopo  butto via i restanti 6 :
+  														ripartizione energia fv= 28kWh = 7+15+6,	quindi 6kWh in rete 
+													carico la batt in h=15kWh/4.5kW=3.3h e poi butto in rete 4,5-1,2=3,3kW per le restanti 2,7 h 
+													
+  	dalla rete 							>= 6kWh pagati			6kWh= 4 euro (M)
+													
+	cicli giornalieri	1									consumo batteria per ciclo = costo/cicli  20.000/(12 anni di 365 giorni)= 4 euro (N)
+	equivalenti											motivo per cui le batterie hanno capacita non troppo grande (max 2 x potenza FV)
+	batteria 	
+	totale consumi 	L+M+N		2+4+4=10 euro
+													
+													
+ giorno +n : FV in calo 
+	produzioneFV	20kWh	avro:   
+	
+  
+  	consumi  	28kWh   	=   7  giorno 	(A)	+  	21 buio (18 h)			nel periodo notturno la pdc lavora con temperature sfavorevoli (7 gradi invece di 12) 
+  	15kWh di pdc+13kWh altro	=   4 di pdc + 3		11 di pcd + 10			maggiori costi del 25% (delta temp 33 gradi invece di 28 gradi), 11/4= 3 kWh, 2 euro (L)
+  					=   1,2kW x 6h
+  					
+  	produzioneFV 	20kWh 		=   20 (6h)
+  					=   3.3kW x 6h
+  	batteria 	15kWh 						13kWh	(B)			FV riesce a caricarla parzialmente la mattina e impiegando piu ore 
+  	
+  	in rete 			    	0							dopo aver consumato (A) 7kWh  carico la batt di soli (B) 13kWh :
+  														ripartizione energia fv= 20kWh = 7+13,	
+  													quindi la batteria si carica di solo 13kWh in 6 h
+
+  	dalla rete 							 8kWh pagati			=21-13									
+													8kWh= 6 euro (M)
+													
+	cicli giornalieri	1									consumo batteria per ciclo = costo/cicli  20.000/(12 anni di 365 giorni)= 4 euro (N)
+	equivalenti
+	batteria 	
+	totale consumi 	L+M+N		4+8+2=12 euro
+		
+
+
+  stazionario in febbraio/marzo, impianto FV tipico 6kW progettato correttamente per coprire i consumi stazionari : 28 kWh, temperatura risc 40 gradi, ottimizzazione autoconsumi
+  
+  					periodo di produzione FV	periodo notturno 
+  
+  	consumi  	28kWh   	=   18  giorno 		+  	10 buio (18 h)			nel periodo notturno la pdc lavora con temperature sfavorevoli (7 gradi invece di 12) 
+  	15kWh di pdc+13 altro		=   15 di pdc (E) + 3		0 di pdc +10				0=15(E)-15 : manca (o trascurabile) pdc di notte quindi maggiori costi del 0% (L)
+  					=   18/6=3kW   x 6h							(E) :potenza pdc 2.5kW in continua , quindi energia pdc=2.5*6=15kWh 
+  														vicino alla necessita giornaliera 
+  														(potrebbe essere un pominore ma è irrilevante per l'analisi)
+  					
+  	produzioneFV 	28kWh 		=   28 (6h)
+  					=   4.5kW x 6h
+  	batteria 	15kWh 						10kWh				carica batteria 28-18= 10kWh, sostanzialmente copre i consumi altro notturni
+  	
+  	in rete 			    0 kWh regalati						dopo aver consumato 7kWh e caricato la batt di 15kWh rimane 10 kWh per carica batterie :
+  														ripartizione energia fv= 28kWh = 18+10,	quindi 0 kWh in rete 
+													carico la batt in h=15kWh/4.5kW=3.3h e poi butto in rete 4,5-1,2=3,3kW per le restanti 2,7 h 
+													
+  	dalla rete 							0 kWh pagati			0 euro (M) 
+													
+	cicli giornalieri	10/15=0.6									consumo batteria per ciclo = costo/cicli  20.000/(12 anni di 365 giorni)= 4 euro. 4*0.6=2,5 euro (N)
+	equivalenti
+	batteria 	
+	totale consumi 	L+M+N		2,5 euro
+													
+													
+ giorno +n : FV in calo 
+	produzioneFV	20kWh	avro:   
+
+
+  					periodo di produzione FV	periodo notturno 
+  
+  	consumi  	28kWh   	=   18  giorno 		+  	10 buio (18 h)			nel periodo notturno la pdc lavora con temperature sfavorevoli (7 gradi invece di 12) 
+  	15kWh di pdc+13 altro		=   15 di pdc (E) + 3		0 di pdc +10				0=15(E)-15 : manca (o trascurabile) pdc di notte quindi maggiori costi del 0% (L)
+  					=   18/6=3kW   x 6h							(E) :potenza pdc 2.5kW in continua , quindi energia pdc=2.5*6=15kWh 
+  														vicino alla necessita giornaliera 
+  														(potrebbe essere un pominore ma è irrilevante per l'analisi)
+  					
+  	produzioneFV 	20kWh 		=   20 (6h)
+  					=   4.5kW x 6h
+  	batteria 	15kWh 						2kWh				carica parziale batteria 20-18= 2kWh, sostanzialmente concorre a coprire i consumi altro notturni
+  	
+  	in rete 			    0 kWh regalati						dopo aver consumato 7kWh e caricato la batt di 15kWh rimane 10 kWh per carica batterie :
+  														ripartizione energia fv= 28kWh = 18+10,	quindi 0 kWh in rete 
+													carico la batt in h=15kWh/4.5kW=3.3h e poi butto in rete 4,5-1,2=3,3kW per le restanti 2,7 h 
+													
+  	dalla rete 							8 kWh pagati			10-2=8kWh , 6 euro (M) 
+													
+	cicli giornalieri	2/15=0.15									consumo batteria per ciclo = costo/cicli  20.000/(12 anni di 365 giorni)= 4 euro. 4*0.15=0,6 euro (N)
+	equivalenti
+	batteria 	
+	totale consumi 	L+M+N		6,5 euro
+													
+	
+
+
+		
+nb sono arrivato in 1 giorno ad una nuova situazione di stazionarietaà . se la prodizine scendesse di meno che 6kWh avrei alcuni giorno in cui carico la batteria sempre al max ma in tempi sempre maggiori fino a che arrivo alle 6h
+da qui in poi la situazione si stabilizza in modo analogo al esempio dio sopra
+	
+  immaginiamo il fv progettato correttamante che fornisca tutti i 28 kWh es in 6 ore sostanzialmente attorno alle 12 , ad es per impianto FV  di 6kW saranno quindi facendo ipotesi produzione media di 4.5kW * 6 h=28kWh
+  essendo la produzione in 6 ore  devo immagazzinare in batteria quanto mi le necessità di consumo distribuiti nell'arco della giornata  quindi necessito di 15 *3/4= 12 Kw per la pompa + mettiamo 10 (su un giornaliero di 13 kw) x altro = 25 Kw . ora come avviene comunemente (per un 6Kw la cap batteria puo variare da 10 a 20 Kwh mediamente) avro meno capacità, es 15  e cosi va a finire che la differenza tra i 25 kwh -15kwh = 10 kWh deve essere fornita dalla rete in periodo notturno. tale energia e' banalmente quanto butto via in rete durante il giorno dove mi trovo a produrre piu di qunto consumo + la capacita di batteria, quindi produco 28 e consumo 3+ 
+   se la batt e' inferiore consumo la diff dalla rete
+   
+   
+  
+  quando la produzione giornaliera di fv scema dicamo meno delle necessita consumo che sono di15+13=38 , mettiamo diventa 15 ,carichero meno la batteria durante la produzione fv , in particolare carichero fv=15 - autoconsumo mattiniero  di 3 - i 15-12=3 di pompa di calore quindi carico 15-3-3= 9kw mentre la notte la batteria deve soddisfare un consumo di 25 e quindi banalmente mi provero a consumare dalla rete in piu proprio la quantita che produco in meno    l'energia notturna la ottengo dal livello della batteria che cala qorno dopo giorno fino a che devo ricorrere alla rete per la quota di sbilancio prod/consumi
+  che sara 25-Potbatteria che paghero salata alla rete , es 15kW batt sono 25-15 = 10 Kw = 6 euro , buttati anche se produco tutta l'energia con fv , non avendo abbastanza capacita di batt per conservare la produzione finisco per butta rka gratis in rete  
+  
+  ma allora dico se sono in fv>= consumi basta che la batt sia l momento di agare una btt nuova (5/20000 euro) che brucia ttti i risparmi e gli investimenti per la pompa di calore 
+   infatti dopo  5000 cicli completi  ( giorni) la batteria la butto 
+   ora i cicli giornalieri sono pari a potenza
+   
+   - la battria di 25 kw costa il doppio di una da 15 il che vuol dire 10000 euro che sono una cifra ch mai recuperero dai ri risparmi che spero di avere col fotovoltaico . prticamente tutta la speda per fv + ompa (20-40 000) euro non ha senso sono buttati e miconviene alla fine spegnere la pompa come fi il 30-50% delle intallazioni non ottimizzate via autoconsumo
+   
+   - i rendimenti di sera sono peggiori stimiamoli 
+    per l quoata di 12 kw il rendiment peggiorando di .7 sono .3*12=3,6 kw cioe costo ulteriore di 2 eiro il che fa 6+3,6 = 10 euro + 3 euro a g per obsolescenza batteria fa 13 euro, butti al vento ogni giorno , per 4 mesi anno fa 1500 euro / anno
+    cio senza considerare altri consumi differibili come carica auto, scaldabagni ecc ecc 
+   
+ 
