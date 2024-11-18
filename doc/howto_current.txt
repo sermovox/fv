@@ -1483,6 +1483,12 @@ curl --location 'https://eu5.fusionsolar.huawei.com/thirdData/getDevList' \
 > --header 'Content-Type: application/json' \
 > --data '{"stationCodes":"NE=36026831"
 > }'
+
+better , after got the token from the state in the browswr plant page , run :
+curl --location 'https://eu5.fusionsolar.huawei.com/thirdData/getDevList' --header 'XSRF-TOKEN: "x-476krsvumpakk707fspf2ppcphem2rmp48hjs52k5dk42njsapimo5kagbilhfarpd5f2rs9pgrwrs84ldjtdgvuc9umlhmog5dgc7pcrxpgpc7thek907bykbmr3yrv' --header 'Content-Type: application/json' --data '{"stationCodes":"NE=36026831" }'
+ but you must relogin ?????
+
+
 {"data":[{"devName":"INV-HV2160184230","devTypeId":38,"esnCode":"HV2160184230","id":1000000036026833,"invType":"SUN2000-5KTL-L1","latitude":45.965359,"longitude":12.678223,"optimizerNumber":0,"softwareVersion":"V200R001C00SPC130","stationCode":"NE=36026831"},{"devName":"Battery-1","devTypeId":39,"esnCode":null,"id":1000000036026834,"invType":null,"latitude":45.965359,"longitude":12.678223,"optimizerNumber":null,"softwareVersion":null,"stationCode":"NE=36026831"},{"devName":"Meter-1","devTypeId":47,"esnCode":null,"id":1000000036026835,"invType":null,"latitude":45.965359,"longitude":12.678223,"optimizerNumber":null,"softwareVersion":null,"stationCode":"NE=36026831"}],"failCode":0,"message":null,"params":{"currentTime":1686069692769,"stationCodes":"NE=36026831"},"success":true}
 
 _______________________________________
@@ -6956,9 +6962,10 @@ ________________________________________
 		-come funzione getCon del controller esportato da hawsclient (future use?)
 question : come mai è null quando si vuole sparare comand ws ??? :  .......
 ________________________________________
+**************
 
-management summary homeassistant
- howto rigenerate a yalm cfg plant in ha homeassistant
+management summary homeassistant : howto rigenerate a yalm cfg plant in ha homeassistant	LLJJOO
+ 
  -store the old yaml cfg copyng  its subdir in ./haYaml
  - store the old ws ha plant def in haPlants.json 
 
@@ -7212,7 +7219,7 @@ building a ha plant in models.js addUserPlant:
         
 ______________________________
 
-MANAGEMENT SUMMARY: ws connection to ha  
+MANAGEMENT SUMMARY: ws connection to ha  . LAST UPDATE 10/2024 ?
 	to this summary must be add also extract from paragraf RRTTx
 
 - ws : connection to ha via ws with mqtt protocol is managed by mqttInst.ws ctl in haWs  , 
@@ -7226,7 +7233,9 @@ MANAGEMENT SUMMARY: ws connection to ha
 			
 	- mqttInst = new mqttClass(plantconfig) ,  is set in haWs.js exported init() :
 	
-		{   		connector=init_hawsclient(plantconfig); //  connect ha entities via ws library  , used only if plantconfig.isHaWebSoc
+		{   	/*
+		
+			connector=init_hawsclient(plantconfig); //  connect ha entities via ws library  , used only if plantconfig.isHaWebSoc
 					(require('./hawsclientFact')=controller).init(cb=  (topics,val)=>ws.income(topics,val)},PRTLEV,plantconfig)=new Fact(cb,plantconfig,PRTLEV_),			ws not correct
 																		nb cb() is called by  setSwitch, see RREEWW 
 																		
@@ -7274,11 +7283,11 @@ MANAGEMENT SUMMARY: ws connection to ha
 										 				will call  (wsClass=this).hawsclient.setSwitch(ctlpack, topic, topicNodeRed, pubtopic)  
 										 					sets on run time closure function to send msg to devices income queue 
 										 					operating on injected ctlcb_ handler that is assigned with .on() 
-										 ,,
+										 ,publish,subscribe
 										}
 							
 
-																					
+			*/																	
 								
 					
 		    this.ws=new wsClass(connector); // only if plantconfig.isHaWebSoc
@@ -7313,7 +7322,8 @@ MANAGEMENT SUMMARY: ws connection to ha
 															= mqttclient client in mqtt.js , the std clients that publish topic msg to brocker mqtt 
 															  or the client that connect ha entity using msg protocol like mqtt :
 															  
-									 						= new wsClass(connector)  wsClass uses mqtt like protocol to connect ha entities using the  ws library connector:
+									 						= new wsClass(connector)  // connector : see DDSS
+									 									wsClass uses mqtt like protocol to connect ha entities using the  ws library connector:
 																		={hawsclient: = connector=anewcon , the ws library to ha,   			
 																		
 																		haDevList,
@@ -7385,7 +7395,7 @@ MANAGEMENT SUMMARY: ws connection to ha
 			connector=init_hawsclient(plantconfig)	<<<   (hawsclient=require('./hawsclientFact')).init(cb,PRTLEV,plantconfig)  << 	anewcon=new Fact(ctlcb_,plantconfig,PRTLEV_),  LOPPO / DDSS  , see hawsclientFact.js in exported init()
 															
 			
-			so 												connector=anewcon							
+			so  DDSS												connector=anewcon							
 															=new Fact(ctlcb_,plantconfig,PRTLEV_)
 															= {	cfg,
 																client,		=await getNewCon(connCfg,this.PRTLEV)=clientInst= hass_(connCfg, PRTLEV) =clientObject(client)  
@@ -7598,7 +7608,7 @@ MANAGEMENT SUMMARY: ws connection to ha
 							=mqttclient client in mqtt.js , the std clients that publish topic msg to brocker mqtt 
 						
 					   ,,,,,,,
-					   }
+					   }// end mqttInst
 					   	
 					   
 				ctlpack={ctl:	= new fc(gp,ind)=			the dev mqtt interface ctl
@@ -7619,7 +7629,7 @@ MANAGEMENT SUMMARY: ws connection to ha
 					,devNumb:index,type:'mqtt'};												
 			    																	
 
-- remember in getio.js we add  resu , a array of promise , filled with  pr=doSomethingAsync(gpio,i) that will be resolved as ctlpack={ctl,devNumb:ind,type:'gpio'}
+- remember in getio.js we add  resu , a array of promise , filled with  pr=doSomethingAsync(gpio,i) that will be resolved as ctlpack={ctl,devNumb:ind,type:'gpio'}   RRTTy
 	and processed (.then) in fillProm(pr),
 	
 		ctlpack is created by resolving  mqttInst.fact when in abilita() we created the device ctl to do device i/o (publish topic msg with client toward mqttbroker or topic msg to hawsclient )
@@ -8005,13 +8015,24 @@ ______________________________________________________________
 
 	RRTT2
 
-    haws mng summary
-    - in  defFVMng(user,plant,localEntity)//,replE) is the  default=casina class plant factory template. factory of a std plant template of the std FV app (manages the switch listed on the browser webpage).
-    				called by addUserPlant to inject custom entity of user local switch
-    	dev with specified with protocol:'mqttxwebsock', can connect to ha :  fv3 dev <> ha ent 
-    				>>>>>     see RRGGFFxx . explain how are built the ha entities cb hange event listeners that send msg topic to fv3 income process , and the handler that send fv3  dev state update to ha event that fire ha entities updates 
+    haws mng summary , see generate plant config chart !
+    - in  models.js defFVMng(user,plant,localEntity)//,replE) is the  default=casina class plant factory template. factory of a std plant template of the std FV app (manages the switch listed on the browser webpage).
+    				cioè immaginiamo che lo user abbia def una serie di device da controllare con i param definiti in una app browser
+    				allora avro bisogno di algo che supportino tale gestione e quindi di personalizzare gli algo e dare imput al framwork to generate proper device management
+    				allora  partiro da un template di config e la personalizzaro con i delta che voglio iniettare 
+    				tale config si chiama appunto defFVMng !
     				
-    		- how a mqtt dev (can be standard mqtt or mqtt via ws ha ) connects depend on numbSubscr/probSubscr configs funcs :
+    			nb localEntity will set registering casina plant local user specific hw entity,
+    				called by addUserPlant to inject custom entity (ha entity connecting real switch devices )of user local switch
+    				
+    					addUserPlant will add a generated plant cfg into : in haPlants.json(loaded in run time plants)
+    		in haPlants.json the configured ws plant, according with  defFVMng mqttWebSock (see key mqttnumb/mqttprob subkey   "client": "haWebSoc"),  : 
+    			the dev specified in defFVMng with protocol:'mqttxwebsock', will/can connect to ha :  fv3 dev <> ha ent 
+    			using the device config passed in localEntity
+    				>>>>>     see RRGGFFxx . explain how are built the ha entities cb hange event listeners that send msg topic to fv3 income process , 
+    							and the handler that send ( ws ) fv3  dev state update to ha event that fire ha entities updates 
+    				
+    		- how a ( anyway mqtt interface) dev (can be standard mqtt or mqtt via ws ha ) connects depend on numbSubscr/probSubscr plant configs in haPlants.json   :
     		
     			typically in  registerIncomeInfo(portid,topics,that,ctlpack,cl_class, protocol);
     				- we set the topics (topic,pubtopic ( no:cmdtopic) ) of the dev into mqttInst.mqttTop[portid] /mqttInst.mqttTopPub[portid] / ... 
@@ -8300,6 +8321,19 @@ todo add unique_id  to switch.   user entities
 	>> dobiamo cambiare i rif switch.name > switch.unique_id  ??? es in automation ....   sembra di no 
 ______________________________________________
 
+some git cmd :
+
+git log --graph --oneline --decorate --all
+git show -s --format=%ci 4758ae6
+
+git push
+git status
+git branch -r
+git branch -a
+git branch -a -v
+git branch -a -vv
+
+
 git show HEAD^^^:test/test.py
 ______________________________________________________
 
@@ -8310,7 +8344,7 @@ Shift + Alt + Right Arrow
 ________________________________
 
 TESTINGhaWS 
-	RRTT2
+	see RRTT2
 
 >>> the error was because we use a gpio plant and we try working with ctl.wsclient but it was null 
 	infact ctl.wsclient was not set in new fc()   because :
@@ -8493,6 +8527,13 @@ plant template management summary , todo: complete !
 
  a plant like cfgs.cfgMarsonLuigi and cfgs.cfgCasina share the same template  made of executing algos operating on a predefined set of devs described on plant cfg
  	- each plant can map some of not var devices to some specific device to apply for its functionality as defined by the executing algo , gpio or mqtt or ha instance entities 
+ 	
+ 		in altre parole gli algo lavorano su dei device virtuali specificando un index
+ 		mapping : 
+ 		>>> i index dei dev virtuali potrebbero essere mappati su index di dev fisici gestiti dalla app browser in modo che se sposto l'ordine dei dev fisici nel browser poi posso rimappare l'index che usano gli algo !!!
+ 		ma per ora il mapping è l'identità !
+ 		.....
+ 		
  	- can map also var dev to monitor its state var or to input a external var 
  		-  ...........
  	- can also get python/linux sensor using pythonprob
@@ -8562,15 +8603,23 @@ plant template management summary , todo: complete !
 	todo add the ...............
 
 ________________________________________
+
+milestone :
 briefing on 01062024 
 
-- 1) add irene  with alexa yaml on ha instance in port 8123 connected to old fv20 (connecting ha with pure mqtt), add a routing in caddy try accessing ha instance via https, test alexa
+- 0) noto la presenza di hoto_v2.txt   sono commenti aggiunti al 20042023 ( sembra specialmente utile per la versione con ws: haWs.js al posto di mqtt.js)
 
-- 2) goon with fv3 current version (  casina plant in dell connecting  ha with ws ) after finished testing casinauser1 on ws with port 8124
+- 1) add irene  yaml with alexa yaml on ha instance in port 8123 connected to fv20 running on raspberry (connecting ha-fv  with pure mqtt), 
+	add a routing in caddy try accessing ha instance on raspberry via https, : fatto 192.168.1.212:8123 is routed from https://ha2.sermovox.duckdns.org:9000
+	test alexa
+
+- 2) goon with fv3 current version running on dell ( fv casina plant in dell connecting  ha with ws ) after finished testing casinauser1 using ws on ha instance 192.168.1.212:8124 routed to https://ha.sermovox.duckdns.org:9000
+	start https://ha.sermovox.duckdns.org:9000 and see casinauser1_, then run fv that will connect with ws to fv, plant casinauser1_API  via haWs
+	see also TTSSQQ 
 
 - migrate  1) on 2) using new instance 8124  running from current fv3 in dell. try run also in raspberry the current version of fv3 running on 8124. mantain irene on both way 1 and 2.
 	add scaldabagno using custF , so using event to command a ha switch (no a fv3 switch)
-- try run marsonLuigi plant (connect with rasp gpio + mqtt c vars )also in fv3 current version on rasp , so we have the new feature , then start to generate instance in ha x marson luigi plant (all devices ) using ws like in 8124. eventually use a 
+- try run marsonLuigi plant (connect with rasp gpio + mqtt c vars )also in fv3 current dell (/raspexampl/fv) version loaded on rasp , so we have the new feature , then start to generate instance in ha x marson luigi plant (all devices ) using ws like in 8124. eventually use a 
 	specific instance 8125 , add scaldabagno using a rasp dev to command the switch . add also a switch scaldabagno 2 using a ha switch like in casina, see above
 	
 	
@@ -8736,10 +8785,9 @@ da debuggare
 
 ______________________________________
 
-todo 
 
 
- come esempio  si debugga  temp120.txt per relay pump bt che non sembra essere stata attivata
+ come esempio  di  debug guarda cosa si  è fatto nel file  temp120.txt per relay pump bt che non sembra essere stata attivata
  
  - in temp120.txt see xxx1 : 
 
@@ -8850,8 +8898,353 @@ todo
      	al punto : 
      		sendstatus() pretty is ........
 	    
-	    
-    ____________________________________
-    
+
 ______________________________________________
-___________
+ management summary on execute . to review  circa 082024
+ 
+ - execute runs event chain define in fv3
+ 	ex in socket.on('repeatcheckxSun',repeatHandler);
+ 	
+ 	  we call the 'set param func'  : antic_parmFact(noparms)
+ 		it sets params :
+ 			ev2run = {connect:null,openapi:null,weather:null,startcheck:null}
+ 		then returns params :
+ 			 return {procName, a,b,ev2run, asyncPoint, processAsync, dataArr,algo:"anticipate"};
+ 	
+ 	  so we start the execute algo using the params calculated  antic_parmFact() : 
+ 	  	repeat= checkFactory(eM) or checkFactory(inst)
+ 	  	repeat.repeatcheckxSun(starthour,stophour,dminutes,antic_parmFact()={procName, a,b,ev2run, asyncPoint, processAsync, dataArr,algo:"anticipate"})
+ 	  	
+ 	  		nb function checkFactory(fn){
+ 	  				will repeat  callFn_(execParm) every 5 min :
+ 	  					that will launch 
+ 	  						        - fn.execute(procName,a,b,  ev2run, asyncPoint, processAsync, dataArr, ....
+ 	  						        	where ev2run = {connect:null,openapi:null,weather:null,startcheck:null}
+ 	  						        	
+ 	  						           execute , see execute(procName, evcontingencyparam, evAsyn, ev2run, processAsync,asyncPoint, dataArr_,cb){, will :
+ 	  						        
+ 	  						        	- will run the ev2run chain :
+ 	  						        	    	console.log('\n *******  execute() start running procedure ',procName ,' with event list : ',ev2run,'\n inputarray: ',dataArr,' at ',new Date());
+    										Object.keys(ev2run).forEach(function (key, index) {// for each entryrun a event/dummy step 
+    											.......
+    								
+    								
+    										and in runEvent(event in ev2run)
+    											will lauch the function InnerFunction(newin)  after set a closure  OuterFunction with some static params 
+    											 var emmitMyev =InnerFunction= OuterFunction(par1, myev).call(that,null);/
+    											 	that when called :
+    											 		 this.emit(ev, inp, cb=updateData_)
+    											 		 	that when the cb is called will lauch the updating func cb=updateData_ using the cb params :
+    											 		 	
+    											 		 		in cb=updateData_ :
+    											 		 			updateData(err, data);   nb data = KKJJ 
+    											 		 			where function updateData
+    											 		 				// the cb std func, do nothing, just returns data
+ 	  						        
+ 	  					then : 
+								- console.log(' after execute we updates state running writeScriptsToFile()')
+								- api.writeScriptsToFile(fn).then(()=>loopExecute=0)// ago ended and write ended 
+ 		
+
+	 nb each events 
+	 - have its handler defined using .on('eventname',handler(input)) ,
+	 
+	 - each handler can use the result that  previous events in chain sets in input  
+	 	so x example startcheck event in chain will use the openapi results  set in the cb() of 
+		 	these.on('openapi', async function (dummy, cb)  calling cb(0,resu) 
+		 	where resu=await getstat(state)//  ={inverter:1.2,battery:{...},meter:{...}};  >>>  do aiax and store results on state.aiax to be used by startcheck
+		 	
+		 and startcheck event will be handled with emitter handler :
+		 	these.on('startcheck', async function ( inp_, cb) 
+		 		{
+		 		
+		 			so in anticipate ()
+		 			here we recover openapi results passed by the cb with :
+		 				 cb(0, res);  res=resu     nb res=data , KKJJ
+		 			and set into state.aiax : 
+		 			 let {battery,inverter,cloudly,consumo}=state.aiax,// filled with aiax in  getstat/bodies
+		 			
+		 			
+		 		} 
+	- in the handler we can set some results directly to a state var , like in openapi handler :
+			res=el.extract(JSON.parse(resu.data)) where el=el=bodies[key]  , 
+					>  state.aiax=......
+				bodies={inverter={devIds,,extract},battery,meter} have obj defining the param  to get info and char and cb function extract  to use that info in state 
+			
+__________________________________________________________________________
+
+adding meter to state.aiax :
+
+	- meter addd to : run scaldabagno ?   (we use the seminterrato pump !)
+	- see  openapi2.txt to explore api with huawey
+	- added meter in models config x MarsonLuigi_API :
+		huawei:{inv:"1000000035350464",bat:"1000000035350466",meter:"1000000036026835"},// devid bunis , s
+		
+	- changed some lines in fv3 see near following lines :
+	
+		> in getstat() , used on cb :these.on('openapi', async function (dummy, cb), :
+			,meter :  {body:{devIds:state.app.plantconfig.huawei.meter,// 1000000036026835
+			.........
+		
+		
+			nota prima di procedere : 
+			**** nb remember and summary here the program and anticipate algo used
+				the algo are build using .......
+				each algo execute some events :
+					- anticipate ha following events to run :  aaa  bbb
+						- in sostamza aaa legge dati from event        
+						e poi calcola in event bbb  i rele di intermediate che indica se intendo anticipare  in particolare il intermediate relays 6 (giusto ?)
+						settando results di dettaglio in lastAnticAlgo
+						
+					 - program algo ha following events to run :  ccc ddd
+						in particolare event ddd, cioè 'genZoneRele', ha comportamento custom def in handler :  these.on('genZoneRele', handler )
+							- in handler si chiama 
+								- program() che setta:
+									- prima proposta di relays state (on/off o non proposta col valore null) in relais virtuali che vengono mappati da map nei reali fisici 
+										(ma per ora il mapping è identità !)
+								
+									-  e anche  program algo detailed results in lastProgramAlgo
+										in particolare : ----
+									
+								- concludi() che rivede il setting parziale dei relays  di anticipate e program usando i loro dati di dettaglio in  
+									lastProgramAlgo e  lastAnticAlgo e anche  lastUserAlgo
+									specificamente si ricorda che gia in program() :
+										- si indicano in advance i state dei relays in considerazione dello scheduling proveniente dal browser
+												- sia quelli da settare grezzamente in funzione del intermediate relay 6
+												- che gli scaldabagno che saranno comunque rivisti in consolidate()
+											vedi : 
+													    	state.lastProgramAlgo.pumps = ret;// action if not anticipating 
+	    													state.lastProgramAlgo.anticGap = antret;// action if  anticipating 
+	    													
+	    										in particolare toact() returns il state proposto per i due casi (noanticipo,anticipo) [act, actantic] per i singolo relays 
+	    										poi tutti i relays si consolidano nella proposta toactivate che è usata per costruire le proposte :
+	    											- non anticipo : ret 
+	    											- anticipo : antret
+	    										
+
+	    									- cosi program() propone un pre set temporaneo/default dei relays con ret (the relays when not anticipating) !
+	    									
+									quindi la situazione è ulteriormente rivista da concludi() in consolidate(): 
+										- ad es per il calcolo dello scaldabagno si fa una scaletta di priorita per definire quali device anticipare in funzione dell potenza
+										effettivamente disponibile al passo x e al calcolo di necessità (termostati/scheduling) del device considerato
+										
+										nbnb i device scaldabagno non saranno influenzati dal indicazione grezza anticipate !
+										
+										- mentre per il pdc / lowtemperature relay , g,n 
+											si utilizza una delle due indicazioni grezza settata in program() ret/antret >  state.lastProgramAlgo.pumps /state.lastProgramAlgo.anticGap
+											in base alla indicazione di massima sul anticipo  (intermediate var relays[6] , intermediate  defined in antMap)
+											che era settato grezzamente da anticipate() in considerazione dell'abbondanza di fv
+											 	 if (sol == 1) apply = applyIntermed(program=res,anticGap=state.lastProgramAlgo.anticGap);
+											 	 										// update with anticipate proposal anticGap 
+											 	 where applyIntermed(program,smallgapTemp=anticGap ) :
+
+														// gli intermediate (member of antMap) true in anticGap=state.lastProgramAlgo.anticGap proposal
+																						 	, set in anticipate algo, :
+                                                									//    updatano la current/default proposal set by program algo ( program=state.lastProgramAlgo.pumps, 
+                                                											set in anticipate algo: the proposal to be applied when no anticipating )
+                                                											
+                                                								//    gli intermediate (member of antMap) true in program , 
+													//          usually intermediate is gaspdcPref only , 
+													//          program is the current/def proposal ( program=state.lastProgramAlgo.pumps (std + intermediate relays), 
+															the std proposal  to be applied when no anticipating ),
+													//    updatano program proposal
+													//    according with anticipating proposal anticGap=state.lastProgramAlgo.anticGap proposal:  , set too  in program algo
+
+										
+									operativamente :
+										 concludi() calls 
+											callattuators() calls 
+												  result=await attuators(these) calls
+													let aTT=consolidate(state,'program') that sets new relays state : 
+														   promises.push(setPump(realind,aTT[i], fn));/
+								
+								
+								
+		> in anticipate() :
+			let {battery,inverter,cloudly,meter}=state.aiax,consumo=0,// filled with aiax in  getstat/bodies
+			
+		> in .on('startcheck'   , but really not important : 
+			            let map,  // ****** map between relays defined as appears in browser and virtual  device on which the algo act is now identity , 
+                				// so here map are not used. 
+                > in function consolidate(state, lastalgo) :
+                	funz=state.app.plantconfig.funz,
+                	
+                	// news 22082024 . build a array with increasing priority to consume available power.
+                	............................
+                	// end news::
+	
+ riassumendo  anticipate relay SETTING :
+ 	   in anticipate() si setta :
+ 	   consumo=0,//is consumo still used ? yes but = 0 :
+            //  in pratica il anticipate algo oltre che a calcolare il state.aiax si da un'indicazione di massima circa 
+            // la probabile applicazione di anticipate: basta che sia di un certo livello il power fv (per questo consumi=0) per settare
+            // il anticipate relay che è un intermediate relay , utile a semplificare gli algoritmi da applicare in program algo.
+            // infatti in program() si individuano due proposte grezze  ret/antret >  state.lastProgramAlgo.pumps /state.lastProgramAlgo.anticGap
+	   //  che si possono usare 	in base a una indicazione di massima sul anticipo  (intermediate var relays[6] )
+            // tuttavia il calcolo esatto si fa in consolidate , scegliendo l'indicazione grezza relays[6] o facendo calcolo di dettaglio usando funz.scaldaB
+ 
+_______________________________________
+ridefinizione delle mappature funzionali (map tra device fisici e virtuali cioè i dev fsici definiti in models dove si aggiungono le config di connessione , es mqttnumb )
+ - in models un index corrisponde a un dev fisico e si aggiungono le config di connessione es mqttnumb,
+ - poi cablato nel codice si assegnano delle funzionalita ai device nelle procedure ( algo) in base al index del dev o al nome in relaisEv:['heat','pdc','g','n','s','split'
+ 	ora probabilmente nel codice si ricercano i dev per controllare una funzionalita sia per index che per nome !  >> sarebbe meglio farlo solo per nome 
+ 	ma aggiungere per ogni procedura/algo una mappa tra funzionalità della procedura e nome del device come facciamo in consolidate ( event del algo program)
+ 	quini in consolidate vado a creare una funzionalità, scaldaB , e vado a cercare quale device (nome) ha quella func da controllare assieme ai suoi param :
+ 	funz={scaldaB:	[{
+ 			name: 'scalda1'/'s',
+ 			prior:0,
+ 			power:1.5,
+ 			anticip:true
+ 			},,,
+ 		]
+ 	
+ 	cosi per ogni algo ci saranno funzionalità da assegnare ai vari device cosi ristrutturo il codice attuale che invece assegnava le funzionalita da controllare ai dev per index o  direttamente per nome !!
+ 	} 
+ sarebbe meglio aggiungere una funzonalita in program() che dica i device da sottoporre a scheduling (mappando il nome dei scheduling from browser)
+ 
+ 
+ ___________________________________________________________
+ 
+ relais/ pump state at index i can be found at :state.relays[relaisEv[i]]
+ mentre per nome in state.relays[nomedev]
+ 
+ nb when a array associated with relays i need to find the index from name with : index=relaisEv.indexOf(devname)
+  quindi lo state (true/false) è aggiornato in state.relays
+   mentre i ctl sono in  state.relais_ 
+  
+  _______________________________________________
+  10/2024
+ 
+ ripresa debugging nuova versione in questa dir . ricordiamo che nel rapberry c'e' una versione che girava su raspberry e linux
+ 	le due versioni cambiano per alcuni file di config : ....................
+ 	
+ - al 10/2024 i commit sono :
+	 luigi@luigi-Vostro-3560:~/localdev/raspexampl/fv$ git log --graph --oneline --decorate --all
+	* 4758ae6 (HEAD -> red, origin/red) beforeadd huawei Meter,				2024-07-29 02:48:08 +0200		see the date: git show -s --format=%ci 4758ae6
+	* c86f781 after restore,major update testing on hawsclientFact
+	* 648698d ended coding hawsclientFact,start debugging with homeassistant_gen container
+	* f434928 debugging hawsclient
+	* c14b7db before this.client in mqttInst
+	* 8eb75f3 start hawsclient debugging							2023-11-19 02:47:37 +0100
+	* 1a67e89 todo listener bug, before ha ws						2023-11-02 18:33:45 +0100
+	* daa462c restructured custom dev ,comment listeners, before shorter list queue		2023-10-25 11:46:21 +0200
+	* ab6cb65 ok acs va
+	* 82ad0f0 before acs program
+	* 5910827 testing ha temp void string
+	* 84a8403 ha basic ok ,prima refactor code x add ha ws
+	
+	   		working file not committed :
+   		  	(use "git restore <file>..." to discard changes in working directory)
+			modified:   app2.js
+			modified:   doc/howto_current.txt
+			modified:   fv3.js
+			deleted:    haCfg/defFVMng/configurationUser.yaml
+			modified:   nat/models.js
+			deleted:    public/js/relaisEv.js
+ 	
+  ricordiamo il last raspberry commit : see above probably  1a67e89 , branch red 	WWFFGG
+  		in data .........
+  poi in questa dir si è proseguito il progetto ed e' stato 
+   - cambiato il branch ? : ............
+   
+   - si è modificato il branch per avere una versione che puo lavorare senza mqtt, cioe con ws
+   	sostanzialmente :
+   	a partire da un file di config :  ........
+   				caratterizzato da ..........
+   	si genera il custom dir di config yaml sotto la dir : ..........
+   	
+   	
+   	nel testing abbiamo testato :
+   				........ 
+   		e siamo arrivati  a : ........................
+   		
+   		branch red , commit 4758ae6
+   		working file not committed :
+   		  	(use "git restore <file>..." to discard changes in working directory)
+			modified:   app2.js
+			modified:   doc/howto_current.txt
+			modified:   fv3.js
+			deleted:    haCfg/defFVMng/configurationUser.yaml
+			modified:   nat/models.js
+			deleted:    public/js/relaisEv.js
+		   		
+   		 
+   		- 
+   	e il file di config della vista  ........... 
+   	
+   - nei vari commmit si ricorda le funzionalità aggiunte 
+   	nel caso interessino il code del raspberry si è provveduto a cambiare anche il file nel raspberry ma non nel commit WWFFGG
+   	
+   	ultima funzionalità aggiunta : scaldabagno !!!!
+   	
+   - quando si è finito di testare la nuova versione con websocket bisogna ricarcare il raspberry e verificare non ci siano errori 
+   
+   - riprendere dal ultimo milestone 062024 in particolare punto 2) :
+   
+		   milestone :
+		briefing on 01062024 
+
+		- 0) noto la presenza di hoto_v2.txt   sono commenti aggiunti al 20042023 ( sembra specialmente utile per la versione con ws: haWs.js al posto di mqtt.js)
+
+		- 1) add irene  yaml with alexa yaml on ha instance in port 8123 connected to fv20 running on raspberry (connecting ha-fv  with pure mqtt), 
+			add a routing in caddy try accessing ha instance on raspberry via https, : fatto 192.168.1.212:8123 is routed from https://ha2.sermovox.duckdns.org:9000
+			test alexa
+
+		- 2) goon with fv3 current version running on dell ( fv casina plant Casina_API in dell connecting  ha with ws ) after finished testing casinauser1 (che è ....... ) 	TTSSQQ
+			using ws on ha instance 192.168.1.212:8124 routed to https://ha.sermovox.duckdns.org:9000
+			start https://ha.sermovox.duckdns.org:9000 and see casinauser1_, then run fv debugging (branch ) that will connect with ws to fv, plant casinauser1_API  via haWs
+			try to remember test done and still to do 
+			done : ........   seems be RRTT2
+			todo : .........
+			
+
+		- migrate  1) on 2) using new instance 8124  running from current fv3 in dell. try run also in raspberry the current version of fv3 running on 8124. mantain irene on both way 1 and 2.
+			add scaldabagno using custF , so using event to command a ha switch (no a fv3 switch)
+		- try run marsonLuigi plant (connect with rasp gpio + mqtt c vars )also in fv3 current dell (/raspexampl/fv) version loaded on rasp , so we have the new feature , 
+			then start to generate instance in ha x marson luigi plant (all devices ) using ws like in 8124. eventually use a 
+			specific instance 8125 , add scaldabagno using a rasp dev to command the switch . add also a switch scaldabagno 2 using a ha switch like in casina, see above
+			
+			
+		- start a alexa custom skill on dell server commanding ha via rest like example on node red , add relay to convo to voice enable + neo4j (nodejs) + genai stack (nodejs merging :
+		. - neo4j project
+		  - alexa project
+		  - enabler income as income also from android, text, alexa , switching to enabler + genstake + neoxj + rest to ha
+		    
+		  > see if we can also implement a relay smart home to ha in nodejs (modifying the custon skill project above) replacing the python code   
+		  
+		 - start a new instance of irene ha
+		   
+   	>>>> riprendere dai commenti RRTT2 + LLJJOO !!!  
+   	
+  ___________________________________________
+  31102024  ore 1420
+  
+  error in start pgm, how to bubscribe x start stop program and antic algo cmd from ha  :
+  
+  luigi@luigi-Vostro-3560:~$ mosquitto_sub -t @Casina_API@interface_mqtt_websock_0/NReadUser/cmd -u sermovox -P sime01 -h bot.sermovox.com -p 1883
+{"payload":0,"sender":{"plant":"Casina_API","user":77},"url":"mqttxwebsock","event":"stopcheckxPgm"}
+
+{"payload":1,"sender":{"plant":"Casina_API","user":77},"url":"mqttxwebsock","event":"repeatcheckxPgm","data":[1,23,3, { "PGMgiorno" :  { "9:30" :20, "17:15" : 18 }   , "PGMacs" :  { "9:20" : 45, "21:30" : 10 }  ,   "TgiornoTollerance" : "2" ,"ei":"W"} ],"param":{"ei":"S","state":"on"}}
+
+error seems  not replicable, added log in interrupt chain to discover how it not fire start pgm algo
+
+________________________________________________
+
+problemi per evitare la duplicazione del comando da setPump al browser (che poi rilanca a onRelays) e direttamente al onRelais 
+ la sol x evitare la duplicazione che è scartare in onRelais comandi da browser se giungono dal lancio in setPump entro 2 sec 
+ significati :
+ - getclidiscon:  verifica se la sessione socket e' disconnessa (alla prima disconessione il session e il socket sono da buttare )
+ - discfromBrowser dice se devo scartate il comando da browser che giunge a onRelais 
+ - procBrowser l'opposto di discfromBrowser
+ 
+ 	non va perche ci sono setPump in sequenza rapida e il primo che giunge al onRelais viene non processato ma contemporaneamente si resetta il :
+ 		fn.getcontext.discFromBrow=false;		<<<   non va bene perchè bisogna asociarlo al pump che se no si confondono tra i diversi pump !!!
+ 		quindi il ulteriore  comando per un pump diverso inviato nel frattempo che ha settato discfromBrow true si trova resettato da un altro pump !!!
+ 		
+ >> risolvere la cosa a livello browser : quando arriva un setPump impedire di mandare il update a onRelays !!!
+ ______________________________________
+ 
+ 1211024 dopo aver salvato un po di aggiornamenti in un file , continuiamo .....
+ 
+
+ 	

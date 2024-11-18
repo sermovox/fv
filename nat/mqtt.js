@@ -288,7 +288,7 @@ function msgListFact(waitListReturn, waitPromiseRes, CheckPrevMessageEnd) {
                             // let packprop2=Object.keys(ctlpack.ctl);//,packprop3=Object.keys(ctlpack.ctl.prototype);
                             // allprop=props(ctlpack.ctl);
                             // let ass=ctlpack.ctl.readSync;
-                            console.log('  message  with cmd topic x device ', dev, ', of type ', ctlpack.ctl.cl, ' , so  interrupt to update the value. after update this dev will writesync the value x confirmation');
+                            console.log(' incominginterrupt :  message  with cmd topic x device ', dev, ', of type ', ctlpack.ctl.cl, ' , so  interrupt to update the value. after update this dev will writesync the value x confirmation, ctl.intWebSoc is not null: '),ctlpack.ctl.intWebSoc!=null;
 
                             if (Number.isNaN(val_ = msg))// if(Number.isNaN(val_=Number(msg)))
                                 console.error('  message   a cmd msg with payload ', msg, ' , x  dev ', dev, ', payload is not a string number so reject ... todo');

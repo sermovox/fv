@@ -10,10 +10,18 @@ let cfgluigi={ plants_:['MarsonLuigi_API']},// ??
 cfgs={};
 const YAML = require('yaml');// npm install yaml
 cfgs.cfgMarsonLuigi={ name:'MarsonLuigi_API',//run in raspberry
+
+funz:{scaldaB:[	{// nuovo mapping di funzionalita, sostituirà il vecchio concetto di virtual device ! 22082024
+  name: 's',//  usiamo il corrente s per ora non ancora utilizzato ! poi aggiungeremo specifico ddevice per questo : 'scalda1'
+  prior:0,
+  power:1.5,
+  anticip:true // applica solo se ho anticipate !
+  }]},
+
         apiPass:'xxxx',// to do
         // index : the index of a device . iesimo device is got with getctls(x,y) that chooses from iesimo x or y 
         // portid : the id of a device, must be unique >0. 
-      gpionumb:[16,12,19,13,6,26,0,20],// (dev id or portid) raspberry device info. number is the raspberry gpio , null means no connection to dev available
+      gpionumb:[16,12,19,6,13,26,0,20],// (dev id or portid) raspberry device info. number is the raspberry gpio , null means no connection to dev available
       //mqttnumb:[11,null,null,null,null,null,null,null],// mqtt device info/id/port. number is the device id to subscribe
 
       /* mqtt staff 
@@ -94,8 +102,8 @@ cfgs.cfgMarsonLuigi={ name:'MarsonLuigi_API',//run in raspberry
 
         relaisDef:[false,false,false,false,false,false,false,true],// dafault value (if none algo propose true/false)
         invNomPow:6,
-        huawei:{inv:"1000000035350464",bat:"1000000035350466"},// devid bunis 
-
+        huawei:{inv:"1000000035350464",bat:"1000000035350466",meter:"1000000035350465"},// devid bunis , see in howto_current : curl --location 'https://eu5.fusionsolar.huawei.com/thirdData/getDevList' ....
+                                                                                        // see openapi2.txt url 'https://eu5.fusionsolar.huawei.com/thirdData/getDevList' ,"stationCodes":"NE=35350463"
         custDev: {// exported custom devices (defined in this server, fv3 ) cmd ctl triggered by a writesync() on a regular dev 
                   // nb in future custDev could be put  in ws client config , like is done  for custom device realized in ha (custF) , see GGDD 
                   // nb if portid is gpio this customer will access to raspberry resources ! only 1 can usually !
@@ -581,7 +589,7 @@ incomVal.custProbeVal=dummy;//
           // better set exec and relais with init()
           // relais is a array with fixed gpio input ctl, used to set type 4 var topic:
           //      during a writesync we add to msg info about the sensor relais
-          // rs485 is a string to use in modbud custom dev 
+          // rs485 is a string to use in modbus custom dev 
           // param values come from browser attributes to modify the command to send to modbus: todo
 // this ctl will start stop all splits by modbus ctl
 
@@ -608,7 +616,7 @@ else await runMc(adds,' 4190 ','3');
 }
 }
 
-async function runMc(adds,mc,val){// adds : list od address,mc: modbus command, val : 0/1
+async function runMc(adds,mc,val){// adds : list of address,mc: modbus command, val : 0/1
 for (let i = 0; i < adds.length; i++) {
 
 let myexec = cmd(adds[i],mc,val);
@@ -750,7 +758,7 @@ cfgs.cfgCasina={ name:'Casina_API',// duplicated FFGG
 
         relaisDef:[false,false,false,false,false,false,false,true],// dafault value (if none algo propose true/false)
         invNomPow:5,
-         huawei:{inv:"1000000036026833",bat:"1000000036026834"}// devid casina
+         huawei:{inv:"1000000036026833",bat:"1000000036026834",meter:"1000000036026835"}// devid casina see openapi2.txt url 'https://eu5.fusionsolar.huawei.com/thirdData/getDevList' , "stationCodes":"NE=36026831"
         //huawei:{inv:"1000000035350464",bat:"1000000035350466"}// devid bunis 
 
         };
@@ -914,6 +922,12 @@ function getplant(plant){
 function getconfig(plant='MarsonLuigi_API'){// =plantconfig, general obj to customize the  app functions  // AASSU
                                 // or let{gpionumb,mqttnumb,relaisEv,devid_shellyname}=models.getconfig(plant)=.state.plantconfig;
                                 //     after set state.app we can :  let{gpionumb,mqttnumb,mttprob,relaisEv,plantName}=plantconfig (=.state.app.plantconfig=
+
+                for(f in funz){// ordina i funz per priorità crescenti , 0 prioritario rispett 1 
+                  f.sort((a,b)=> a.prior-b.prior);// https://it.javascript.info/array-methods
+                  // f.reverse();// per invertire ordine
+                }
+
                 return {gpionumb:plants[plant].cfg.gpionumb,
                         mqttnumb:plants[plant].cfg.mqttnumb,
                         mqttprob:plants[plant].cfg.mqttprob,
@@ -927,6 +941,7 @@ function getconfig(plant='MarsonLuigi_API'){// =plantconfig, general obj to cust
                         huawei:plants[plant].cfg.huawei,
                         invNomPow:plants[plant].cfg.invNomPow,
                         plantName:plant,//  >>>>>> WARNING  little difference with (plants[plant]=model).name=plant,  here .plantName=plant .  (plants[plant]=model).plantName dont exist
+                        funz:plants[plant].cfg.funz,// funcionality , each procedure will search what devices to apply a functionability
                         custDev:plants[plant].cfg.custDev,
                         Ent_Prefix:plants[plant].cfg.Ent_Prefix,
                         connCfg:plants[plant].cfg.connCfg,
@@ -1419,7 +1434,7 @@ module.exports = {
                 let 
                 ucfg='cfg'+user,
                 plantItem,
-                dashboard,package// {filepath:yamlfile}
+                dashboard,package,// {filepath:yamlfile}
                 cfg=cfgs[ucfg]=new defFVMng(user,plant,localEntity);// the built plant devcfg , the std plant base template of FV app with user ha locals entity applied ,praticamente i suoi dev description 
                                               //   cfgs={cfguser:devcfg,,,,,}      plants={user_API:{cfg:devcfg,name,password,users,token,email,apiPass,localEntity:{switch_consenso:'switch.rssi',sensor_t_giorno:"sensor.shelly_ht_temp"}}
                                               //                                                      ,,,,,,
@@ -1460,7 +1475,7 @@ module.exports = {
                 packages=[`anticipate_vardev.json`,`consenso.json`,'interface.json','sensor_acs.json','dashboardStaff.json'];// DONT CHANGE ORDER !; json file base sections, will be cfg with user plant locals entities
                 // set custom/configurated yaml files:
                 let replE=cfgdata.Ent_Prefix;// LLOOPP :entities prefix : in package and dashboard modify the std name of entities of the std model managed by the std fv3 app 
-                                            //  that in case we want run 2 user on one stance of ha 
+                                            //  that in case we want run 2 user on one instance of ha 
                                             //  then, when configure ha ws in setSwitch we point the std dev to related user std entity with the right prefix
                 plantItem.yaml.dashboard=fillDash(dashjsonDir,dashboards,localEntity).replaceAll('£', replE);//£: customize entity name and conf items  to be unique
                 plantItem.yaml.package=fillPack(packjsonDir,packages,localEntity,cfgdata).replaceAll('£', replE);//{filepath,yaml}//

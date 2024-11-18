@@ -1,5 +1,5 @@
 const DEBUG1=false,
-MAXHistLen=10;
+MAXHistLen=10;// >1
 // import { EventEmitter } from "events";
 let { EventEmitter }=require('events');
 const readline = require('readline').createInterface({// see https://stackoverflow.com/questions/65260118/how-to-use-async-await-to-get-input-from-user-but-wait-till-entire-condition-sta
@@ -448,8 +448,12 @@ function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
         that.state.relHistory=that.state.relHistory||[];
         if(lastRunnedProcedure&&lastRunnedProcedure.execute)// log only execute not null  results 
           if(that.state.relHistory.push(that.state.lastRunnedProcedure)>MAXHistLen){
-            let lent=that.state.relHistory[that.state.relHistory.length-1];
-            that.state.relHistory.length=1;that.state.relHistory[0]=lent;// reset array push last entry
+            let lent=that.state.relHistory[that.state.relHistory.length-1],lentm1;
+            if(that.state.relHistory.length-1>1)lentm1=that.state.relHistory[that.state.relHistory.length-2];else{
+              lentm1=lent;lent=null;
+            }
+            that.state.relHistory.length=1;that.state.relHistory[0]=lentm1;// reset array push last entry or previous one
+            if(lent)that.state.relHistory.push(lent);// 2 items
           };
       console.log('****\n execute procedure: ',procName,' stopped running with  step/code ',stepNum,', relHistory dim: ',that.state.relHistory.length,' Time Consumed : ');console.timeEnd('execute '+procName);
       if(PRTLEV>5) console.log(' ..... cur state: ',that.state);

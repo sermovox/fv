@@ -13,6 +13,7 @@ const ctlComTopic_=null;// useless  entStates
 function init_hawsclient(plantconfig){// return new Fact={setSwitch,}  setSwitch return the 
  return hawsclient.init( // ctl that connect plant to related ha via ws 
     /*
+    
         (topics,val)=>{ // ** =ctlcb , ctlcb(topics,stateChangedEvent.data.new_state.state); via .income(),
                                 //  ha entity triggers calls the dev topics fv3 income process handler : this.msgHand(topics,val);
                         //      topics emitted from ha can be topic/topicNodeRed=cmdtopic

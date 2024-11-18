@@ -493,7 +493,7 @@ cfgdata.result='ok';// set validation flag ok
 cfgdata.result='none';// but here do debug to  just use debug data 
 }
 if(cfgdata&&cfgdata.result&&cfgdata.result=='ok');
-else{// debug : set here test data 
+else{// debug : set temporarely here the test cfg data 
 userEnt={ // these dev are ha real local mqtt switch . its name diffears from the cfg template whose name are like casina implementation with a prefix : Ent_Prefix
           // scaldabagno is updated by an action on a automation on event fired by portid=55 ?  dev (preferred gas/pdc) by dev custF,  see setSwitch()
            //  acssw is updated by an action on event fired by portid=777 ?  dev (state dev) by dev custF
@@ -527,9 +527,9 @@ model.cfgData[plantUser]=cfgdata;// rewrite, just to record user info after regi
 let plant=model.getPlant(plantN);
 if(plant&&!reset){}
 
-else addPlantHandler(cfgdata,plantUser,plantN,
+else addPlantHandler(cfgdata,plantUser,plantN,// create the ha yaml cfg
   browserUser,reset,// recover/build(if reset) plant cfg, send to webhook , returns plant cfg staff. 
-    function(code,yamlpackage){// cb  code={result,data:plantmodel}
+    function(code,yamlpackage){// returns the cfg as  post response : cb  code={result,data:plantmodel}
     if(code==null){// rejected 
       res.send(' /registerPlant/ : cant process ');// .send ?
 
@@ -758,7 +758,7 @@ var prettyJSONStringify = require('pretty-json-stringify');// useless , used in 
 // a relays group ( the name are in : relaisEv ex: ['heat','pdc','g','n','s','split'];):
 /*let relais_=[new Gpio(12, 'out'),// gpio phisical relays, see :YUIO
                                 // from pump name the gpio is relais_[relaisEv.lastIndexOf(pump)];
-                                // so in relaisEv there re the names !
+                                // so in relaisEv there are the names !
 new Gpio(16, 'out'),
 new Gpio(20, 'out'),
 new Gpio(21, 'out'),
@@ -1144,7 +1144,7 @@ ccbbRef=function ccbb(plantname) {
         // sono in sostanza le variabili della closure , cioe l'handler del connection , cioe il socket, session,,,
         // che servono al ctl fn per diallogare con uno degli i/o : il current browser socket , se c'e'
         // probably must nulllified when socket disconnect clientDiscon=null, instead to pass clientDiscon !
-        // nb il socket è in fn.socket !!!!
+        // nb il socket è in fn.socket !!!
   
         /*  >>>>>>>>>ok :   summary :
          all'inizio in SSWW  si setta la variabile closure  clientDiscon che poi viene true solo  quando il socket esce SSEE
@@ -1303,7 +1303,9 @@ let body=
 }// ends run()
 
 
-function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   // will set real relays from program and anticipate virtual devices set!!
+function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   // 082024 todo l'individuazione dei devices dovra essere fatta  usando configured funz like consolidate() !
+                                                                                // old: will set real relays from program and anticipate virtual devices set!!
+
 
   /*
   inp__=sched:  {
@@ -1325,7 +1327,19 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
   console.log('program() called with programming/scheduling data inp: ', JSON.stringify(inp__, null, 2), ' and current probs: ', probes);
   console.log('program() NB before call consolidate ret=optimize(ret) can have any null value!');
 
-  let ret = null,// pumps if t<desidered , no anticipating
+  let 
+        /* structure
+        ret,antret  have same dim (index=0,,,,8) then relays  , index represent a relay controlling a function :  [heat,pdc,g,n,s,split,gaspdcPref,(block)acs]
+                    will set the program result :
+                        state.lastProgramAlgo.pumps = ret;// action if not anticipating 
+                        state.lastProgramAlgo.anticGap = antret;// action if  anticipating 
+                    , then in consolidate according with anticipate will calc the new relays status
+
+        desTemp,toactivate have index=0,1,2,3,4 impacting index 2,3,4,7? on relays
+
+        */
+
+    ret = null,// pumps if t<desidered , no anticipating
     antret,// pumps if t<desidered + toll,  anticipating
     desTemp =[[21, 21],[21,21],[21, 21],[21,21]],// std desidered/desideredAnticipating temp x giorno/notte/scant, acs  . will be set by toact() !
     h, m, optimRet = null;
@@ -1340,7 +1354,8 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
 
   if (probes && inp) {// inp=sched={giorno:{'16:10':-3,,,,},notte:{},probMapping:[],mapping:[],ei} 
 
-    toactivate = [],// [actiongiorno,actionnotte] , 
+    toactivate = [],// [actiongiorno,actionnotte,actionscantinato,actionacs] , impacting on relays=
+                    //  actionx=[active,activeIfAnticipate]
       activation = false,// true if at least one is in toactivate
       activationantic = false;// true if at least one is in toactivate
 
@@ -1353,7 +1368,7 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
     let mres;
     // 0 giorno
     let desT, desTgiorno = [21,21], desTnotte = [21,21], desTacs = [21,21];
-    if (inp.giorno) {
+    if (inp.giorno) {// toactivate[0]
       mres = toact('giorno', probes.giorno, inp.giorno, isSummer, desTgiorno);// updates desTgiorno with [desideredTemp,DesideredTempwith Anticipatinf (=desideredTemp+ Toll)] !
       if (mres[0]) activation = true;
       if (mres[1]) activationantic = true;
@@ -1361,7 +1376,7 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
     } else toactivate.push([false, false]);
     desTemp[0] = desTgiorno;// updated by toact !, ex [26,24]  26 desidered 24 if anticipate (+ tollrance)
     // notte
-    if (inp.notte) {
+    if (inp.notte) {// toactivate[1]
       mres = toact('notte', probes.notte, inp.notte, isSummer, desTnotte);
       if (mres[0]) activation = true;
       if (mres[1]) activationantic = true;
@@ -1370,38 +1385,27 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
     desTemp[1] = desTnotte;
 
     // sottoterra scantinato
-    toactivate.push([false, false]);// todo
+    toactivate.push([false, false]);// // toactivate[2], todo
 
-    // acs
     // recover acs probe ...   todo 
 
     if (inp.acs) mres = toact('acs', 21.11, inp.acs, false, desTacs);// inp.acs.sched= [{"8:30": 45,"17:00": 10,}] // 45 e 10 si confrontano con 21.11 a dummy acs probe
     else mres = [false, false];
-    toactivate.push(mres);
+    toactivate.push(mres); // toactivate[3]
 
     // add acs2 scaldabagno program   
     mres=[false,true];// start ever when anticipating is ok 
     // check if power margin are enought
     // isPcdtOn=true;// the pdc is started 
-    let antDispPower=inverter-consumo>1.5;// when anticipating the disp powre is this, ex lavatrice is on  so consumo=0.3+2.5 per pdc + 2 per lavatrice =4.8
-                                            // quindi es inverter=5.5  per accendere lo scaldabagno 5.5 - 4.8= 0.7 > 1.5 che è  false  
-                                            // allora aspetto che lav =0 al che avrei 5.5 - 2.8 > 1.5   true
-                                            // naturalmente se nel intervallo di 5 min accendo fornello sono fuori ! ci vorrebbe interrupt per rigirare il program 
-                                            //  al verificarsi di incrementi di power 
-                                            // o power superiore a 2.8 + 1.5= 4.3  cioe dico che faccio andare lo scaldabagno lasciando spazio per un addizionale 1.5
-                                            //    cioe se supero i 5.5  spegno subito lo  scadabagno se sto producendo 6
-                                            //    es sono a 4.2 con scalda , accendo fornello vado a 6.2 , spengo subito lo scalda  ????
-                                            // sto prima ad accendere solo se ho inverter- consumo senza scaldabagno  >  2  cosi male che vada ho dispon 1kw per i consumi transitori tra 2 int 
-                                            //   es ho 5.5 e scalda acceso allora calcolo   5.7 - 2.8 - 1.5   + 1.5 se lo scalda e acceso = 2.9  > 2.9=1.5 + disp=1.4   e cosi se accendo lo scalda -1.5 ho ancora disp 1.4 kw per i carichi che aggiungo tra gli intervalli 
-                                            //      cio inverter - consumi + 1.5 se acceso scalda > 1.5 + disponibilita per i disp
-                                            //          inverter >  consumi - 1.5 se acceso scalda + 1.5 + disponibilita per i disp
-                                            //           inverter >  consumi + 1.5 se non acceso scalda + disponibilita per i disp
-                                            //             inverter >  2.8 + altri consumi oltre al scalda  + 1.5  + disponibilita per i disp 
-                                            //   quindi visto che inverter < 6 avro che la disp deve essere minore di 6 - 2.8 - 1.5 = 1.7  , metteremo disp = 1.5 
-                                            //      cosi accendiamo lo scalda se inverter > consumi senza scalda + 1.5 + 1.5  , che se consumi senza scalda è 2.3 è  inverter > 5.8   
-                                            // tra la fine di program e l'inizio del nuovo program , e cosi di anticipate 
 
-    /*
+
+
+
+    
+   /* 
+
+
+
     >>>>>>>>>>>>>><
     to increse performance   solo se lastProgramAlgo cambia allora esco con un res, atrimenti aggiorno le date in lastProgramAlgo 
     ma esco con null cosi non si cambiano i rele/pumps !
@@ -1422,7 +1426,7 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
       ret = [true, false, false, false, false, null, null, true];// [heat,pdc,g,n,s,split,gaspdcPref,(block)acs]. program algo (specific) suggestion 
       antret = [true, true, false, false, false, null, null, false];// blockacs=false split = ?
 
-      if (toactivate[0][0]) {// giorno, see toactivate[0]
+      if (toactivate[0][0]) {// giorno,  toactivate[0] will impacts ret/antret[2]
         ret[2] = true;
         antret[2] = true;
       } else {
@@ -1430,7 +1434,7 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
         antret[2] = toactivate[0][1];
       }
 
-      if (toactivate[1][0]) {// notte
+      if (toactivate[1][0]) {// notte ,  toactivate[1] will impacts ret/antret[3]
         ret[3] = true;
         antret[3] = true;
       } else {
@@ -1481,14 +1485,14 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
         }
       }
 
-      // if toactivate[2][]ret[4]=.....
+      // if toactivate[2][]ret[4]=.....       todo
 
 
       //  state.lastProgramAlgo={updatedate:date.toLocaleString(),time:date.getTime(),probes,pumps:ret,model:'programbase'};//  set this last program algo  virtual values in state, rewrite , just to set update date
 
       // optimRet=optimize(ret,state);// consolidation taking care of anticipating algo and user manual set
       // now call in attuators optimRet=consolidate(state,'program');// consolidation taking care of anticipating algo and user manual set
-      optimRet = ret;// here optimate is just ret , effective consolidation will be called after
+      optimRet = ret;// news : here optimate is just ret , effective consolidation will be called after
 
       console.log('programming() runned x plant ',plant,' at ',date.toLocaleString(),' :found no unsatisfacted programmed temp in house, so suggests virtual  (like [heat,pdc,g,n,s,split]) relays updates: ', ret,'\n and  anticipate relays updates:',antret);
       if(PRTLEV>5)console.log('.... giorno/notte zones desidered temp (std , anticipate) are: ',desTemp,', and giorno/notte current temp are: ',probes); 
@@ -1498,7 +1502,7 @@ function program(state, inp__, probes) {// /  probes={giorno:19.2,notte:,,,,}   
     // todo set para to split depending on zones to do in consolidate
 
     // now set blocking acs :
-          ret[7] = !toactivate[3][0];// ! becauseis a noacs  , no  acs !!
+          ret[7] = !toactivate[3][0];// ! because is a noacs  , no  acs !!
       antret[7] = !toactivate[3][1];
 
 
@@ -1726,8 +1730,23 @@ console.log(' optimize() used case: ', debcase);
   return res;//ret;//res;// better clone
 }
 
-function anticipate(state,algo){// the algo :  store algo result on state.lastAnticAlgo, eventually consolidate with program algo ?
+function anticipate(state,algo){// the algo :  store algo result on state.lastAnticAlgo, eventually consolidate after with program algo 
 /*
+  - summary :
+      anticipate è un indicatore grezzo della disponibilità ad anticipare consumi differibili
+       qui , grezzamente, non si considerano i consumi che si pongono =0
+
+      poi in program se c'è disponibilità si valutera quali consumi attivare , x es :
+      - 1 se ho disponibilità azionare comunque pdc , quale che siano i consumi (è grezzo!)
+          nb: per far diventare 1 raffinato si aggiunga calcolo del consumo pdc come in 2 ! 
+      - 2 se ho diponibilità e se :
+          inverter - consumi totali  + scaldabgno * 1500 w > 1500 w (è raffinato), allora azionare scaldabagno
+          es inverter 3.0 , consumi .5 + 2.4 pdc
+
+
+
+
+
     "battLevel": 0,
     "inverter": 3,
     "cloudly": 55.5
@@ -1739,7 +1758,16 @@ function anticipate(state,algo){// the algo :  store algo result on state.lastAn
 */
 
 // ******** input data is just set in state.aiax !!!!!!!!!!!!!!!!!!!!!
- let {battery,inverter,cloudly,consumo}=state.aiax,// filled with aiax in  getstat/bodies
+ // let {battery,inverter,cloudly,consumo}=state.aiax,// filled with aiax in  getstat/bodies
+ let {battery,inverter,cloudly,meter}=state.aiax,// filled with aiax in  getstat/bodies
+ consumo=0,//is consumo still used ? yes but set to 0 :
+            // see howto_current : anticipate relay SETTING 
+            //  in pratica il anticipate algo oltre che a calcolare il state.aiax da un'indicazione di massima circa 
+            // la probabile applicazione di anticipate: basta che sia di un certo livello il power fv (per questo consumi=0) per settare
+            // il anticipate relay che è un intermediate relay , utile a semplificare gli algoritmi da applicare in program algo.
+            // infatti in program() si individuano due proposte grezze  ret/antret >  state.lastProgramAlgo.pumps /state.lastProgramAlgo.anticGap
+						//  che si possono usare 	in base a una indicazione di massima sul anticipo  (intermediate var relays[6] )
+            // tuttavia il calcolo esatto si fa in consolidate , scegliendo l'indicazione grezza relays[6] o facendo calcolo di dettaglio usando funz.scaldaB
  
  temp=20,
  {running,starthour,stophour,dminutes}=state.anticipate,
@@ -1776,7 +1804,7 @@ if(triggers.PdCTrig1){a=2; console.log(' anticipate algo find required policy : 
   //     ret = [true, true, true,null, null,true,true];// added gaspdcPref : [heat,pdc,g,n,s,split,gaspdcPref] : according to todo now will be necessary set only  the intermediate var gaspdcPref  if use optimize loop :
                                                     // ret = [null, null, null,null, null,null,true];
     ret = [null, null, null,null, null,null,true,null];// just set virtual intermediate 
-    console.log('anticipate() find cloudily low so start pdc');
+    console.log('anticipate() find enought inverter power(cloudily low) so start pdc');
     }else{// no anticipating, so no requirements
       ret = [null, null, null,null, null,null,false,null];// [heat,pdc,g,n,s,split,gaspdcPref,blockacs] 
     }
@@ -1849,9 +1877,18 @@ function calcsavings(){// calcola alle ore 8 i savings del giorno precedente
   saving.checkedHour.push(ddd.getHours());// day and hour of daily calc
   saving.minLevBattery.push(battery);// initial battery val for next days
   */
- if(DEBUG_savings)saving[saving.length-1]={enSavings:es,battSavings:state.lastAnticAlgo.daysavings.battery,day:checkday,date:ddd.toLocaleString(),checkedHour:ddd.getHours(),minLevBattery:battery};
-  else saving.push({enSavings:es,battSavings:state.lastAnticAlgo.daysavings.battery,day:checkday,date:ddd.toLocaleString(),checkedHour:ddd.getHours(),minLevBattery:battery});
 
+  // ?? N
+ if(DEBUG_savings)saving[saving.length-1]={enSavings:es,battSavings:state.lastAnticAlgo.daysavings.battery,day:checkday,date:ddd.toLocaleString(),checkedHour:ddd.getHours(),minLevBattery:battery};
+  else                        saving.push({enSavings:es,battSavings:state.lastAnticAlgo.daysavings.battery,day:checkday,date:ddd.toLocaleString(),checkedHour:ddd.getHours(),minLevBattery:battery});
+
+  if(DEBUG_savings){// limit to max 3 the savings list
+    if(saving.length>3){
+     // let sav=saving[saving.length-1],savm1=saving[saving.length-2];
+      state.saving=[saving[saving.length-2],saving[saving.length-1]];// trunc/move
+
+    }
+  }
   
 return true;
 }else return false;
@@ -1968,7 +2005,7 @@ console.log(' login() started x sername: ',opAPIUser);
   return ret;
 
 }
- async function getstat(state) {// get state from inverter openapi
+ async function getstat(state) {// get state from inverter openapi , resolves into {inverter:6.0,battery:{battery:100,battCharge:3.5,meter:{grid:3.0}}
 /*
   return
   // await // needs ?
@@ -1984,9 +2021,11 @@ console.log(' login() started x sername: ',opAPIUser);
   */
   if(PRTLEV>8)console.log(' getstat called with state: ',JSON.stringify(state,null,2));
   let bodies=// {body,devTypeId,extract}. extract: extrat usefull info (put in state.aiax,xxx) from resu.data, result=resu={data,token} 
-  { inverter:  {body: {devIds:state.app.plantconfig.huawei.inv,// body: the post request 
+  { inverter:  {body: {devIds:state.app.plantconfig.huawei.inv,// body: the post request , state.app.plantconfig : 
+                                                              // see in models cfgs.cfgMarsonLuigi={ name:'MarsonLuigi_API',//run in raspberry
+                                                              // huawei:{inv:"1000000035350464",bat:"1000000035350466"},// devid bunis 
                 devTypeId:"38"},
-                extract:(data)=> {
+                extract:(data)=> {// extracting func
                   console.log(' aiax extracting inverter info from aiax data got: ',JSON.stringify(data,null,2));
 /* 012023 to do : check id the query has resolved ok , testing data.data[0].dataItemMap
 // if not try to detect the reason 
@@ -2020,7 +2059,7 @@ openapi getstat() catched so results is null .........
                   
                   console.log(' aiax extracting battery info from aiax data got: ',JSON.stringify(data,null,2));
 
-                  // todo : change state.aiax.inverter to state.aiax.battery 
+                  // todo : change state.aiax.inverter to state.aiax.battery , done !
                   let ret= state.aiax.battery= data.data[0].dataItemMap.battery_soc,
                     ret1=state.aiax.battCharge= data.data[0].dataItemMap.ch_discharge_power;
                       
@@ -2029,46 +2068,42 @@ openapi getstat() catched so results is null .........
 
 
                  }}
-    /* todo insert  meter to see the grid power
-    ,meter :  {body:{devIds:state.app.plantconfig.huawei.bat,// 1000000035350466
-                 devTypeId:"39"},
+    ,meter :  {body:{devIds:state.app.plantconfig.huawei.meter,// 1000000036026835
+                                                              // see in models cfgs.cfgMarsonLuigi={ name:'MarsonLuigi_API',//run in raspberry
+                                                              // huawei:{inv:"1000000035350464",bat:"1000000035350466",meter:"1000000036026835"},// devid bunis 
+                 devTypeId:"47"},
                  extract:(data)=> {
                    
-                   console.log(' aiax extracting battery info from aiax data got: ',JSON.stringify(data,null,2));
+                   console.log(' aiax extracting grid meter info (+ is consumed) from aiax data got: ',JSON.stringify(data,null,2));
  
-                   // todo : change state.aiax.inverter to state.aiax.battery 
-                   let ret= state.aiax.battery= data.data[0].dataItemMap.battery_soc,
-                     ret1=state.aiax.battCharge= data.data[0].dataItemMap.ch_discharge_power;
+                   // todo : change state.aiax.inverter to state.aiax.battery , done !
+                   let ret= state.aiax.meter= - data.data[0].dataItemMap.active_power;// negative are power from grid
                        
-                   console.log(' aiax x battery got: ',ret);
-                   return {battery:ret,battCharge:ret1};
- 
+                   console.log(' aiax x consumed from grid got: ',ret);
+                   return {grid:ret};
  
                   }}
-      */
-
-    // add consumi , so inverter - consumi = delta battery 
-
       
+    // add consumi , so inverter - consumi = delta battery . ???
     } ,
 
     url='https://eu5.fusionsolar.huawei.com/thirdData/getDevRealKpi';
 
-let results={},// the aiax results to get from all devices
+let results={},// the aiax results to get from all devices. nb in getting we fill state.aiax
 resu;
  let keylist=  Object.keys(bodies);
-  for(let i=0;i<keylist.length;i++){// ['inverter','battery']   add meter ?
+  for(let i=0;i<keylist.length;i++){// ['inverter','battery','meter']   added meter 
    //  Object.keys(bodies).forEach(function(key,index) {// for each bodies items post 
       // key: the name of the object key
       // index: the ordinal position of the key within the object 
    
-    let key=keylist[i],el=bodies[key];
+    let key=keylist[i],el=bodies[key];// items of bodies
     console.log(' getstat, looping  devices, now rest device: ',key,', Type id: ',el.body.devTypeId);
 
 
       resu= //{data,token}
       await aiax(url,'POST',
-        el.body,
+        el.body,// post data
       head={"Content-Type": "application/json","XSRF-TOKEN":state.token})//;// a promise
     // to do 
     .catch(error => { console.error('aiax got error : ',error,' so goon with null result')});// in case aiax fire error and be rejected 
@@ -2116,6 +2151,9 @@ resu;
 
       
       };
+
+  // to do add date in state.aiax ?
+
   /*
 
   122022
@@ -2345,7 +2383,7 @@ function customOn(these) {// set .on custom handler (event called by execute())
     // await getstat(state.aiax);// the conn cfg data
     console.log(' event openapi fired handler , with input data: ',dummy);
     let state= these.state; // IS OK ???????
-    let resu=await getstat(state)//  ={inverter:1.2,battery:2.5};  >>>  do aiax and store results on state.aiax to be used by startcheck
+    let resu=await getstat(state)//  ={inverter:1.2,battery:{...},meter:{...}};  >>>  do aiax and store results on state.aiax to be used by startcheck
     .catch(error => { // se rejecta questa routine gira :e si torna un resu null !
       console.error('  openapi getstat() catched so results is null ,plant:', state.app.plantname, ',error: ',error);
       // 122022
@@ -2357,12 +2395,8 @@ function customOn(these) {// set .on custom handler (event called by execute())
 
   if (resu === null) {// token expired
     console.log(' getstat recover from getstat() an expiered token, so retry execute from null token');
-
-
      state.token=null;// will reset
      this.state.stepInd=0;// restart ev2run loop, login will require a aiax token
-
-
 
   } else if (resu === undefined) { // true
     console.error(' getstat aiax result cant be calc ');
@@ -2397,7 +2431,6 @@ function customOn(these) {// set .on custom handler (event called by execute())
     if(inp_&&inp_.dataArr){// false
       inp=inp_.dataArr;proc=inp_.algo}// ??
 
-
     let state=these.state;//this.state;
     if(PRTLEV>5)console.log(' handler fired by event startcheck, with input data: ',inp,' state: ',state);
  
@@ -2416,15 +2449,19 @@ function customOn(these) {// set .on custom handler (event called by execute())
       // attuators(these,aTT[0],aTT[1],aTT[2],aTT[3],aTT[4],aTT[5])//[heat,pdc,g,n,s,split] val=true/false/null   set relais x level 1, then after 1 hour (1,1,1,0), if noeco (1,1,1,1)
                                                                   // ?? (pdc,g,n,s)  set relais x level 1, then after 1 hour (1,1,1,0), if noeco (1,1,1,1)
 
-
-
       // tuti i real dev non mappati andranno settati null, il che vuoldire che non vengono modificati !!! 
-      let map,prel='';
 
+      let map,  // ****** map between relays defined as appears in browser and virtual  device on which the algo act is now identity , 
+                // so here map are not used. 
+
+      prel='';
 
       const consolidateInAttuatorsOnProgramAlgo = true;// must be in this implementation
+
+
+      // usually not called : 
       if (!consolidateInAttuatorsOnProgramAlgo)
-        if (!state.lastProgramAlgo) {// program algo is active !, degegate to progrm the optimized attuators // temporarely !!!
+        if (!state.lastProgramAlgo) {// program algo is active !, delegate to progrm the optimized attuators // temporarely !!!
           if (inp.mapping) map = inp.mapping;// sched.mapping
           else map = [0, 1, 2, 3, -1, 5];// // HHGG so virtual devices of anticipate algo are heat,pdc,g,split. stessa cosa che settare identity=[0,1,2,3,4,5]
           // better : attuators works on virtual device 0,1,2,3,4,5 ,  
@@ -2443,6 +2480,7 @@ function customOn(these) {// set .on custom handler (event called by execute())
               console.error("attuators error: ", e);
             });
         }
+        // end not called
 
 
 
@@ -2719,7 +2757,7 @@ async function ( inp_, cb) {// the fsm ask state updates (we use openapi) : will
       // tuti i real dev non mappati andranno settati null, il che vuoldire che non vengono modificati !!! 
       let map;// OLD not used now , !!!!!!!!!!!!!!!!!!
       if(inp.mapping)map=inp.mapping;// sched.mapping from browser cfg 
-      else map=[0,1,2,3,-1,5];// only s is not affected by progrm/anticipate algo 
+      else map=[0,1,2,3,-1,5];// only s, seminterrato, is not affected by progrm/anticipate algo 
       
 
 
@@ -2822,7 +2860,7 @@ async function concludi(){
 
 // let result=await attuators(these,session,clientDiscon);// .catch((e) => {
 let result=await attuators(these);// .catch((e) => {
-  console.log("attuators(): returns consolidate result (program+anticipate+manual algos) :",result);
+  console.log("attuators(): returns consolidate result ( results of all program+anticipate+manual algos) :",result);
   res.data={consolidate:result.toString()};
 }
 // end event to process programming algo 
@@ -2832,6 +2870,7 @@ let result=await attuators(these);// .catch((e) => {
 }// ends custom
 
 
+/*
 function repdayly(plant,hin, hout, fn) {// old : prefer checkFactory()
                                         // program timetable of  generic test event firing: fire procedure execute(,'startcheck',,,) with specific event list (ev2run ......) , connect + startcheck,   to perform check to start anticipating
                                         // note that these events must be defined on customOn()
@@ -2849,18 +2888,18 @@ let ev2run = {connect:null,openapi:null,weather:null,startcheck:null};// {the ev
                                             // OR :
                                             // let ev2run = {connect:null,openapi:null/startcheck;startcheck:null};       openapi will also fill  state var                                   
 
-            /* that means to declare a template listener as FFGG :
+// that means to declare a template listener as FFGG :
+//  
+//              function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
+//                  console.log('ciaoppi',inpu);
+//                  let result=inpu*100;
+//                  cb( 0,result);// the return 0 is 
+//                }
+//
+//                NBNB   cb will call , as standard, updateData(err,dataresult)
 
-              function afunc(inpu,cb){// the .on func ;    evMng.on(evname,func)
-                  console.log('ciaoppi',inpu);
-                  let result=inpu*100;
-                  cb( 0,result);// the return 0 is 
-                }
-
-                NBNB   cb will call , as standard, updateData(err,dataresult)
 
 
-            */
 
 
 let dataArr=//{begin:0,startcheck:0}; 
@@ -2870,32 +2909,30 @@ let dataArr=//{begin:0,startcheck:0};
                                    // ?? // event or processasync key
 let  evAsync={};// evAsync={aEv2runKey:itsasync,,,,,,}
 let processAsync={},asyncPoint={};
-/*
-alternative way :
-
-
-
-to start gfg_Run use :
-window.setInterval(function(){ // Set interval for checking
-    var date = new Date(); // Create a Date object to find out what time it is
-    if(date.getHours() === 8 && date.getMinutes() === 0){ // Check the time
-        // Do stuff
-    }
-}, 60000); // Repeat every 60000 milliseconds (1 minute)
-
-
-------------------
-so :
-function gfg_Run() {
-  timer = setInterval(callFn_, 2000);
-  }
-  function gfg_Stop() {
-  clearInterval(timer);
-  
-  }
-
-
-*/
+///*
+//alternative way :
+//
+//
+//
+//to start gfg_Run use :
+//window.setInterval(function(){ // Set interval for checking
+//    var date = new Date(); // Create a Date object to find out what time it is
+//    if(date.getHours() === 8 && date.getMinutes() === 0){ // Check the time
+//        // Do stuff
+//    }
+//}, 60000); // Repeat every 60000 milliseconds (1 minute)
+//
+//
+//------------------
+//so :
+//function gfg_Run() {
+//  timer = setInterval(callFn_, 2000);
+//  }
+//  function gfg_Stop() {
+//  clearInterval(timer);
+//  
+//  }
+//
 
 //let n=5;
   // getstartcheckdata();
@@ -2957,13 +2994,12 @@ function gfg_Run() {
 
      callFn();// can run sync the first  execute because we must end the  event handler startuserplant
     //setTimeout(callFn, time);// schedule tra 1 ora callFn 
-  
-
-
   }
-
-
 }
+*/
+
+
+
 
 function checkFactory(fn){// fn=ctl, sostituisce repdayly()
                           // closure (private data) and its returning object functions  :  {repeatcheckxSun,stopRepeat}
@@ -4009,7 +4045,7 @@ let session = socket.request.session;// session used in other tcp request ??, if
 let eM,//  >>> e' settato da socket.on('startuserplant',...  ed e' legata/propieta del connection handler dove sono def gli socket events es socket.on()
 // poi inserito in socket.eM  , quindi deve essere non usato piu !!!!!!!!!!!!
 
-repeat,// active rep func x anticipate repetitive algo // onconnection var to start/stop repetitive algo
+repeat,// active repetitive func x anticipate repetitive algo // onconnection var to start/stop repetitive algo
 repeat1,// active rep func x program repetitive algo// onconnection var to start/stop repetitive algo
 clientDiscon=false;
 console.log('on connection got from a browser set in login, user: ',user,`new  session: ${session.id}  , socket connection id ${socket.id}`,
@@ -4636,6 +4672,7 @@ function intWebSock(val=0, devqueue, message){// val=0/1, the int handler of a f
   // the user auth staff is in ..........................
   let xstart,xstop,xmin,
   data=message.data;// a array sent by ha entity
+  console.log(' intWebSock() called for  mevent ',mevent,", state anticipate: ",state.anticipate==null||!state.anticipate,", state pgm: ",state.program==null||!state.program);
   if((mevent)){
 
   if(mevent=="stopcheckxSun"){
@@ -5639,9 +5676,9 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
 
   //let res = new Array(state.app.plantconfig.relaisEv.length); res.fill(false);// so if any of proposal has lower dimension we complete with false (std)
   // fill result with def value. that will be the value if all antic,program,and user suggested null value
-  let res =[...state.app.plantconfig.relaisDef];// clone array
+  let res =[...state.app.plantconfig.relaisDef];// clone array, fills default ralays status
   let curpumps = state.relays,// cur gpionumb/mqttnumb state with name keys
-   antic, anticGap, program // proposals, anticGap : what relay true if antic[6] true
+   antic, anticGap, program // antic: the anticipate relays, contains  anticGap (what relay set to true if antic[6] true)
     , user;// the user manual set proposal , valid (no timeout)
   // see what set are active (lastxxxAlgo not false)
    if (state.lastAnticAlgo
@@ -5653,8 +5690,9 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
   if (state.lastProgramAlgo
     && state.program && state.program.starthour <= date.getHours() && state.program.stophour > date.getHours()
     // ||lastalgo=='program'
-  ) {program = state.lastProgramAlgo.pumps;
-    anticGap=state.lastProgramAlgo.anticGap;// the anticipate proposal flag (activate item x item the anticipate proposal , item gaspdcPref  of anticInterm2VirtMap:{gaspdcPref:[true,true,true,null,null,true,null,false]})
+  ) {program = state.lastProgramAlgo.pumps;// the standard proposal ( std + intermediate relays (got from anticipate algo), calculated in program() from scheduling)
+    anticGap=state.lastProgramAlgo.anticGap;// the anticipate proposal ( reviewed ralays to activate if anticipate intermediate relays is active: 
+                                            //                          intermediate relays is  only gaspdcPref!,  defined in antMap=anticInterm2VirtMap:{gaspdcPref:[true,true,true,null,null,true,null,false]})
                                             
   // check scadenza
 
@@ -5687,23 +5725,104 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
  browser !!!! see DEW
   */
 
-  let antMap = state.app.plantconfig.anticInterm2VirtMap,// update of virtual dev to apply if a intermediate is set true by anticipate. {gaspdcPref:[true,true,true,null,null,true,null]}/
+  let antMap = state.app.plantconfig.anticInterm2VirtMap,// define intermediate relays
+                                                          // update of virtual dev to apply if a intermediate is set true by anticipate. {gaspdcPref:[true,true,true,null,null,true,null]}/
                                                           // anticInterm2VirtMap:{gaspdcPref:[true,true,true,null,null,true,null,false]}
+  funz=state.app.plantconfig.funz,
   apply;
-  const sol = 1;// scelta implementativa , 
+  const sol = 1;// scelta implementativa : 0, 1=def
   // 0: apply intermedate then merge with program and user 
   // 1: merge , then apply intermediate .thats the preferred choice
 
-  // a: process antic + program
+      // news 22082024 . build a array with increasing priority to consume available power.
+      let dispPow=0;// really consumed pw, carichi di casa compresi eventuali carichi addizionali scaldaB se accesi
+      if(state.aiax&&state.aiax.inverter&&state.aiax.meter)dispPow=1000*state.aiax.inverter+state.aiax.meter-state.aiax.battCharge; // potenza consumata in casa
+      // dispPow1=state.aiax.inverter-state.aiax.batterypower=?;
+      // dispPow=dispPow1; // eventually
+      if (funz)console.log('consolidate funz found scaldaB customization for some relay , funz/scaldaB: ',funz,' aiax: ',state.aiax,' actual consume: ',dispPow);// debug only !
+      // altro caso da considerare : troppa battey charge e batteria > 70% riduco un po la carica ! ........
+      if(state.aiax.inverter>3&&state.aiax.battery>85&&funz&&funz.scaldaB){// voglio alimentare solo carichi visto che la batt e praticamente piena
+        
+      // when anticipating the disp power is this, ex lavatrice is on  so consumo=0.3+2.5 per pdc + 2 per lavatrice =4.8
+      // quindi es inverter=5.5  per accendere lo scaldabagno 5.5 - 4.8= 0.7 > 1.5 che è  false  
+      // allora aspetto che lav =0 al che avrei 5.5 - 2.8 > 1.5   true
+      // naturalmente se nel intervallo di 5 min accendo fornello sono fuori ! ci vorrebbe interrupt per rigirare il program 
+      //  al verificarsi di incrementi di power 
+      // o power superiore a 2.8 + 1.5= 4.3  cioe dico che faccio andare lo scaldabagno lasciando spazio per un addizionale 1.5
+      //    cioe se supero i 5.5  spegno subito lo  scadabagno se sto producendo 6
+      //    es sono a 4.2 con scalda , accendo fornello vado a 6.2 , spengo subito lo scalda  ????
+      // sto prima ad accendere solo se ho inverter- consumo senza scaldabagno  >  2  cosi male che vada ho dispon 1kw per i consumi transitori tra 2 int 
+      //   es ho 5.5 e scalda acceso allora calcolo   5.7 - 2.8 - 1.5   + 1.5 se lo scalda e acceso = 2.9  > 2.9=1.5 + disp=1.4   e cosi se accendo lo scalda -1.5 ho ancora disp 1.4 kw per i carichi che aggiungo tra gli intervalli 
+      //      cio inverter - consumi + 1.5 se acceso scalda > 1.5 + disponibilita per i disp
+      //          inverter >  consumi - 1.5 se acceso scalda + 1.5 + disponibilita per i disp
+      //           inverter >  consumi + 1.5 se non acceso scalda + disponibilita per i disp
+      //             inverter >  2.8 + altri consumi oltre al scalda  + 1.5  + disponibilita per i disp 
+      //   quindi visto che inverter < 6 avro che la disp deve essere minore di 6 - 2.8 - 1.5 = 1.7  , metteremo disp = 1.5 
+      //      cosi accendiamo lo scalda se inverter > consumi senza scalda + 1.5 + 1.5  , che se consumi senza scalda è 2.3 è  inverter > 5.8   
+      // tra la fine di program e l'inizio del nuovo program , e cosi di anticipate 
+  
+  
+  
+  // 13082024 consumi differibili oltre la pdc che si attiva solo con il intermediate anticipate relays in program() see ......
+  // qui lavoriamo sui dev attivati comunque da program dopo aver esaminato il programma orario , li confermiamo in base alla  scaletta priorità se ho power disponibile
+ 
+let curScaldaPow=0, // the power currently consumed by all scaldabagni
+scaldab=funz.scaldaB;// the relays name to be calc with this better algo (different from relays reviewed in applyIntermediate() by simple proposal anticGap ! )
+// 
+        if (scaldab) {// injected function/tool scaldaB
+          if (PRTLEV > 6) console.log('consolidate funz found scaldaB customization for some relay , scaldaB: ',scaldab);
+          scaldab.forEach((sc) => { if (state.relays[sc.nome]) curScaldaPow += sc.power*1000}); // pw attualmente ass dai carichi scaldaB
+
+                                                                                            // se è attualmente attivo  incremento la pot disponibile che poi ritorno a distribuire secondo priorità
+          // let avail = dispPow + curScaldaPow;
+          let avail = 1000*state.aiax.inverter- dispPow+ curScaldaPow;// potenza disponibile per carichi addizionali scaldaB= inverter - potenza carichi esclusi gli addizionali
+                                                                      // cioe pot carica batt + cessione in rete + pot carichi add attivi
+          if (PRTLEV > 6) console.log('consolidate funz curScaldaPow: ',curScaldaPow,' avail: ',avail);  
+          if(state.aiax.battery<95)avail-1000;// riservo 1000 per la batteria
+
+          // todo order scaldab items () sc ) per priorità sc.prior
+          scaldab.forEach((sc) => {// ordinato per priorita , accendiamo fino a che abbiamo margine 
+            let devind = state.app.plantconfig.relaisEv.indexOf(sc.name),scpower=sc.availpower*1000;
+            if (PRTLEV > 6) console.log('consolidate funz curScaldaPow scanning scaldabagni index: ',devind ,' avail: ',avail,' scpower: ',scpower); 
+            if (avail - scpower*0.9  > 0 && devind >= 0) {// there are power to turn on this dev 
+
+              let condition = true ||
+                program[devind];// turn on if the program() checked its program , so the device is currently on 
+
+              if (condition) {
+               
+                if (PRTLEV > 6) console.log(`consolidate funz: dev ${sc.name} , funz type scaldaB, can absorbe a disp power of ${avail} as fv produce more actual load `);
+                program[devind] = true;// anyway
+                avail -= scpower;
+              } else program[devind] = false;
+             // if (PRTLEV > 6) console.log(`consolidate: funz dev ${sc.name} , funz type scaldaB, can absorbe a disp power of ${avail} as fv produce more then consume of ${dispPow}`);// debug
+            }
+          });
+          if (PRTLEV > 6) console.log('consolidate funz after scanning scaldabagni remain a disp power of: ',avail,' that power as battery is ALMOST FULL will be waisted on grid'); 
+        }
+}  
+// end news::
+
+
+
+  // a: process antic + program :
   if (antic) {
     // MMNN :
 
     // antMap={ant=gaspdcPref:res=[true,false,null,,,null]}
-    if (sol == 0) applyIntermed(antic,anticGap);
+    if (sol == 0) applyIntermed(antic,anticGap);// not default
 
-    if (program) {// antic + program + possibly user
+    if (program) {// antic + program + possibly user algos
       // program and antic  case 
       // take current relays (program + day modification of user and apply some lastalgo proposal
+      //  here in we find antic set the intermediate relay 
+
+
+
+
+
+
+
       if(antic.length<program.length)console.error(' in consolidate found antic proposal with less items then program proposal !!!!!')
 
       if (lastalgo = 'program' || lastalgo == 'anticipate') {// useless. probaly  ever
@@ -5727,7 +5846,7 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
         //  anzi, indeed we add in program virtual to real map the activation of some real on gaspdcPref : lh + pdc + g 
         //  and we can move that map from browser to model.js , see LLGGYY
 
-        antic.forEach((val, ind) => { // copy program meno del unico valore non null di anticipate che si riferisce appunto alla var intermediate (gas/pdc)
+        antic.forEach((val, ind) => { // copy for each index the program status less  index where anticipate has not null values, che si riferisce appunto alla var intermediate (gas/pdc)
           if (val == null) {if(program[ind]!=null)res[ind] = program[ind];} else res[ind] = val });// prog e antic active, settings result:
                                                                                                       // take antic values (val) if not null, otherwise take not null program values !
       }
@@ -5761,7 +5880,7 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
     state.user=true;
     */
   });
-  if (sol == 1) apply = applyIntermed(res,anticGap);
+  if (sol == 1) apply = applyIntermed(res,anticGap);// update using anticipate proposal anticGap 
 
 
   // *** now add detailed info x choose actions of customDev on true relays (and probes?)
@@ -5806,6 +5925,15 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
 
 
   function applyIntermed(proposal,smallgapTemp) { // antMap : is the anticInterm2VirtMap in model.js.   proposal is current proposed relays to update if intermediate is set 
+                                                // better explained :
+                                                //    gli intermediate (member of antMap) true in program , 
+                                                //          usually intermediate is gaspdcPref only , 
+                                                //          program is the current/def proposal ( program=state.lastProgramAlgo.pumps (std + intermediate relays), the std proposal  to be applied when no anticipating )
+                                                //    updatano program proposal
+                                                //    according with anticipating proposal anticGap=state.lastProgramAlgo.anticGap proposal:  , set too  in program algo
+
+
+
                                                   // ex proposal=[false,false,false,false,false,false,true,false] so  gaspdcPref is true, int=7 , allora contagia anche i dev in antMap:
                                                   // >>>>  the pgm proposal: proposal=[true,true,true,false,false,true,true,false]
                                                 //  the anticipate proposal : smallgapTemp=[false,false,true,null,,] if true then ,  if the anticipate var is true, apply the anticipate proposal smallgapTemp)
@@ -5841,7 +5969,8 @@ function consolidate(state, lastalgo) {// works on virtual dev  [false, false, f
     }
     return;
   }
-}
+
+}// ends consolidate
 
 
 function toeval(state,evstr){// preferred use :  '>>&&state.devmapping=[0,1,3,2,4];'   will fill the state.devmapping var !
@@ -6038,81 +6167,85 @@ function stringIsInt(str){
 }
   }
 
-  function addPlantHandler(cfgdata,user,plantN,browserUser,reset,cb){// add plantmodel to plants, so can be start by browser
-    // this  handler can be called by a user web call app.post("/registerPlant/", ..) o by a installer browser  call 
-    // return the plantmodel, or if reset 
-    // - rebuild the plant model if there is the user cfg : model.cfgData[user]
-    // - fills haYalms/user
-    // - try webhook the user ha
+function addPlantHandler(cfgdata, user, plantN, browserUser, reset, cb) {// add plantmodel to plants, so can be start by browser
+  // this  handler can be called by a user web call app.post("/registerPlant/", ..) o by a installer browser  call 
+  // return the plantmodel, or if reset 
+  // - rebuild the plant model if there is the user cfg : model.cfgData[user]
+  // - fills haYalms/user
+  // - try webhook the user ha
 
-{// returns plantModel
-
-
-if(cfgdata){//
-
-plantModel=  model.addUserPlant(cfgdata,user,browserUser,true);// config the fv3 std service in a ha connected with ws client  
-                                                                // cfgdata must be in model.cfgData[user] (coming from app.post("/registerPlant/" or browser request),
-                                                                // return plant def (if already present in plants) or 
-                                                                // adds plants def (using cfgData) item in ./nat/haPlants.json and return it , the plant obj with (plantModel.package and plantModel.dashboard ...) yaml config files
-                                                                // if adding use cfgdata to build the custom part of plant cfg and the std ha template cfg files (in /haCfg/defFVMng/.... see: LLUUJJ )
-
-if(plantModel){// store the yaml cfg in a ./haYaml subdir
-// store user conf for :
-// - package and dashboard yaml in reserved cfg for helper entities and dashboard of fv3 service( in energyEngineService sub dir)
-// -  
-try{
- // plantModel.yaml.dashboard.replaceAll('£', user);plantModel.yaml.package.replaceAll('£', user);// customize entity name and conf items  to be unique
-  // put configured yaml into dirs to download to user ha 
-fs.writeFileSync('./haYaml/'+plantN+'/packages/energyEngineService/package.yaml', plantModel.yaml.package);// file to be download in user ha cfg , dir maincfg/packages/energyEngineService
-fs.writeFileSync('./haYaml/'+plantN+'/dashboards/energyEngineService/'+user+'_dashboard.yaml', plantModel.yaml.dashboard);//XC   // file to be download in user ha cfg , dir maincfg/dashboards/energyEngineService
-fs.writeFileSync('./haYaml/'+plantN+'/packages/energyEngineService/configurationadd.yaml', plantModel.yaml.configurationAdd);// that must be add / referencied  in main configuration.yaml to detect the fv3 config in energyEngineService sub dir
-                                                                                                                            // will point to XC
-fs.writeFileSync('./haYaml/'+plantN+'/packages/energyEngineService/configurationuser.yaml', plantModel.yaml.configurationUser);// add also user real enities if not alredy provided by user 
-                                                                                                                                // file to be download in user ha cfg ,dir maincfg/packages/energyEngineService
-} catch(err) {
-console.error('Cannot write new ha registering plant  yamls to file in dir /haYaml , err: ' + err);
-
-throw err;
-
-}     
-
-// prepare file to be download with webhook: 
-// - add yaml encoding , put them in plantModel.yaml 
-
-// check there is not £ in present yaml !
-const repDQuote='£',repQuote=' ££ ',repLF=' £££ ';// replace quote, double quote. lf
-plantModel.yaml.packageEncr=plantModel.yaml.package.replace(/'/g, repQuote);
-plantModel.yaml.packageEncr.replaceAll('\n', repLF);plantModel.yaml.package.replaceAll('*', repDQuote);
-plantModel.yaml.dashboardEncr=plantModel.yaml.dashboard.replace(/'/g, repQuote);
-plantModel.yaml.dashboardEncr.replaceAll('\n', repLF);plantModel.yaml.dashboard.replaceAll('*', repDQuote);
-}  }
-}  
+  {// returns plantModel
 
 
+    if (cfgdata) {//
 
-if(!plantModel){
-cb(null);
-return;
-} else{// send to webhook ha the yaml files plantModel.yaml
+      plantModel = model.addUserPlant(cfgdata, user, browserUser, true);// config the fv3 std service in a ha connected with ws client  
+      // cfgdata must be in model.cfgData[user] (coming from app.post("/registerPlant/" or browser request),
+      // return plant def (if already present in plants) or 
+      // adds plants def (using cfgData) item in ./nat/haPlants.json and return it , the plant obj with (plantModel.package and plantModel.dashboard ...) yaml config files
+      // if adding use cfgdata to build the custom part of plant cfg and the std ha template cfg files (in /haCfg/defFVMng/.... see: LLUUJJ )
 
-let body={// webhook post content
-data:plantModel.yaml.packageEncr//??,filename:'pippo.txt'
-,shell:'/bin/sh\necho povero > generated.txt'//'#!/bin/sh\n cd /config \n git add .'
-,shellname:'fvshell.sh',
-data1:plantModel.yaml.dashboardEncr//,??filename:'pippo.txt'
-};
+      if (plantModel) {// store the yaml cfg in a ./haYaml subdir
+        // store user conf for :
+        // - package and dashboard yaml in reserved cfg for helper entities and dashboard of fv3 service( in energyEngineService sub dir)
+        // -  
+        try {
+          // plantModel.yaml.dashboard.replaceAll('£', user);plantModel.yaml.package.replaceAll('£', user);// customize entity name and conf items  to be unique
+          // put configured yaml into dirs to download to user ha 
+          fs.writeFileSync('./haYaml/' + plantN + '/packages/energyEngineService/package.yaml', plantModel.yaml.package);// file to be download in user ha cfg , dir maincfg/packages/energyEngineService
+          fs.writeFileSync('./haYaml/' + plantN + '/dashboards/energyEngineService/' + user + '_dashboard.yaml', plantModel.yaml.dashboard);//XC   // file to be download in user ha cfg , dir maincfg/dashboards/energyEngineService
+          fs.writeFileSync('./haYaml/' + plantN + '/packages/energyEngineService/configurationadd.yaml', plantModel.yaml.configurationAdd);// that must be add / referencied  in main configuration.yaml to detect the fv3 config in energyEngineService sub dir
+          // will point to XC
+          fs.writeFileSync('./haYaml/' + plantN + '/packages/energyEngineService/configurationuser.yaml', plantModel.yaml.configurationUser);// add also user real enities if not alredy provided by user 
+          // file to be download in user ha cfg ,dir maincfg/packages/energyEngineService
+        } catch (err) {
+          console.error('Cannot write new ha registering plant  yamls to file in dir /haYaml , err: ' + err);
 
-// user ha must define a webhook to insert the files into correct dir to add the fv3 service 
-// 
-// now send ha cfg to ha webhook:
-let   url='http://192.168.1.212:8123/api/webhook/genyaml',
-head={"Content-Type": "application/json"};
+          throw err;
 
-let ret=aiax(url,'POST',body,head);// a promise
-ret.then((code)=>{
-console.log('returning a promise from yaml resolving as : ',cb({result:'yaml transferred to ha client',data:plantModel},// cb the registration post with config and the result of webhook
-plantModel.yaml.package))}// ok yaml transferred to ha, return also the package yaml just to debug
-,()=> {
-console.log('returning a promise from yaml resolving as : ',cb({result:'yaml not transferred to ha client',data:plantModel}))}// return yamls={package:packageyaml,dashboard:dashboardyaml}
-);
-}}
+        }
+
+        // prepare file to be download with webhook: 
+        // - add yaml encoding , put them in plantModel.yaml 
+
+        // check there is not £ in present yaml !
+        const repDQuote = '£', repQuote = ' ££ ', repLF = ' £££ ';// replace quote, double quote. lf
+        plantModel.yaml.packageEncr = plantModel.yaml.package.replace(/'/g, repQuote);
+        plantModel.yaml.packageEncr.replaceAll('\n', repLF); plantModel.yaml.package.replaceAll('*', repDQuote);
+        plantModel.yaml.dashboardEncr = plantModel.yaml.dashboard.replace(/'/g, repQuote);
+        plantModel.yaml.dashboardEncr.replaceAll('\n', repLF); plantModel.yaml.dashboard.replaceAll('*', repDQuote);
+      }
+    }
+  }
+
+
+
+  if (!plantModel) {
+    cb(null);
+    return;
+  } else {// send to webhook ha the yaml files plantModel.yaml
+
+    let body = {// webhook post content
+      data: plantModel.yaml.packageEncr//??,filename:'pippo.txt'
+      , shell: '/bin/sh\necho povero > generated.txt'//'#!/bin/sh\n cd /config \n git add .'
+      , shellname: 'fvshell.sh',
+      data1: plantModel.yaml.dashboardEncr//,??filename:'pippo.txt'
+    };
+
+    // user ha must define a webhook to insert the files into correct dir to add the fv3 service 
+    // 
+    // now send ha cfg to ha webhook:
+    let url = 'http://192.168.1.212:8123/api/webhook/genyaml',
+      head = { "Content-Type": "application/json" };
+
+    let ret = aiax(url, 'POST', body, head);// a promise
+    ret.then((code) => {
+      console.log('returning a promise from yaml resolving as : ', cb({ result: 'yaml transferred to ha client', data: plantModel },// cb the registration post with config and the result of webhook
+        plantModel.yaml.package))
+    }// ok yaml transferred to ha, return also the package yaml just to debug
+      , () => {
+        console.log('returning a promise from yaml resolving as : ', cb({ result: 'yaml not transferred to ha client', data: plantModel }))
+      }// return yamls={package:packageyaml,dashboard:dashboardyaml}
+    );
+  }
+}
